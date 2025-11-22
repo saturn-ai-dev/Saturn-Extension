@@ -94,6 +94,8 @@ export interface UserProfile {
   enabledExtensions: string[];
   enabledSidebarApps: string[];
   customShortcuts: CustomShortcut[];
+  preferredModel?: string;
+  preferredImageModel?: string;
 }
 
 export interface ChatState {

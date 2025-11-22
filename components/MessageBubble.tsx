@@ -278,16 +278,46 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onDownload, onNa
         if (onDownload) onDownload({ id: Date.now().toString(), filename, timestamp: Date.now(), type: 'pdf' });
     };
 
-    const handleMediaDownload = (e: React.MouseEvent, uri: string, type: 'image' | 'video') => {
+    const handleMediaDownload = async (e: React.MouseEvent, uri: string, type: 'image' | 'video') => {
         e.preventDefault();
         const filename = `generated-${Date.now()}.${type === 'video' ? 'mp4' : 'jpg'}`;
-        const link = document.createElement('a');
-        link.href = uri;
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        if (onDownload) onDownload({ id: Date.now().toString(), filename, timestamp: Date.now(), type, uri });
+
+        try {
+            // Check if it's a data URI
+            if (uri.startsWith('data:')) {
+                const response = await fetch(uri);
+                const blob = await response.blob();
+                const blobUrl = URL.createObjectURL(blob);
+
+                const link = document.createElement('a');
+                link.href = blobUrl;
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(blobUrl);
+            } else {
+                // Regular URL (e.g. for video or external images)
+                const link = document.createElement('a');
+                link.href = uri;
+                link.download = filename;
+                link.target = "_blank"; // Fallback for some browsers
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+
+            if (onDownload) onDownload({ id: Date.now().toString(), filename, timestamp: Date.now(), type, uri });
+        } catch (error) {
+            console.error("Download failed:", error);
+            // Fallback to simple anchor click if blob conversion fails
+            const link = document.createElement('a');
+            link.href = uri;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
     }
 
     const handleGeneratedFileDownload = (file: GeneratedFile) => {

@@ -4,54 +4,89 @@ import { Message, Role, Source, SearchMode, GeneratedMedia, Extension } from "..
 
 // Helper to get API Key from storage or env
 const getApiKey = (): string => {
-  return localStorage.getItem('gemini_api_key') || process.env.API_KEY || '';
+    return localStorage.getItem('gemini_api_key') || process.env.API_KEY || '';
 };
 
 // Helper to get AI client instance
 const getAI = () => {
-  const key = getApiKey();
-  if (!key) {
-    throw new Error("API Key is missing. Please go to Settings > General to configure your Gemini API Key.");
-  }
-  return new GoogleGenAI({ apiKey: key });
+    const key = getApiKey();
+    if (!key) {
+        throw new Error("API Key is missing. Please go to Settings > General to configure your Gemini API Key.");
+    }
+    return new GoogleGenAI({ apiKey: key });
 };
 
 export const createNewTab = (): string => {
-  return `tab-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    return `tab-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 };
 
 // Helper to extract sources from grounding metadata
 const extractSources = (candidate: any): Source[] => {
-  const sources: Source[] = [];
-  if (!candidate) return sources;
+    const sources: Source[] = [];
+    if (!candidate) return sources;
 
-  // Handle both camelCase (SDK) and snake_case (Raw API) variations
-  const metadata = candidate.groundingMetadata || candidate.grounding_metadata;
-  
-  if (!metadata) return sources;
+    // Handle both camelCase (SDK) and snake_case (Raw API) variations
+    const metadata = candidate.groundingMetadata || candidate.grounding_metadata;
 
-  const chunks = metadata.groundingChunks || metadata.grounding_chunks;
+    if (!metadata) return sources;
 
-  if (chunks && Array.isArray(chunks)) {
-    chunks.forEach((chunk: any) => {
-      if (!chunk) return;
-      const web = chunk.web;
-      if (web && web.uri) {
-        sources.push({
-          title: web.title || "Web Source",
-          uri: web.uri,
+    const chunks = metadata.groundingChunks || metadata.grounding_chunks;
+
+    if (chunks && Array.isArray(chunks)) {
+        chunks.forEach((chunk: any) => {
+            if (!chunk) return;
+            const web = chunk.web;
+            if (web && web.uri) {
+                sources.push({
+                    title: web.title || "Web Source",
+                    uri: web.uri,
+                });
+            }
         });
-      }
-    });
-  }
-  return sources;
+    }
+    return sources;
 };
 
-export const generateImage = async (prompt: string): Promise<GeneratedMedia> => {
+export const generateImage = async (prompt: string, modelName?: string): Promise<GeneratedMedia> => {
     try {
         const ai = getAI();
+        const selectedModel = modelName || 'gemini-2.5-flash-image';
+
+        console.log(`Generating image with model: ${selectedModel}`);
+
+        // Use generateContent for Gemini models (supporting multimodal output)
+        if (selectedModel.toLowerCase().includes('gemini')) {
+            const response = await ai.models.generateContent({
+                model: selectedModel,
+                contents: [
+                    {
+                        role: 'user',
+                        parts: [{ text: prompt }]
+                    }
+                ],
+                config: {
+                    responseModalities: ['IMAGE', 'TEXT'],
+                } as any
+            });
+
+            const candidate = response.candidates?.[0];
+            // Find the part containing the image
+            const imagePart = candidate?.content?.parts?.find((p: any) => p.inlineData);
+
+            if (imagePart && imagePart.inlineData) {
+                return {
+                    type: 'image',
+                    uri: `data:${imagePart.inlineData.mimeType};base64,${imagePart.inlineData.data}`,
+                    mimeType: imagePart.inlineData.mimeType || 'image/jpeg'
+                };
+            }
+
+            throw new Error("No image data found in the response.");
+        }
+
+        // Fallback for Imagen models
         const response = await ai.models.generateImages({
-            model: 'imagen-4.0-generate-001',
+            model: selectedModel,
             prompt: prompt,
             config: {
                 numberOfImages: 1,
@@ -59,7 +94,7 @@ export const generateImage = async (prompt: string): Promise<GeneratedMedia> => 
                 aspectRatio: '16:9'
             }
         });
-        
+
         const base64ImageBytes = response.generatedImages[0].image.imageBytes;
         return {
             type: 'image',
@@ -88,7 +123,7 @@ export const generateVideo = async (prompt: string): Promise<GeneratedMedia> => 
         // Polling loop
         while (!operation.done) {
             await new Promise(resolve => setTimeout(resolve, 5000)); // Poll every 5s
-            operation = await ai.operations.getVideosOperation({operation: operation});
+            operation = await ai.operations.getVideosOperation({ operation: operation });
         }
 
         const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
@@ -98,7 +133,7 @@ export const generateVideo = async (prompt: string): Promise<GeneratedMedia> => 
         const key = getApiKey();
         const videoResponse = await fetch(`${downloadLink}&key=${key}`);
         const blob = await videoResponse.blob();
-        
+
         // Convert blob to object URL for playback
         const videoUrl = URL.createObjectURL(blob);
 
@@ -116,7 +151,7 @@ export const generateVideo = async (prompt: string): Promise<GeneratedMedia> => 
 const getExtensionInstructions = (extensions: Extension[]): string => {
     if (!extensions || extensions.length === 0) return "";
     // Format clearly so the model recognizes these as distinct behavioral modifiers
-    return extensions.map((ext, i) => 
+    return extensions.map((ext, i) =>
         `[EXTENSION ${i + 1}: ${ext.name}]\nBEHAVIOR/INSTRUCTION: ${ext.instruction}\n` +
         (ext.widgets ? `WIDGETS_AVAILABLE: You can use special tokens to render widgets. Tokens: ${ext.widgets.map(w => `$$$UI:${w.type}:::${w.content}$$$`).join(', ')}` : "")
     ).join("\n\n");
@@ -124,88 +159,89 @@ const getExtensionInstructions = (extensions: Extension[]): string => {
 
 const convertHistoryToApi = (history: Message[]) => {
     return history.slice(-10).map(msg => ({
-      role: msg.role === Role.USER ? 'user' : 'model',
-      parts: msg.attachment 
-        ? [
-            { text: msg.content }, 
-            { inlineData: { mimeType: msg.attachment.mimeType, data: msg.attachment.base64 } }
-          ]
-        : [{ text: msg.content || (msg.generatedMedia ? "[Media Generated]" : "") }]
+        role: msg.role === Role.USER ? 'user' : 'model',
+        parts: msg.attachment
+            ? [
+                { text: msg.content },
+                { inlineData: { mimeType: msg.attachment.mimeType, data: msg.attachment.base64 } }
+            ]
+            : [{ text: msg.content || (msg.generatedMedia ? "[Media Generated]" : "") }]
     }));
 };
 
 export const streamGeminiResponse = async (
-  history: Message[],
-  mode: SearchMode,
-  activeExtensions: Extension[],
-  onChunk: (text: string, sources?: Source[]) => void,
-  onFinish: () => void,
-  onError: (error: Error) => void
+    history: Message[],
+    mode: SearchMode,
+    activeExtensions: Extension[],
+    modelName: string,
+    onChunk: (text: string, sources?: Source[]) => void,
+    onFinish: () => void,
+    onError: (error: Error) => void
 ) => {
-  try {
-    const ai = getAI();
-    const currentMessage = history[history.length - 1];
-    
-    let aggregatedSources: Source[] = [];
+    try {
+        const ai = getAI();
+        const currentMessage = history[history.length - 1];
 
-    // PARALLEL "DEEP" MODE
-    if (mode === 'pro') {
-        const parallelModel = "gemini-2.5-flash";
-        onChunk("_Initializing Deep Search (5x Parallel Compute)..._\n\n", []);
-        
-        const previousMessages = history.slice(0, -1);
-        const apiHistory = convertHistoryToApi(previousMessages);
-        
-        const userPrompt = currentMessage.content;
-        const attachmentPart = currentMessage.attachment 
-            ? { inlineData: { mimeType: currentMessage.attachment.mimeType, data: currentMessage.attachment.base64 } }
-            : null;
+        let aggregatedSources: Source[] = [];
 
-        const messagePayload = attachmentPart ? [{ text: userPrompt }, attachmentPart] : userPrompt;
+        // PARALLEL "DEEP" MODE
+        if (mode === 'pro') {
+            const parallelModel = modelName || "gemini-2.5-flash";
+            onChunk("_Initializing Deep Search (5x Parallel Compute)..._\n\n", []);
 
-        // 1. Launch 5 parallel requests with slight temperature variations
-        const promises = Array(5).fill(0).map(async (_, index) => {
-             const chat = ai.chats.create({
-                model: parallelModel,
-                history: apiHistory,
-                config: {
-                    temperature: 0.7 + (index * 0.15), // Vary temperature to get diverse perspectives
-                    tools: [{ googleSearch: {} }, { codeExecution: {} }]
+            const previousMessages = history.slice(0, -1);
+            const apiHistory = convertHistoryToApi(previousMessages);
+
+            const userPrompt = currentMessage.content;
+            const attachmentPart = currentMessage.attachment
+                ? { inlineData: { mimeType: currentMessage.attachment.mimeType, data: currentMessage.attachment.base64 } }
+                : null;
+
+            const messagePayload = attachmentPart ? [{ text: userPrompt }, attachmentPart] : userPrompt;
+
+            // 1. Launch 5 parallel requests with slight temperature variations
+            const promises = Array(5).fill(0).map(async (_, index) => {
+                const chat = ai.chats.create({
+                    model: parallelModel,
+                    history: apiHistory,
+                    config: {
+                        temperature: 0.7 + (index * 0.15), // Vary temperature to get diverse perspectives
+                        tools: [{ googleSearch: {} }, { codeExecution: {} }]
+                    }
+                });
+
+                try {
+                    const result = await chat.sendMessage({ message: messagePayload });
+                    // Extract text and sources
+                    const text = result.text || "";
+                    const sources = extractSources(result.candidates?.[0]);
+                    return { text, sources, index, success: true };
+                } catch (e) {
+                    console.warn(`Parallel request ${index} failed`, e);
+                    return { text: "", sources: [], index, success: false };
                 }
-             });
-             
-             try {
-                 const result = await chat.sendMessage({ message: messagePayload });
-                 // Extract text and sources
-                 const text = result.text || "";
-                 const sources = extractSources(result.candidates?.[0]);
-                 return { text, sources, index, success: true };
-             } catch (e) {
-                 console.warn(`Parallel request ${index} failed`, e);
-                 return { text: "", sources: [], index, success: false };
-             }
-        });
+            });
 
-        // 2. Wait for all responses
-        const results = await Promise.all(promises);
-        const successfulResults = results.filter(r => r.success && r.text);
-        
-        if (successfulResults.length === 0) {
-            throw new Error("Deep search failed to get responses from parallel nodes.");
-        }
+            // 2. Wait for all responses
+            const results = await Promise.all(promises);
+            const successfulResults = results.filter(r => r.success && r.text);
 
-        // 3. Aggregate Sources
-        successfulResults.forEach(r => {
-            if (r.sources) aggregatedSources.push(...r.sources);
-        });
-        
-        // Deduplicate sources based on URI
-        aggregatedSources = Array.from(new Map(aggregatedSources.map(item => [item.uri, item])).values());
+            if (successfulResults.length === 0) {
+                throw new Error("Deep search failed to get responses from parallel nodes.");
+            }
 
-        // 4. Synthesize
-        onChunk("_Synthesizing responses..._\n\n", []);
-        
-        const synthesisPrompt = `
+            // 3. Aggregate Sources
+            successfulResults.forEach(r => {
+                if (r.sources) aggregatedSources.push(...r.sources);
+            });
+
+            // Deduplicate sources based on URI
+            aggregatedSources = Array.from(new Map(aggregatedSources.map(item => [item.uri, item])).values());
+
+            // 4. Synthesize
+            onChunk("_Synthesizing responses..._\n\n", []);
+
+            const synthesisPrompt = `
             I have executed a 'Deep Search' by running 5 parallel AI queries for the user prompt: "${userPrompt}".
             
             Here are the raw responses from the parallel nodes:
@@ -219,39 +255,39 @@ export const streamGeminiResponse = async (
             - Do NOT mention "Node 1" or "Node 2". Just present the final truth.
         `;
 
-        const synthesisChat = ai.chats.create({
-            model: parallelModel,
-            config: {
-                systemInstruction: "You are a Master Synthesizer AI. Your goal is to create the perfect answer from multiple inputs."
+            const synthesisChat = ai.chats.create({
+                model: parallelModel,
+                config: {
+                    systemInstruction: "You are a Master Synthesizer AI. Your goal is to create the perfect answer from multiple inputs."
+                }
+            });
+
+            const synthesisStream = await synthesisChat.sendMessageStream({ message: synthesisPrompt });
+
+            for await (const chunk of synthesisStream) {
+                const responseChunk = chunk as GenerateContentResponse;
+                const text = responseChunk.text || "";
+                // We stream the synthesis text, attaching the aggregated sources found in the first step
+                onChunk(text, aggregatedSources);
             }
-        });
 
-        const synthesisStream = await synthesisChat.sendMessageStream({ message: synthesisPrompt });
+        } else {
+            // STANDARD MODES
+            let model = modelName || "gemini-2.5-flash";
 
-        for await (const chunk of synthesisStream) {
-             const responseChunk = chunk as GenerateContentResponse;
-             const text = responseChunk.text || "";
-             // We stream the synthesis text, attaching the aggregated sources found in the first step
-             onChunk(text, aggregatedSources);
-        }
+            if (mode === 'fast' || mode === 'nobs') {
+                model = "gemini-flash-lite-latest";
+            }
 
-    } else {
-        // STANDARD MODES
-        let model = "gemini-2.5-flash"; 
+            const previousMessages = history.slice(0, -1);
+            const apiHistory = convertHistoryToApi(previousMessages);
 
-        if (mode === 'fast' || mode === 'nobs') {
-            model = "gemini-flash-lite-latest";
-        } 
-        
-        const previousMessages = history.slice(0, -1);
-        const apiHistory = convertHistoryToApi(previousMessages);
+            let systemInstruction = mode === 'nobs'
+                ? "Answer with exactly ONE word. No period. No explanation. Just one word."
+                : "You are Saturn, an advanced AI browser assistant. When answering factual questions, you MUST use the Google Search tool to provide verified information and citations. Always verify your answers with search results.";
 
-        let systemInstruction = mode === 'nobs' 
-            ? "Answer with exactly ONE word. No period. No explanation. Just one word." 
-            : "You are Saturn, an advanced AI browser assistant. When answering factual questions, you MUST use the Google Search tool to provide verified information and citations. Always verify your answers with search results.";
-        
-        // FILE GENERATION INSTRUCTION
-        systemInstruction += `
+            // FILE GENERATION INSTRUCTION
+            systemInstruction += `
         
         IMPORTANT: You have access to a python interpreter. However, the file system is NOT persistent and the user CANNOT access files you save to the sandbox directory directly.
         IF the user asks you to generate a file (like a PDF, CSV, Image, Text, etc.) using Python:
@@ -274,72 +310,72 @@ export const streamGeminiResponse = async (
         - $$$UI:INFO:::Message$$$ (A distinct info card)
         `;
 
-        // Append extension instructions
-        if (mode !== 'nobs') {
-            const extInstructions = getExtensionInstructions(activeExtensions);
-            if (extInstructions) {
-                systemInstruction += `\n\n` +
-                    `*** ACTIVE EXTENSION OVERRIDES ***\n` +
-                    `The user has installed the following extensions. You MUST adopt their behaviors. ` +
-                    `These instructions take PRECEDENCE over your default persona.\n\n` +
-                    `${extInstructions}\n` +
-                    `*** END EXTENSIONS ***`;
-            }
-        }
-
-        // Configure Tools
-        const tools: any[] = [];
-        // Use Google Search in normal, pro, and standard modes (unless it's 'nobs')
-        if (mode !== 'nobs') {
-            tools.push({ googleSearch: {} });
-            tools.push({ codeExecution: {} }); 
-        }
-
-        const chat = ai.chats.create({
-            model: model,
-            history: apiHistory,
-            config: {
-                tools: tools,
-                systemInstruction: systemInstruction,
-            },
-        });
-
-        let messagePayload;
-        if (currentMessage.attachment) {
-            messagePayload = [
-                { text: currentMessage.content },
-                { inlineData: { mimeType: currentMessage.attachment.mimeType, data: currentMessage.attachment.base64 } }
-            ];
-        } else {
-            messagePayload = currentMessage.content;
-        }
-
-        const resultStream = await chat.sendMessageStream({
-            message: messagePayload
-        });
-
-        for await (const chunk of resultStream) {
-            const responseChunk = chunk as GenerateContentResponse;
-            const text = responseChunk.text || "";
-            
-            // Robustly extract sources from potentially streaming chunks
-            if (responseChunk.candidates && responseChunk.candidates[0]) {
-                const newSources = extractSources(responseChunk.candidates[0]);
-                if (newSources.length > 0) {
-                    aggregatedSources = [...aggregatedSources, ...newSources];
-                    // Deduplicate
-                    aggregatedSources = Array.from(new Map(aggregatedSources.map(item => [item.uri, item])).values());
+            // Append extension instructions
+            if (mode !== 'nobs') {
+                const extInstructions = getExtensionInstructions(activeExtensions);
+                if (extInstructions) {
+                    systemInstruction += `\n\n` +
+                        `*** ACTIVE EXTENSION OVERRIDES ***\n` +
+                        `The user has installed the following extensions. You MUST adopt their behaviors. ` +
+                        `These instructions take PRECEDENCE over your default persona.\n\n` +
+                        `${extInstructions}\n` +
+                        `*** END EXTENSIONS ***`;
                 }
             }
 
-            // Always pass sources if we have them, even if text is empty
-            onChunk(text, aggregatedSources);
-        }
-    }
+            // Configure Tools
+            const tools: any[] = [];
+            // Use Google Search in normal, pro, and standard modes (unless it's 'nobs')
+            if (mode !== 'nobs') {
+                tools.push({ googleSearch: {} });
+                tools.push({ codeExecution: {} });
+            }
 
-    onFinish();
-  } catch (error) {
-    console.error("Gemini API Error:", error);
-    onError(error instanceof Error ? error : new Error(String(error)));
-  }
+            const chat = ai.chats.create({
+                model: model,
+                history: apiHistory,
+                config: {
+                    tools: tools,
+                    systemInstruction: systemInstruction,
+                },
+            });
+
+            let messagePayload;
+            if (currentMessage.attachment) {
+                messagePayload = [
+                    { text: currentMessage.content },
+                    { inlineData: { mimeType: currentMessage.attachment.mimeType, data: currentMessage.attachment.base64 } }
+                ];
+            } else {
+                messagePayload = currentMessage.content;
+            }
+
+            const resultStream = await chat.sendMessageStream({
+                message: messagePayload
+            });
+
+            for await (const chunk of resultStream) {
+                const responseChunk = chunk as GenerateContentResponse;
+                const text = responseChunk.text || "";
+
+                // Robustly extract sources from potentially streaming chunks
+                if (responseChunk.candidates && responseChunk.candidates[0]) {
+                    const newSources = extractSources(responseChunk.candidates[0]);
+                    if (newSources.length > 0) {
+                        aggregatedSources = [...aggregatedSources, ...newSources];
+                        // Deduplicate
+                        aggregatedSources = Array.from(new Map(aggregatedSources.map(item => [item.uri, item])).values());
+                    }
+                }
+
+                // Always pass sources if we have them, even if text is empty
+                onChunk(text, aggregatedSources);
+            }
+        }
+
+        onFinish();
+    } catch (error) {
+        console.error("Gemini API Error:", error);
+        onError(error instanceof Error ? error : new Error(String(error)));
+    }
 };
