@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Saturn Sandbox</title>
+</head>
+
+<body>
+    <script>
+        window.addEventListener('message', async (event) => {
+            const { code, id } = event.data;
+            if (!code) return;
+
+            const logs = [];
+            const originalLog = console.log;
+            const originalError = console.error;
+            const originalWarn = console.warn;
+
+            console.log = (...args) => logs.push(args.map(a => typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a)).join(' '));
+            console.error = (...args) => logs.push(`[Error] ${args.map(a => typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a)).join(' ')}`);
+            console.warn = (...args) => logs.push(`[Warn] ${args.map(a => typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a)).join(' ')}`);
+
+            try {
+                // Safe-ish eval in sandbox
+                const result = await eval(`(async () => { ${code} })()`);
+                if (result !== undefined) {
+                    logs.push(`> ${typeof result === 'object' ? JSON.stringify(result, null, 2) : String(result)}`);
+                }
+                event.source.postMessage({ id, success: true, output: logs.join('\n') || 'Executed successfully. (No output)' }, event.origin);
+            } catch (e) {
+                event.source.postMessage({ id, success: false, output: logs.join('\n') + `\nRuntime Error: ${e.message}` }, event.origin);
+            } finally {
+                console.log = originalLog;
+                console.error = originalError;
+                console.warn = originalWarn;
+            }
+        });
+    </script>
+</body>
+
+</html>
