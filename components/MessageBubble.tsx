@@ -408,7 +408,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onDownload, onNa
                     {files.length > 0 && (
                         <div className="grid gap-2 mb-4 w-full max-w-md">
                             {files.map((file, idx) => (
-                                <div key={idx} className="flex items-center justify-between p-4 bg-zen-surface rounded-xl border border-zen-border hover:border-zen-accent transition-colors shadow-md">
+                                <div key={idx} className="flex items-center justify-between p-4 bg-zen-surface rounded-xl border border-zen-border hover:border-zen-accent transition-colors shadow-md hover-lift">
                                     <div className="flex items-center gap-3 overflow-hidden">
                                         <div className="p-2 bg-zen-bg rounded-lg border border-zen-border"><Download className="w-5 h-5 text-zen-accent" /></div>
                                         <div className="min-w-0">
@@ -475,7 +475,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onDownload, onNa
                                     {widgets.map((w, i) => (
                                         <div key={i} className="animate-fade-in">
                                             {w.type === 'BUTTON' && (
-                                                <button className="w-full py-3 px-4 bg-zen-surface border border-zen-border rounded-xl hover:bg-zen-accent hover:text-white hover:border-transparent transition-all font-bold text-sm shadow-sm active:scale-95">
+                                                <button className="w-full py-3 px-4 bg-zen-surface border border-zen-border rounded-xl hover:bg-zen-accent hover:text-white hover:border-transparent transition-all font-bold text-sm shadow-sm active:scale-95 interactive-element">
                                                     {w.content}
                                                 </button>
                                             )}
@@ -519,7 +519,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onDownload, onNa
                                     const favicon = getFaviconUrl(source.uri);
 
                                     return (
-                                        <div key={idx} className="flex flex-col bg-zen-surface/40 border border-zen-border rounded-2xl transition-all duration-300 backdrop-blur-sm hover:bg-zen-surface hover:border-zen-accent/40 hover:shadow-lg group/source hover:-translate-y-0.5">
+                                        <div key={idx} className="flex flex-col bg-zen-surface/40 border border-zen-border rounded-2xl transition-all duration-300 backdrop-blur-sm hover:bg-zen-surface hover:border-zen-accent/40 hover:shadow-lg group/source hover-lift">
                                             <a href={source.uri || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { e.preventDefault(); if (source.uri) { if (onNavigate) onNavigate(source.uri); else window.open(source.uri, '_blank'); } }} className="flex items-center gap-3 p-4 w-full relative overflow-hidden">
 
                                                 {ytId ? (

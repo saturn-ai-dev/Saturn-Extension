@@ -283,7 +283,7 @@ export const streamGeminiResponse = async (
             const apiHistory = convertHistoryToApi(previousMessages);
 
             let systemInstruction = mode === 'nobs'
-                ? "Answer with exactly ONE word. No period. No explanation. Just one word."
+                ? "Answer with the shortest possible answer. Cut to the chase directly in a few words or sentences. Do not use just one word unless absolutely necessary. Be direct and concise. You MUST use the Google Search tool to provide verified information if needed."
                 : "You are Saturn, an advanced AI browser assistant. When answering factual questions, you MUST use the Google Search tool to provide verified information and citations. Always verify your answers with search results.";
 
             // FILE GENERATION INSTRUCTION
@@ -325,9 +325,10 @@ export const streamGeminiResponse = async (
 
             // Configure Tools
             const tools: any[] = [];
-            // Use Google Search in normal, pro, and standard modes (unless it's 'nobs')
+            // Use Google Search in normal, pro, and standard modes (including 'nobs' now)
+            tools.push({ googleSearch: {} });
+
             if (mode !== 'nobs') {
-                tools.push({ googleSearch: {} });
                 tools.push({ codeExecution: {} });
             }
 
