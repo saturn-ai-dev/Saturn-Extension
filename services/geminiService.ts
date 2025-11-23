@@ -275,14 +275,14 @@ export const streamGeminiResponse = async (
             // STANDARD MODES
             let model = modelName || "gemini-2.5-flash";
 
-            if (mode === 'fast' || mode === 'nobs') {
+            if (mode === 'fast' || mode === 'direct') {
                 model = "gemini-flash-lite-latest";
             }
 
             const previousMessages = history.slice(0, -1);
             const apiHistory = convertHistoryToApi(previousMessages);
 
-            let systemInstruction = mode === 'nobs'
+            let systemInstruction = mode === 'direct'
                 ? "Answer with the shortest possible answer. Cut to the chase directly in a few words or sentences. Do not use just one word unless absolutely necessary. Be direct and concise. You MUST use the Google Search tool to provide verified information if needed."
                 : "You are Saturn, an advanced AI browser assistant. When answering factual questions, you MUST use the Google Search tool to provide verified information and citations. Always verify your answers with search results.";
 
@@ -311,7 +311,7 @@ export const streamGeminiResponse = async (
         `;
 
             // Append extension instructions
-            if (mode !== 'nobs') {
+            if (mode !== 'direct') {
                 const extInstructions = getExtensionInstructions(activeExtensions);
                 if (extInstructions) {
                     systemInstruction += `\n\n` +
@@ -325,10 +325,10 @@ export const streamGeminiResponse = async (
 
             // Configure Tools
             const tools: any[] = [];
-            // Use Google Search in normal, pro, and standard modes (including 'nobs' now)
+            // Use Google Search in normal, pro, and standard modes (including 'direct' now)
             tools.push({ googleSearch: {} });
 
-            if (mode !== 'nobs') {
+            if (mode !== 'direct') {
                 tools.push({ codeExecution: {} });
             }
 

@@ -4,7 +4,7 @@ export enum Role {
   MODEL = 'model'
 }
 
-export type SearchMode = 'fast' | 'normal' | 'pro' | 'image' | 'video' | 'nobs' | 'simple';
+export type SearchMode = 'fast' | 'normal' | 'pro' | 'image' | 'video' | 'direct' | 'simple';
 export type Theme = 'red' | 'blue' | 'incognito' | 'glass' | 'light' | 'blackbox' | 'charcoal-cosmic' | 'galaxy';
 
 export interface Source {

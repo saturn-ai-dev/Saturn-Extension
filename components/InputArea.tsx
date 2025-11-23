@@ -70,7 +70,7 @@ const InputArea: React.FC<InputAreaProps> = ({ onSend, disabled, mode, setMode }
     { id: 'fast', label: 'Fast', icon: <Zap className="w-3 h-3" /> },
     { id: 'normal', label: 'Web', icon: <Globe className="w-3 h-3" /> },
     { id: 'pro', label: 'Deep', icon: <BrainCircuit className="w-3 h-3" /> },
-    { id: 'nobs', label: 'No BS', icon: <Target className="w-3 h-3" /> },
+    { id: 'direct', label: 'Direct', icon: <Target className="w-3 h-3" /> },
     { id: 'image', label: 'Image', icon: <ImageIcon className="w-3 h-3" /> },
     { id: 'video', label: 'Video', icon: <Video className="w-3 h-3" /> },
   ];
@@ -78,7 +78,7 @@ const InputArea: React.FC<InputAreaProps> = ({ onSend, disabled, mode, setMode }
   const getPlaceholder = () => {
     if (mode === 'image') return "Describe an image to generate...";
     if (mode === 'video') return "Describe a video to generate (takes time)...";
-    if (mode === 'nobs') return "Ask for a short answer...";
+    if (mode === 'direct') return "Ask for a short answer...";
     return "Ask anything or type a URL...";
   }
 
