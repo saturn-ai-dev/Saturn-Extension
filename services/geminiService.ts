@@ -158,15 +158,26 @@ const getExtensionInstructions = (extensions: Extension[]): string => {
 };
 
 const convertHistoryToApi = (history: Message[]) => {
-    return history.slice(-10).map(msg => ({
-        role: msg.role === Role.USER ? 'user' : 'model',
-        parts: msg.attachment
-            ? [
-                { text: msg.content },
-                { inlineData: { mimeType: msg.attachment.mimeType, data: msg.attachment.base64 } }
-            ]
-            : [{ text: msg.content || (msg.generatedMedia ? "[Media Generated]" : "") }]
-    }));
+    return history.slice(-10).map(msg => {
+        const parts: any[] = [{ text: msg.content || (msg.generatedMedia ? "[Media Generated]" : "") }];
+
+        // Handle legacy single attachment
+        if (msg.attachment) {
+            parts.push({ inlineData: { mimeType: msg.attachment.mimeType, data: msg.attachment.base64 } });
+        }
+
+        // Handle new multiple attachments
+        if (msg.attachments && msg.attachments.length > 0) {
+            msg.attachments.forEach(att => {
+                parts.push({ inlineData: { mimeType: att.mimeType, data: att.base64 } });
+            });
+        }
+
+        return {
+            role: msg.role === Role.USER ? 'user' : 'model',
+            parts: parts
+        };
+    });
 };
 
 export const streamGeminiResponse = async (
@@ -174,6 +185,7 @@ export const streamGeminiResponse = async (
     mode: SearchMode,
     activeExtensions: Extension[],
     modelName: string,
+    customInstructions: string | undefined,
     onChunk: (text: string, sources?: Source[]) => void,
     onFinish: () => void,
     onError: (error: Error) => void
@@ -193,11 +205,16 @@ export const streamGeminiResponse = async (
             const apiHistory = convertHistoryToApi(previousMessages);
 
             const userPrompt = currentMessage.content;
-            const attachmentPart = currentMessage.attachment
-                ? { inlineData: { mimeType: currentMessage.attachment.mimeType, data: currentMessage.attachment.base64 } }
-                : null;
+            let messagePayload: any[] = [{ text: userPrompt }];
 
-            const messagePayload = attachmentPart ? [{ text: userPrompt }, attachmentPart] : userPrompt;
+            if (currentMessage.attachment) {
+                messagePayload.push({ inlineData: { mimeType: currentMessage.attachment.mimeType, data: currentMessage.attachment.base64 } });
+            }
+            if (currentMessage.attachments && currentMessage.attachments.length > 0) {
+                currentMessage.attachments.forEach(att => {
+                    messagePayload.push({ inlineData: { mimeType: att.mimeType, data: att.base64 } });
+                });
+            }
 
             // 1. Launch 5 parallel requests with slight temperature variations
             const promises = Array(5).fill(0).map(async (_, index) => {
@@ -315,11 +332,19 @@ export const streamGeminiResponse = async (
                 const extInstructions = getExtensionInstructions(activeExtensions);
                 if (extInstructions) {
                     systemInstruction += `\n\n` +
-                        `*** ACTIVE EXTENSION OVERRIDES ***\n` +
-                        `The user has installed the following extensions. You MUST adopt their behaviors. ` +
+                        `*** ACTIVE PERSONA/EXTENSION OVERRIDES ***\n` +
+                        `The user has installed the following personas/extensions. You MUST adopt their behaviors. ` +
                         `These instructions take PRECEDENCE over your default persona.\n\n` +
                         `${extInstructions}\n` +
-                        `*** END EXTENSIONS ***`;
+                        `*** END PERSONAS ***`;
+                }
+
+                if (customInstructions) {
+                    systemInstruction += `\n\n` +
+                        `*** USER CUSTOM INSTRUCTIONS ***\n` +
+                        `The user has provided the following global instructions. You MUST follow them:\n` +
+                        `${customInstructions}\n` +
+                        `*** END CUSTOM INSTRUCTIONS ***`;
                 }
             }
 
@@ -341,14 +366,16 @@ export const streamGeminiResponse = async (
                 },
             });
 
-            let messagePayload;
+            let messagePayload: any[] = [{ text: currentMessage.content }];
+
             if (currentMessage.attachment) {
-                messagePayload = [
-                    { text: currentMessage.content },
-                    { inlineData: { mimeType: currentMessage.attachment.mimeType, data: currentMessage.attachment.base64 } }
-                ];
-            } else {
-                messagePayload = currentMessage.content;
+                messagePayload.push({ inlineData: { mimeType: currentMessage.attachment.mimeType, data: currentMessage.attachment.base64 } });
+            }
+
+            if (currentMessage.attachments && currentMessage.attachments.length > 0) {
+                currentMessage.attachments.forEach(att => {
+                    messagePayload.push({ inlineData: { mimeType: att.mimeType, data: att.base64 } });
+                });
             }
 
             const resultStream = await chat.sendMessageStream({
