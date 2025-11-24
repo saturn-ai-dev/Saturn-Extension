@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import GXSidebar from './components/GXSidebar';
+import SaturnSidebar from './components/SaturnSidebar';
 import HistoryDrawer from './components/HistoryDrawer';
 import SidebarPanel from './components/SidebarPanel';
 import MessageBubble from './components/MessageBubble';
@@ -119,6 +119,7 @@ export default function App() {
                 setGlobalHistory(data.globalHistory || []);
                 setCustomBackdrop(data.customBackdrop || null);
                 setCustomInstructions(data.customInstructions || '');
+                setIsIncognito(data.isIncognito || false);
             } else {
                 const newTab = getInitialTab();
                 setTabs([newTab]);
@@ -129,6 +130,7 @@ export default function App() {
                 setGlobalHistory([]);
                 setCustomBackdrop(null);
                 setCustomInstructions('');
+                setIsIncognito(false);
             }
         } catch (e) {
             console.error("Failed to load user data", e);
@@ -141,6 +143,7 @@ export default function App() {
             setGlobalHistory([]);
             setCustomBackdrop(null);
             setCustomInstructions('');
+            setIsIncognito(false);
         }
         setCurrentTheme(currentUser.theme);
         localStorage.setItem('deepsearch_current_user_id', userId);
@@ -149,13 +152,20 @@ export default function App() {
     useEffect(() => {
         const userId = currentUser.id;
         const storageKey = `deepsearch_data_${userId}`;
-        const dataToSave = { tabs, activeTabId, archivedTabs, bookmarks, downloads, customBackdrop, globalHistory, customInstructions };
+
+        // In incognito mode, don't persist conversation history (tabs/archivedTabs/globalHistory)
+        const dataToSave = isIncognito
+            ? { bookmarks, downloads, customBackdrop, customInstructions, isIncognito }
+            : { tabs, activeTabId, archivedTabs, bookmarks, downloads, customBackdrop, globalHistory, customInstructions, isIncognito };
+
         localStorage.setItem(storageKey, JSON.stringify(dataToSave));
-    }, [tabs, archivedTabs, activeTabId, bookmarks, downloads, customBackdrop, globalHistory, customInstructions]);
+    }, [tabs, archivedTabs, activeTabId, bookmarks, downloads, customBackdrop, globalHistory, customInstructions, isIncognito]);
 
     useEffect(() => {
         localStorage.setItem('deepsearch_users', JSON.stringify(users));
-    }, [users]); useEffect(() => {
+    }, [users]);
+
+    useEffect(() => {
         localStorage.setItem('deepsearch_custom_extensions', JSON.stringify(customExtensions));
     }, [customExtensions]);
 
@@ -569,7 +579,7 @@ export default function App() {
             {!customBackdrop && starField}
             {(customBackdrop || currentTheme === 'galaxy') && <div className="absolute inset-0 bg-black/30 backdrop-blur-[1px] pointer-events-none z-0" />}
 
-            <GXSidebar
+            <SaturnSidebar
                 onNewTab={handleNewTab}
                 onOpenSettings={() => setIsSettingsOpen(true)}
                 onToggleHistory={handleToggleHistory}

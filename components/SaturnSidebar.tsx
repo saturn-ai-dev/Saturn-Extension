@@ -3,7 +3,7 @@ import React from 'react';
 import { Plus, Settings, LayoutGrid, FileText, Calculator, Music, Twitch } from 'lucide-react';
 import { CustomShortcut } from '../types';
 
-interface GXSidebarProps {
+interface SaturnSidebarProps {
     onNewTab: () => void;
     onOpenSettings: () => void;
     onToggleHistory: () => void;
@@ -45,7 +45,7 @@ const WhatsAppLogo = ({ className }: { className?: string }) => (
     </svg>
 );
 
-const GXSidebar: React.FC<GXSidebarProps> = ({
+const SaturnSidebar: React.FC<SaturnSidebarProps> = ({
     onNewTab,
     onOpenSettings,
     onToggleHistory,
@@ -113,7 +113,7 @@ const GXSidebar: React.FC<GXSidebarProps> = ({
             </div>
 
             <div className="mt-auto flex flex-col gap-3 w-full px-2.5 pb-2 app-no-drag">
-                <button onClick={onToggleHistory} className={`w-full aspect-square rounded-xl flex items-center justify-center transition-all border ${isHistoryOpen ? 'bg-zen-text text-zen-bg border-zen-text' : 'text-zen-muted border-transparent hover:bg-zen-bg hover:text-zen-text hover:border-zen-border'}`} title="GX Control / History">
+                <button onClick={onToggleHistory} className={`w-full aspect-square rounded-xl flex items-center justify-center transition-all border ${isHistoryOpen ? 'bg-zen-text text-zen-bg border-zen-text' : 'text-zen-muted border-transparent hover:bg-zen-bg hover:text-zen-text hover:border-zen-border'}`} title="Saturn Control / History">
                     <LayoutGrid className="w-5 h-5" />
                 </button>
                 <button onClick={onOpenSettings} className="w-full aspect-square rounded-xl text-zen-muted hover:bg-zen-bg hover:text-zen-text hover:border-zen-border border border-transparent flex items-center justify-center transition-all hover:rotate-45" title="Settings">
@@ -124,4 +124,4 @@ const GXSidebar: React.FC<GXSidebarProps> = ({
     );
 };
 
-export default GXSidebar;
+export default SaturnSidebar;
