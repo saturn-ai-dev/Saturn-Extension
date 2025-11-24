@@ -5,7 +5,7 @@ import { ArrowUp, Zap, Globe, BrainCircuit, Paperclip, X, Image as ImageIcon, Vi
 import { SearchMode, Attachment } from '../types';
 
 interface InputAreaProps {
-  onSend: (text: string, attachment?: Attachment) => void;
+  onSend: (text: string, attachments?: Attachment[]) => void;
   disabled: boolean;
   mode: SearchMode;
   setMode: (mode: SearchMode) => void;
@@ -14,7 +14,7 @@ interface InputAreaProps {
 const InputArea: React.FC<InputAreaProps> = ({ onSend, disabled, mode, setMode }) => {
   const [input, setInput] = useState('');
   const [isFocused, setIsFocused] = useState(false);
-  const [attachment, setAttachment] = useState<Attachment | null>(null);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [showPreview, setShowPreview] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -34,10 +34,10 @@ const InputArea: React.FC<InputAreaProps> = ({ onSend, disabled, mode, setMode }
   };
 
   const handleSend = () => {
-    if ((input.trim() || attachment) && !disabled) {
-      onSend(input.trim(), attachment || undefined);
+    if ((input.trim() || attachments.length > 0) && !disabled) {
+      onSend(input.trim(), attachments.length > 0 ? attachments : undefined);
       setInput('');
-      setAttachment(null);
+      setAttachments([]);
       setShowPreview(false);
       if (textareaRef.current) {
         textareaRef.current.style.height = 'auto';
@@ -46,24 +46,30 @@ const InputArea: React.FC<InputAreaProps> = ({ onSend, disabled, mode, setMode }
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
+    if (e.target.files && e.target.files.length > 0) {
+      const files = Array.from(e.target.files);
 
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const result = reader.result as string;
-        const base64 = result.split(',')[1];
-        setAttachment({
-          file,
-          preview: result,
-          base64,
-          mimeType: file.type || 'application/octet-stream',
-          name: file.name
-        });
-      };
-      reader.readAsDataURL(file);
+      files.forEach(file => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const result = reader.result as string;
+          const base64 = result.split(',')[1];
+          setAttachments(prev => [...prev, {
+            file,
+            preview: result,
+            base64,
+            mimeType: file.type || 'application/octet-stream',
+            name: file.name
+          }]);
+        };
+        reader.readAsDataURL(file);
+      });
     }
     if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachments(prev => prev.filter((_, i) => i !== index));
   };
 
   const modes: { id: SearchMode; label: string; icon: React.ReactNode; }[] = [
@@ -82,37 +88,36 @@ const InputArea: React.FC<InputAreaProps> = ({ onSend, disabled, mode, setMode }
     return "Ask anything or type a URL...";
   }
 
-  const renderPreview = () => {
-    if (!attachment) return null;
+  const renderPreview = (attachment: Attachment) => {
     const type = attachment.mimeType;
 
     if (type.startsWith('image/')) {
-      return <img src={attachment.preview} alt="Preview" className="h-24 rounded-xl border border-zen-border shadow-lg object-cover" />;
+      return <img src={attachment.preview} alt="Preview" className="h-20 w-20 rounded-xl border border-white/10 shadow-lg object-cover" />;
     }
 
     if (type.startsWith('video/')) {
       return (
-        <div className="h-24 w-32 rounded-xl border border-zen-border shadow-lg bg-black flex items-center justify-center relative overflow-hidden">
+        <div className="h-20 w-20 rounded-xl border border-white/10 shadow-lg bg-black flex items-center justify-center relative overflow-hidden">
           <video src={attachment.preview} className="absolute inset-0 w-full h-full object-cover opacity-50" />
-          <Video className="w-8 h-8 text-white relative z-10" />
+          <Video className="w-6 h-6 text-white relative z-10" />
         </div>
       );
     }
 
     if (type.startsWith('audio/')) {
       return (
-        <div className="h-24 w-32 rounded-xl border border-zen-border shadow-lg bg-zen-surface flex flex-col items-center justify-center gap-2 p-2">
-          <Music className="w-8 h-8 text-pink-500" />
-          <span className="text-[9px] text-zen-muted truncate w-full text-center">{attachment.name}</span>
+        <div className="h-20 w-20 rounded-xl border border-white/10 shadow-lg bg-white/5 flex flex-col items-center justify-center gap-1 p-1">
+          <Music className="w-6 h-6 text-pink-500" />
+          <span className="text-[8px] text-gray-400 truncate w-full text-center px-1">{attachment.name}</span>
         </div>
       );
     }
 
     // Default / PDF
     return (
-      <div className="h-24 w-24 rounded-xl border border-zen-border shadow-lg bg-zen-bg flex flex-col items-center justify-center gap-2 p-2 text-center">
-        <FileText className="w-8 h-8 text-zen-accent" />
-        <span className="text-[9px] text-zen-muted font-medium truncate w-full px-1">{attachment.name || 'Document'}</span>
+      <div className="h-20 w-20 rounded-xl border border-white/10 shadow-lg bg-black/20 flex flex-col items-center justify-center gap-1 p-1 text-center">
+        <FileText className="w-6 h-6 text-zen-accent" />
+        <span className="text-[8px] text-gray-400 font-medium truncate w-full px-1">{attachment.name || 'File'}</span>
       </div>
     );
   }
@@ -128,15 +133,21 @@ const InputArea: React.FC<InputAreaProps> = ({ onSend, disabled, mode, setMode }
             ${isFocused ? 'border-zen-text/30 shadow-glow-lg translate-y-[-2px]' : 'shadow-deep hover:border-zen-border/80'}
         `}>
 
-          {attachment && (
-            <div className="mx-6 mt-6 relative w-fit group/preview animate-scale-in">
-              {renderPreview()}
-              <button
-                onClick={() => setAttachment(null)}
-                className="absolute -top-3 -right-3 bg-zen-surface text-zen-text rounded-full p-1.5 border border-zen-border hover:bg-zen-accent/20 hover:text-zen-accent transition-colors shadow-md"
-              >
-                <X className="w-3 h-3" />
-              </button>
+          {attachments.length > 0 && (
+            <div className="mx-6 mt-6 mb-2">
+              <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
+                {attachments.map((att, idx) => (
+                  <div key={idx} className="relative group/preview animate-scale-in flex-shrink-0">
+                    {renderPreview(att)}
+                    <button
+                      onClick={() => removeAttachment(idx)}
+                      className="absolute -top-2 -right-2 bg-zen-surface text-zen-text rounded-full p-1 border border-white/20 hover:bg-red-500 hover:text-white hover:border-red-500 transition-all shadow-md opacity-0 group-hover/preview:opacity-100"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
@@ -171,10 +182,10 @@ const InputArea: React.FC<InputAreaProps> = ({ onSend, disabled, mode, setMode }
 
             <button
               onClick={handleSend}
-              disabled={(!input.trim() && !attachment) || disabled}
+              disabled={(!input.trim() && attachments.length === 0) || disabled}
               className={`
                 p-4 rounded-full mb-2 ml-8 transition-all duration-300 flex-shrink-0
-                ${(input.trim() || attachment) && !disabled
+                ${(input.trim() || attachments.length > 0) && !disabled
                   ? 'bg-zen-text text-zen-bg hover:bg-zen-accent hover:text-white shadow-[0_0_20px_rgba(0,0,0,0.2)] transform hover:scale-110 active:scale-90 hover-lift'
                   : 'bg-zen-surface text-zen-muted cursor-not-allowed border border-zen-border'}
               `}
@@ -200,6 +211,7 @@ const InputArea: React.FC<InputAreaProps> = ({ onSend, disabled, mode, setMode }
                 className="hidden"
                 onChange={handleFileSelect}
                 accept="*/*" // Accept all files
+                multiple
               />
               <button
                 onClick={() => fileInputRef.current?.click()}

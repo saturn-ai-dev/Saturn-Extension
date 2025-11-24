@@ -66,6 +66,7 @@ export default function App() {
     // --- Session State (Per User) ---
     const [tabs, setTabs] = useState<Tab[]>([]);
     const [activeTabId, setActiveTabId] = useState<string>('');
+    const [archivedTabs, setArchivedTabs] = useState<Tab[]>([]);
     const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
     const [downloads, setDownloads] = useState<DownloadItem[]>([]);
     const [globalHistory, setGlobalHistory] = useState<HistoryItem[]>([]);
@@ -96,46 +97,64 @@ export default function App() {
                     browserState: t.browserState || { ...DEFAULT_BROWSER_STATE }
                 }));
 
-                const active = loadedTabs.find((t: any) => t.id === data.activeTabId) || loadedTabs[0];
-
-                if (active) {
-                    setTabs([active]);
-                    setActiveTabId(active.id);
+                if (loadedTabs.length > 0) {
+                    const activeTab = loadedTabs.find((t: Tab) => t.id === data.activeTabId) || loadedTabs[0];
+                    const otherTabs = loadedTabs.filter((t: Tab) => t.id !== activeTab.id);
+                    
+                    setTabs([activeTab]);
+                    setActiveTabId(activeTab.id);
+                    setArchivedTabs(otherTabs);
                 } else {
                     const initialId = createNewTab();
-                    setTabs([{
+                    const newTab: Tab = {
                         id: initialId,
                         title: 'New Thread',
                         messages: [],
                         createdAt: Date.now(),
                         browserState: { ...DEFAULT_BROWSER_STATE }
-                    }]);
+                    };
+                    setTabs([newTab]);
                     setActiveTabId(initialId);
+                    setArchivedTabs([]);
                 }
-
+                
                 setBookmarks(data.bookmarks || []);
                 setDownloads(data.downloads || []);
                 setGlobalHistory(data.globalHistory || []);
                 setCustomBackdrop(data.customBackdrop || null);
                 setCurrentTheme(currentUser.theme);
             } else {
+                // Fresh start for a new user or if no data
                 const initialId = createNewTab();
-                setTabs([{
+                const newTab: Tab = {
                     id: initialId,
                     title: 'New Thread',
                     messages: [],
                     createdAt: Date.now(),
                     browserState: { ...DEFAULT_BROWSER_STATE }
-                }]);
+                };
+                setTabs([newTab]);
                 setActiveTabId(initialId);
                 setBookmarks([]);
                 setDownloads([]);
                 setGlobalHistory([]);
+                setArchivedTabs([]);
                 setCustomBackdrop(null);
                 setCurrentTheme(currentUser.theme);
             }
         } catch (e) {
             console.error("Failed to load user data", e);
+            // Fallback to fresh state
+            const initialId = createNewTab();
+            setTabs([{
+                id: initialId,
+                title: 'New Thread',
+                messages: [],
+                createdAt: Date.now(),
+                browserState: { ...DEFAULT_BROWSER_STATE }
+            }]);
+            setActiveTabId(initialId);
+            setArchivedTabs([]);
         }
         localStorage.setItem('deepsearch_current_user_id', userId);
     }, [currentUser.id]);
@@ -147,9 +166,9 @@ export default function App() {
         }
         const userId = currentUser.id;
         const storageKey = `deepsearch_data_${userId}`;
-        const dataToSave = { tabs, activeTabId, bookmarks, downloads, customBackdrop, globalHistory };
+        const dataToSave = { tabs: [...tabs, ...archivedTabs], activeTabId, bookmarks, downloads, customBackdrop, globalHistory };
         localStorage.setItem(storageKey, JSON.stringify(dataToSave));
-    }, [tabs, activeTabId, bookmarks, downloads, customBackdrop, globalHistory, currentUser.id]);
+    }, [tabs, archivedTabs, activeTabId, bookmarks, downloads, customBackdrop, globalHistory, currentUser.id]);
 
     useEffect(() => {
         localStorage.setItem('deepsearch_users', JSON.stringify(users));
@@ -337,6 +356,11 @@ export default function App() {
     };
 
     const handleNewTab = () => {
+        const currentActiveTab = tabs.find(t => t.id === activeTabId);
+        if (currentActiveTab && currentActiveTab.messages.length > 0) {
+            setArchivedTabs(prev => [currentActiveTab, ...prev]);
+        }
+
         const newId = createNewTab();
         const newTab: Tab = {
             id: newId,
@@ -345,8 +369,24 @@ export default function App() {
             createdAt: Date.now(),
             browserState: { ...DEFAULT_BROWSER_STATE }
         };
-        setTabs([newTab]);
+        setTabs(prev => prev.filter(t => t.id !== activeTabId));
+        setTabs(prev => [...prev, newTab]);
         setActiveTabId(newId);
+    };
+
+    const handleRestoreTab = (tabId: string) => {
+        const tabToRestore = archivedTabs.find(t => t.id === tabId);
+        if (tabToRestore) {
+            const currentActiveTab = tabs.find(t => t.id === activeTabId);
+            if (currentActiveTab && currentActiveTab.messages.length > 0) {
+                setArchivedTabs(prev => [currentActiveTab, ...prev.filter(t => t.id !== tabId)]);
+            } else {
+                setArchivedTabs(prev => prev.filter(t => t.id !== tabId));
+            }
+            setTabs(prev => prev.filter(t => t.id !== activeTabId));
+            setTabs(prev => [...prev, tabToRestore]);
+            setActiveTabId(tabId);
+        }
     };
 
     const handleLoadHistory = (title: string) => {
@@ -432,13 +472,13 @@ export default function App() {
         setTabs(prev => prev.map(tab => tab.id === activeTabId ? { ...tab, browserState: { ...tab.browserState, isOpen: false } } : tab));
     };
 
-    const handleSendMessage = async (text: string, attachment?: Attachment, modeOverride?: SearchMode) => {
+    const handleSendMessage = async (text: string, attachments?: Attachment[], modeOverride?: SearchMode) => {
         const currentTabId = activeTabId;
         const effectiveMode = modeOverride || searchMode;
         const trimmedText = text.trim();
         const isUrl = /^(http(s)?:\/\/)|(www\.)|([-a-zA-Z0-9@:%._\+~#=]{2,256}\.(com|org|net|edu|gov|io|ai|co|uk|ca|de|jp|fr|au)\b)/i.test(trimmedText) && !trimmedText.includes(' ');
 
-        if (isUrl && !attachment && effectiveMode === 'normal') {
+        if (isUrl && !attachments && effectiveMode === 'normal') {
             handleNavigate(trimmedText);
             return;
         }
@@ -455,7 +495,7 @@ export default function App() {
             setGlobalHistory(prev => [historyItem, ...prev].slice(0, 500));
         }
 
-        const userMsg: Message = { id: Date.now().toString(), role: Role.USER, content: text, timestamp: Date.now(), attachment: attachment };
+        const userMsg: Message = { id: Date.now().toString(), role: Role.USER, content: text, timestamp: Date.now(), attachments: attachments };
 
         setTabs(prev => prev.map(tab => {
             if (tab.id === currentTabId) {
@@ -576,8 +616,8 @@ export default function App() {
                 onSelectTab={(id) => { setActiveTabId(id); setIsSidebarOpen(false); }}
                 bookmarks={bookmarks}
                 onSelectBookmark={(b) => handleLoadHistory(b.query)}
-                history={globalHistory}
-                onClearHistory={() => setGlobalHistory([])}
+                pastConversations={archivedTabs}
+                onRestoreTab={handleRestoreTab}
             />
 
             <SidebarPanel
@@ -613,6 +653,10 @@ export default function App() {
                     onDeleteCustomShortcut={handleDeleteCustomShortcut}
                     onSetModel={handleSetModel}
                     onSetImageModel={handleSetImageModel}
+                    tabs={tabs}
+                    setTabs={setTabs}
+                    archivedTabs={archivedTabs}
+                    setArchivedTabs={setArchivedTabs}
                 />
 
                 <div className="flex flex-col flex-1 overflow-hidden relative h-full transition-all duration-300">

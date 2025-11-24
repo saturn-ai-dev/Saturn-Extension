@@ -1,6 +1,8 @@
 import React, { useRef, useState } from 'react';
-import { X, Shield, Globe, PaintBucket, Droplet, Sun, Upload, Image as ImageIcon, Smartphone, Box, Rocket, Sparkles, Download, FileText, Video, Puzzle, Trash2, Plus, User, Link, Monitor, Key, ExternalLink, Check } from 'lucide-react';
-import { Theme, DownloadItem, UserProfile, Extension, CustomShortcut } from '../types';
+import { X, Shield, Globe, PaintBucket, Droplet, Sun, Upload, Image as ImageIcon, Smartphone, Box, Rocket, Sparkles, Download, FileText, Video, Puzzle, Trash2, Plus, User, Link, Monitor, Key, ExternalLink, Check, FileUp, FileDown } from 'lucide-react';
+import { Theme, DownloadItem, UserProfile, Extension, CustomShortcut, Tab } from '../types';
+import { exportConversations, importConversations } from '../services/conversationService';
+
 
 interface SettingsModalProps {
     isOpen: boolean;
@@ -32,6 +34,12 @@ interface SettingsModalProps {
     // Model
     onSetModel: (model: string) => void;
     onSetImageModel: (model: string) => void;
+
+    // Data
+    tabs: Tab[];
+    setTabs: (tabs: Tab[]) => void;
+    archivedTabs: Tab[];
+    setArchivedTabs: (tabs: Tab[]) => void;
 }
 
 const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -39,7 +47,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     customBackdrop, setCustomBackdrop, enabledSidebarApps, toggleSidebarApp,
     currentUser, users, onSwitchUser, onAddUser, downloads, availableExtensions,
     onToggleExtension, onCreateExtension, onDeleteExtension,
-    onAddCustomShortcut, onDeleteCustomShortcut, onSetModel, onSetImageModel
+    onAddCustomShortcut, onDeleteCustomShortcut, onSetModel, onSetImageModel,
+    tabs, setTabs, archivedTabs, setArchivedTabs
 }) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [activeTab, setActiveTab] = useState<'general' | 'extensions' | 'downloads' | 'user'>('general');
@@ -386,6 +395,45 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                         </div>
                                         <button onClick={toggleIncognito} className={`w-11 h-6 rounded-full p-0.5 transition-colors relative ${isIncognito ? 'bg-zen-text' : 'bg-zen-border'}`}>
                                             <div className={`w-5 h-5 bg-zen-bg rounded-full shadow-md transition-transform ${isIncognito ? 'translate-x-5' : 'translate-x-0'}`} />
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Data Management */}
+                                <div>
+                                    <h3 className="text-xs font-bold text-zen-muted uppercase tracking-widest mb-5 pl-1">Data Management</h3>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <button
+                                            onClick={async () => {
+                                                try {
+                                                    const importedTabs = await importConversations();
+                                                    if (importedTabs.length > 0) {
+                                                        const [firstTab, ...restTabs] = importedTabs;
+                                                        setTabs([firstTab]);
+                                                        setArchivedTabs(restTabs);
+                                                    }
+                                                    onClose();
+                                                    alert('Conversations imported successfully!');
+                                                } catch (error) {
+                                                    console.error(error);
+                                                    alert((error as Error).message);
+                                                }
+                                            }}
+                                            className="p-5 rounded-2xl bg-zen-surface border border-zen-border/50 shadow-sm hover:border-zen-accent transition-colors flex items-center gap-4">
+                                            <div className="p-3 rounded-xl bg-green-500/10 text-green-400"><FileUp className="w-5 h-5" /></div>
+                                            <div>
+                                                <div className="text-sm font-bold text-zen-text">Import Conversations</div>
+                                                <div className="text-xs text-zen-muted">Load from a .json file</div>
+                                            </div>
+                                        </button>
+                                        <button
+                                            onClick={() => exportConversations([...tabs, ...archivedTabs])}
+                                            className="p-5 rounded-2xl bg-zen-surface border border-zen-border/50 shadow-sm hover:border-zen-accent transition-colors flex items-center gap-4">
+                                            <div className="p-3 rounded-xl bg-blue-500/10 text-blue-400"><FileDown className="w-5 h-5" /></div>
+                                            <div>
+                                                <div className="text-sm font-bold text-zen-text">Export Conversations</div>
+                                                <div className="text-xs text-zen-muted">Save to a .json file</div>
+                                            </div>
                                         </button>
                                     </div>
                                 </div>

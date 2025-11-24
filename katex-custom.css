@@ -1,0 +1,39 @@
+/* KaTeX Math Rendering */
+.katex {
+    font-size: 1.1em;
+    color: var(--text-color);
+}
+
+.katex-display {
+    margin: 1.5rem 0;
+    padding: 1.5rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
+.katex-display>.katex {
+    text-align: center;
+    color: #fff;
+}
+
+.katex .mord,
+.katex .mop,
+.katex .mbin,
+.katex .mrel,
+.katex .mopen,
+.katex .mclose,
+.katex .mpunct {
+    color: var(--text-color);
+}
+
+.katex .mspace {
+    color: transparent;
+}
+
+/* Inline math */
+.katex-html {
+    display: inline-block;
+}

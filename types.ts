@@ -33,7 +33,8 @@ export interface Message {
   timestamp: number;
   sources?: Source[];
   isStreaming?: boolean;
-  attachment?: Attachment;
+  attachment?: Attachment; // Deprecated, kept for backward compatibility
+  attachments?: Attachment[]; // New: support multiple attachments
   generatedMedia?: GeneratedMedia;
   iframeUrl?: string; // kept for backward compatibility or specific message embeds
 }

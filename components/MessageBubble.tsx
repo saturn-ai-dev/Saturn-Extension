@@ -2,6 +2,10 @@
 import React, { useState, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import 'katex/dist/katex.min.css';
+import '../katex-custom.css';
 import { Message, Role, DownloadItem } from '../types';
 import { User, Globe, ExternalLink, Sparkles, Volume2, Download, FileText, Play, X, Youtube, FileType, Copy, Check, Music, Video, Terminal, RotateCcw, Eye, EyeOff } from 'lucide-react';
 // @ts-ignore
@@ -597,13 +601,23 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onDownload, onNa
                 ${isUser ? 'bg-zen-surface/80 backdrop-blur-md text-zen-text rounded-tr-sm border border-zen-border hover:shadow-glow-lg px-8 py-6 shadow-lg' : 'text-zen-text rounded-tl-sm border-none px-0 py-0'}
             `}>
                             {isUser ? (
-                                <p className="whitespace-pre-wrap font-medium">{cleanContent}</p>
+                                <div className="relative group/usermsg">
+                                    <p className="whitespace-pre-wrap font-medium">{cleanContent}</p>
+                                    <button
+                                        onClick={handleCopyText}
+                                        className="absolute -top-2 -right-2 p-1.5 rounded-full bg-zen-bg border border-zen-border text-zen-muted opacity-0 group-hover/usermsg:opacity-100 transition-all hover:text-zen-accent hover:border-zen-accent"
+                                        title="Copy prompt"
+                                    >
+                                        {isCopied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                                    </button>
+                                </div>
                             ) : (
                                 <div className={`markdown-content prose prose-neutral prose-lg max-w-none dark:prose-invert prose-p:leading-relaxed prose-li:marker:text-zen-accent prose-a:text-zen-accent prose-a:no-underline hover:prose-a:underline ${message.isStreaming ? 'opacity-90' : 'opacity-100'}`}>
                                     {cleanContent ? (
                                         <>
                                             <ReactMarkdown
-                                                remarkPlugins={[remarkGfm]}
+                                                remarkPlugins={[remarkGfm, remarkMath]}
+                                                rehypePlugins={[rehypeKatex]}
                                                 components={{
                                                     a: (props) => <LinkRenderer {...props} onNavigate={onNavigate} />,
                                                     table: TableRenderer,
