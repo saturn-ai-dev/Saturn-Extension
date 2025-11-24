@@ -1,8 +1,9 @@
 
 import React, { useState, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { Message, Role, DownloadItem } from '../types';
-import { User, Globe, ExternalLink, Sparkles, Volume2, Download, FileText, Play, X, Youtube, FileType, Copy, Check, Music, Video, Terminal, RotateCcw } from 'lucide-react';
+import { User, Globe, ExternalLink, Sparkles, Volume2, Download, FileText, Play, X, Youtube, FileType, Copy, Check, Music, Video, Terminal, RotateCcw, Eye, EyeOff } from 'lucide-react';
 // @ts-ignore
 import { jsPDF } from 'jspdf';
 
@@ -55,51 +56,120 @@ const LinkRenderer = ({ href, children, onNavigate }: any) => {
 };
 
 // Custom Markdown Components
+// Custom Markdown Components
 const TableRenderer = ({ children }: any) => (
-    <div className="overflow-x-auto my-4 rounded-xl border border-zen-border/50 shadow-sm">
-        <table className="w-full border-collapse text-sm text-left min-w-[400px]">{children}</table>
+    <div className="overflow-x-auto my-8 rounded-2xl border border-white/10 shadow-2xl bg-white/5 backdrop-blur-md">
+        <table className="w-full border-collapse text-sm text-left min-w-[600px]">{children}</table>
     </div>
 );
 
 const TableHeadRenderer = ({ children }: any) => (
-    <thead className="bg-zen-surface text-zen-muted font-bold uppercase tracking-wider text-xs border-b border-zen-border/50">
+    <thead className="bg-white/10 text-white font-bold uppercase tracking-wider text-xs border-b border-white/10 backdrop-blur-md sticky top-0 z-10 shadow-sm">
         {children}
     </thead>
 );
 
 const TableBodyRenderer = ({ children }: any) => (
-    <tbody className="divide-y divide-zen-border/30 bg-zen-bg/20">
+    <tbody className="divide-y divide-white/5 text-gray-300">
         {children}
     </tbody>
 );
 
 const TableRowRenderer = ({ children }: any) => (
-    <tr className="hover:bg-zen-surface/30 transition-colors group">{children}</tr>
+    <tr className="hover:bg-white/5 transition-colors even:bg-white/[0.02] group">{children}</tr>
 );
 
 const TableHeaderCellRenderer = ({ children }: any) => (
-    <th className="px-6 py-4 font-bold">{children}</th>
+    <th className="px-6 py-5 font-bold text-white tracking-wide whitespace-nowrap">{children}</th>
 );
 
 const TableCellRenderer = ({ children }: any) => (
-    <td className="px-6 py-3 border-r border-zen-border/10 last:border-r-0">{children}</td>
+    <td className="px-6 py-4 border-r border-white/5 last:border-r-0 group-hover:text-white transition-colors">{children}</td>
 );
 
 const BlockquoteRenderer = ({ children }: any) => (
-    <blockquote className="border-l-4 border-zen-accent bg-zen-surface/20 pl-6 py-4 my-6 rounded-r-xl italic text-zen-muted relative">
-        <span className="absolute -left-1.5 -top-2 text-4xl text-zen-accent opacity-50 leading-none">“</span>
-        {children}
+    <blockquote className="relative pl-6 py-4 my-6 border-l-4 border-zen-accent bg-gradient-to-r from-zen-accent/10 to-transparent rounded-r-xl text-zen-muted italic">
+        <span className="absolute -left-2 -top-2 text-4xl text-zen-accent opacity-40 font-serif">“</span>
+        <div className="relative z-10">{children}</div>
     </blockquote>
 );
 
+const H1Renderer = ({ children }: any) => (
+    <h1 className="text-4xl font-bold text-white mt-10 mb-6 pb-4 border-b border-white/10 flex items-center gap-4 group tracking-tight">
+        <div className="w-1.5 h-8 bg-zen-accent rounded-full shadow-[0_0_15px_var(--accent-color)] group-hover:scale-y-110 transition-transform duration-300"></div>
+        {children}
+    </h1>
+);
+
+const H2Renderer = ({ children }: any) => (
+    <h2 className="text-2xl font-bold text-white mt-10 mb-5 flex items-center gap-3 group tracking-tight">
+        <span className="text-zen-accent/70 text-xl group-hover:text-zen-accent transition-colors">#</span>
+        <span className="text-white/90 group-hover:text-white transition-colors">{children}</span>
+    </h2>
+);
+
+const H3Renderer = ({ children }: any) => (
+    <h3 className="text-xl font-bold text-white/90 mt-8 mb-4 flex items-center gap-3 tracking-wide">
+        <div className="w-1.5 h-1.5 rounded-full bg-zen-accent"></div>
+        {children}
+    </h3>
+);
+
+const UlRenderer = ({ children }: any) => (
+    <ul className="my-5 space-y-2 ml-1">{children}</ul>
+);
+
+const OlRenderer = ({ children }: any) => (
+    <ol className="my-5 space-y-4 pl-2 list-none counter-reset-item">{children}</ol>
+);
+
+const LiRenderer = ({ children, ordered }: any) => {
+    if (ordered) {
+        return (
+            <li className="flex items-start gap-4 text-gray-300 leading-relaxed group/li relative pl-2 hover:text-white transition-colors duration-200">
+                <span className="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-white/5 border border-white/20 text-[11px] font-bold text-white group-hover/li:border-zen-accent group-hover/li:bg-zen-accent group-hover/li:text-white transition-all duration-200 mt-0.5 shadow-sm">
+                    <span className="w-1.5 h-1.5 rounded-full bg-white"></span>
+                </span>
+                <span className="flex-1">{children}</span>
+            </li>
+        )
+    }
+    return (
+        <li className="flex items-start gap-4 text-gray-300 leading-relaxed group/li hover:text-white transition-colors duration-200">
+            <span className="mt-2.5 w-1.5 h-1.5 rounded-full bg-white group-hover/li:bg-zen-accent group-hover/li:scale-125 transition-all duration-200 flex-shrink-0 shadow-[0_0_5px_rgba(255,255,255,0.5)]"></span>
+            <span className="flex-1">{children}</span>
+        </li>
+    );
+};
+
+const ParagraphRenderer = ({ children }: any) => (
+    <p className="mb-6 leading-8 text-gray-300 text-[1.05rem] font-medium tracking-wide">{children}</p>
+);
+
+const StrongRenderer = ({ children }: any) => (
+    <strong className="font-bold text-white">{children}</strong>
+);
+
+const HrRenderer = () => (
+    <hr className="my-10 border-none h-px bg-white/10" />
+);
+
 const PreRenderer = ({ children }: any) => {
-    return <pre className="my-4 rounded-xl bg-[#0d1117] border border-zen-border/50 overflow-hidden shadow-md">{children}</pre>;
+    return <pre className="my-6 rounded-xl bg-[#0d1117] border border-zen-border/40 shadow-xl overflow-hidden">{children}</pre>;
 };
 
 const CodeRenderer = ({ node, inline, className, children, ...props }: any) => {
     const [copied, setCopied] = useState(false);
     const [output, setOutput] = useState<string | null>(null);
     const [isExecuting, setIsExecuting] = useState(false);
+    const codeRef = React.useRef<HTMLElement>(null);
+
+    React.useEffect(() => {
+        if (codeRef.current && !inline) {
+            // @ts-ignore
+            if (window.Prism) window.Prism.highlightElement(codeRef.current);
+        }
+    }, [children, inline, className]);
 
     const match = /language-(\w+)/.exec(className || '');
     const language = match ? match[1].toLowerCase() : '';
@@ -148,33 +218,37 @@ const CodeRenderer = ({ node, inline, className, children, ...props }: any) => {
     }
 
     return (
-        <div className="relative group font-sans">
+        <div className="relative group font-sans my-6 rounded-xl overflow-hidden border border-white/10 shadow-2xl bg-[#0d1117]/80 backdrop-blur-md transition-all duration-300 hover:border-zen-accent/30 hover:shadow-[0_0_30px_-10px_rgba(var(--accent-color),0.3)]">
             {/* Code Header */}
-            <div className="flex items-center justify-between px-4 py-2 bg-[#161b22] border-b border-white/10 text-xs text-gray-400 select-none font-sans">
-                <div className="flex items-center gap-2">
-                    <span className="uppercase font-bold tracking-wider opacity-70">{language || 'CODE'}</span>
-                    {canExecute && <span className="text-[10px] bg-zen-accent/20 text-zen-accent px-1.5 py-0.5 rounded border border-zen-accent/30 font-bold">RUNNABLE</span>}
+            <div className="flex items-center justify-between px-4 py-3 bg-white/5 border-b border-white/5 text-xs text-gray-400 select-none backdrop-blur-xl">
+                <div className="flex items-center gap-3">
+                    <div className="flex gap-1.5">
+                        <div className="w-3 h-3 rounded-full bg-[#ff5f56] shadow-inner" />
+                        <div className="w-3 h-3 rounded-full bg-[#ffbd2e] shadow-inner" />
+                        <div className="w-3 h-3 rounded-full bg-[#27c93f] shadow-inner" />
+                    </div>
+                    <span className="uppercase font-bold tracking-widest opacity-60 ml-3 text-[10px]">{language || 'TEXT'}</span>
                 </div>
                 <div className="flex items-center gap-3">
                     {canExecute && (
                         <button
                             onClick={handleExecute}
                             disabled={isExecuting}
-                            className={`flex items-center gap-1.5 transition-colors ${isExecuting ? 'text-zen-accent animate-pulse cursor-wait' : 'hover:text-white text-zen-accent'}`}
+                            className={`flex items-center gap-1.5 transition-all px-2 py-1 rounded-md ${isExecuting ? 'text-zen-accent bg-zen-accent/10' : 'hover:bg-white/10 text-zen-accent/80 hover:text-zen-accent'}`}
                         >
                             <Play className="w-3 h-3 fill-current" />
-                            <span className="font-bold">{isExecuting ? 'RUNNING...' : 'RUN'}</span>
+                            <span className="font-bold text-[10px]">{isExecuting ? 'RUNNING...' : 'RUN'}</span>
                         </button>
                     )}
-                    <button onClick={handleCopy} className="flex items-center gap-1 hover:text-white transition-colors">
-                        {copied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
-                        <span>{copied ? 'Copied' : 'Copy'}</span>
+                    <button onClick={handleCopy} className="flex items-center gap-1.5 hover:bg-white/10 px-2 py-1 rounded-md transition-all text-gray-400 hover:text-white">
+                        {copied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
+                        <span className="text-[10px] font-bold">{copied ? 'COPIED' : 'COPY'}</span>
                     </button>
                 </div>
             </div>
             {/* Code Body */}
-            <div className="p-4 overflow-x-auto custom-scrollbar font-mono text-sm">
-                <code className={className} {...props}>
+            <div className="p-0 overflow-x-auto custom-scrollbar font-mono text-sm bg-transparent">
+                <code ref={codeRef} className={`block p-5 ${className || 'language-text'} !bg-transparent !text-sm !leading-relaxed`} {...props}>
                     {children}
                 </code>
             </div>
@@ -210,6 +284,70 @@ interface GeneratedFile {
     type: string;
     data: string;
 }
+
+const FileCard = ({ file, onDownload, onCopy }: { file: GeneratedFile, onDownload: () => void, onCopy: () => void }) => {
+    const [showPreview, setShowPreview] = useState(false);
+    const [copied, setCopied] = useState(false);
+
+    const handleCopyClick = () => {
+        onCopy();
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
+
+    return (
+        <div className="flex flex-col bg-[#0d1117]/90 border border-white/10 rounded-xl overflow-hidden shadow-lg transition-all duration-300 hover:border-zen-accent/30 group/file">
+            <div className="flex items-center justify-between p-4 bg-white/5 border-b border-white/5">
+                <div className="flex items-center gap-4 overflow-hidden">
+                    <div className="p-2.5 bg-zen-accent/10 rounded-lg border border-zen-accent/20 text-zen-accent group-hover/file:scale-110 transition-transform duration-300">
+                        <FileText className="w-5 h-5" />
+                    </div>
+                    <div className="min-w-0">
+                        <div className="text-sm font-bold text-white truncate flex items-center gap-2">
+                            {file.name}
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/10 text-gray-400 uppercase tracking-wider font-medium">{file.type}</span>
+                        </div>
+                        <div className="text-[10px] text-gray-400 uppercase tracking-wider mt-0.5">AI Generated File</div>
+                    </div>
+                </div>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => setShowPreview(!showPreview)}
+                        className={`p-2 rounded-lg transition-all ${showPreview ? 'bg-zen-accent text-white' : 'bg-white/5 text-gray-400 hover:text-white hover:bg-white/10'}`}
+                        title="Preview Code"
+                    >
+                        {showPreview ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                    <button
+                        onClick={handleCopyClick}
+                        className="p-2 rounded-lg bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 transition-all"
+                        title="Copy Code"
+                    >
+                        {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+                    </button>
+                    <button
+                        onClick={onDownload}
+                        className="flex items-center gap-2 px-3 py-2 bg-zen-text text-zen-bg rounded-lg text-xs font-bold hover:bg-zen-accent hover:text-white transition-all shadow-lg hover:shadow-zen-accent/20 active:scale-95"
+                    >
+                        <Download className="w-3.5 h-3.5" />
+                        <span>Download</span>
+                    </button>
+                </div>
+            </div>
+
+            {showPreview && (
+                <div className="relative border-t border-white/5">
+                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-zen-accent/50 to-transparent opacity-50"></div>
+                    <div className="max-h-[300px] overflow-auto custom-scrollbar bg-[#0d1117] p-0">
+                        <CodeRenderer className={`language-${file.type}`} inline={false}>
+                            {file.data}
+                        </CodeRenderer>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
 
 const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onDownload, onNavigate }) => {
     const isUser = message.role === Role.USER;
@@ -321,13 +459,26 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onDownload, onNa
     }
 
     const handleGeneratedFileDownload = (file: GeneratedFile) => {
-        const link = document.createElement('a');
-        link.href = `data:${file.type};base64,${file.data}`;
-        link.download = file.name;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        if (onDownload) onDownload({ id: Date.now().toString(), filename: file.name, timestamp: Date.now(), type: 'pdf' });
+        try {
+            const blob = new Blob([file.data], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = file.name;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            if (onDownload) onDownload({ id: Date.now().toString(), filename: file.name, timestamp: Date.now(), type: 'file' });
+        } catch (e) {
+            console.error("File download failed:", e);
+        }
+    };
+
+    const handleCopyFile = (content: string) => {
+        navigator.clipboard.writeText(content);
+        // We could show a toast here, but for now we'll rely on the button state change if we had one, 
+        // or just the user knowing it worked. Let's add a temporary visual feedback in the button.
     };
 
     const handleWidgetAction = (type: string, content: string) => {
@@ -397,27 +548,23 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onDownload, onNa
                     )}
                 </div>
 
-                <div className={`flex flex-col gap-3 min-w-0 flex-1 ${isUser ? 'items-end' : 'items-start'}`}>
+                <div className={`flex flex-col gap-1 min-w-0 flex-1 ${isUser ? 'items-end' : 'items-start'}`}>
 
-                    <div className="text-[10px] font-bold text-zen-muted/50 flex gap-2 items-center tracking-widest opacity-0 group-hover:opacity-100 transition-opacity duration-300 uppercase">
+                    <div className={`text-[10px] font-bold text-zen-muted/50 flex gap-2 items-center tracking-widest opacity-0 group-hover:opacity-100 transition-opacity duration-300 uppercase ${isUser ? 'block' : 'hidden'}`}>
                         <span>{isUser ? 'YOU' : 'SATURN AI'}</span>
                     </div>
 
                     {message.attachment && <div className="mb-2">{renderAttachment()}</div>}
 
                     {files.length > 0 && (
-                        <div className="grid gap-2 mb-4 w-full max-w-md">
+                        <div className="grid gap-3 mb-6 w-full max-w-2xl">
                             {files.map((file, idx) => (
-                                <div key={idx} className="flex items-center justify-between p-4 bg-zen-surface rounded-xl border border-zen-border hover:border-zen-accent transition-colors shadow-md hover-lift">
-                                    <div className="flex items-center gap-3 overflow-hidden">
-                                        <div className="p-2 bg-zen-bg rounded-lg border border-zen-border"><Download className="w-5 h-5 text-zen-accent" /></div>
-                                        <div className="min-w-0">
-                                            <div className="text-sm font-bold text-zen-text truncate">{file.name}</div>
-                                            <div className="text-[10px] text-zen-muted uppercase tracking-wider">AI Generated File</div>
-                                        </div>
-                                    </div>
-                                    <button onClick={() => handleGeneratedFileDownload(file)} className="px-3 py-1.5 bg-zen-text text-zen-bg rounded-lg text-xs font-bold hover:bg-zen-accent hover:text-white transition-colors">Download</button>
-                                </div>
+                                <FileCard
+                                    key={idx}
+                                    file={file}
+                                    onDownload={() => handleGeneratedFileDownload(file)}
+                                    onCopy={() => handleCopyFile(file.data)}
+                                />
                             ))}
                         </div>
                     )}
@@ -436,7 +583,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onDownload, onNa
                                     <Sparkles className="w-3.5 h-3.5 text-zen-accent" />
                                     Generated {message.generatedMedia.type}
                                 </span>
-                                <button onClick={(e) => handleMediaDownload(e, message.generatedMedia!.uri, message.generatedMedia!.type)} className="flex items-center gap-2 px-4 py-2 bg-zen-surface border border-zen-border rounded-xl text-xs font-bold text-zen-text hover:bg-zen-accent hover:text-white hover:border-transparent transition-all shadow-sm">
+                                <button onClick={(e) => handleMediaDownload(e, message.generatedMedia!.uri, message.generatedMedia!.type)} className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-xs font-bold text-gray-300 hover:bg-zen-accent hover:text-white hover:border-transparent transition-all shadow-sm active:scale-95">
                                     <Download className="w-3.5 h-3.5" />
                                     Save
                                 </button>
@@ -446,8 +593,8 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onDownload, onNa
 
                     {(cleanContent || (!isUser && !cleanContent && !message.attachment && !message.generatedMedia)) && (
                         <div className={`
-                rounded-3xl px-8 py-6 text-lg leading-8 shadow-lg relative w-full border transition-all duration-300
-                ${isUser ? 'bg-zen-surface/80 backdrop-blur-md text-zen-text rounded-tr-sm border-zen-border hover:shadow-glow-lg' : 'text-zen-text rounded-tl-sm border-transparent'}
+                rounded-3xl text-lg leading-8 relative w-full transition-all duration-500
+                ${isUser ? 'bg-zen-surface/80 backdrop-blur-md text-zen-text rounded-tr-sm border border-zen-border hover:shadow-glow-lg px-8 py-6 shadow-lg' : 'text-zen-text rounded-tl-sm border-none px-0 py-0'}
             `}>
                             {isUser ? (
                                 <p className="whitespace-pre-wrap font-medium">{cleanContent}</p>
@@ -455,7 +602,30 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onDownload, onNa
                                 <div className={`markdown-content prose prose-neutral prose-lg max-w-none dark:prose-invert prose-p:leading-relaxed prose-li:marker:text-zen-accent prose-a:text-zen-accent prose-a:no-underline hover:prose-a:underline ${message.isStreaming ? 'opacity-90' : 'opacity-100'}`}>
                                     {cleanContent ? (
                                         <>
-                                            <ReactMarkdown components={{ a: (props) => <LinkRenderer {...props} onNavigate={onNavigate} />, table: TableRenderer, thead: TableHeadRenderer, tbody: TableBodyRenderer, tr: TableRowRenderer, th: TableHeaderCellRenderer, td: TableCellRenderer, blockquote: BlockquoteRenderer, pre: PreRenderer, code: CodeRenderer }}>
+                                            <ReactMarkdown
+                                                remarkPlugins={[remarkGfm]}
+                                                components={{
+                                                    a: (props) => <LinkRenderer {...props} onNavigate={onNavigate} />,
+                                                    table: TableRenderer,
+                                                    thead: TableHeadRenderer,
+                                                    tbody: TableBodyRenderer,
+                                                    tr: TableRowRenderer,
+                                                    th: TableHeaderCellRenderer,
+                                                    td: TableCellRenderer,
+                                                    blockquote: BlockquoteRenderer,
+                                                    pre: PreRenderer,
+                                                    code: CodeRenderer,
+                                                    h1: H1Renderer,
+                                                    h2: H2Renderer,
+                                                    h3: H3Renderer,
+                                                    ul: UlRenderer,
+                                                    ol: OlRenderer,
+                                                    li: LiRenderer,
+                                                    p: ParagraphRenderer,
+                                                    hr: HrRenderer,
+                                                    strong: StrongRenderer
+                                                }}
+                                            >
                                                 {cleanContent}
                                             </ReactMarkdown>
                                             {message.isStreaming && <span className="inline-block w-2 h-5 bg-zen-accent ml-1 animate-pulse align-middle rounded-full shadow-[0_0_10px_var(--accent-color)]"></span>}
@@ -498,9 +668,9 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onDownload, onNa
 
                             {!isUser && cleanContent && !message.isStreaming && (
                                 <div className="flex gap-2 mt-4 pt-2 border-t border-zen-border/30 transition-opacity duration-300 animate-fade-in">
-                                    <button onClick={handleSpeak} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zen-surface border border-zen-border text-zen-muted hover:text-zen-text hover:border-zen-accent hover:bg-zen-surface/80 transition-colors text-xs font-bold" title="Read Aloud"><Volume2 className="w-4 h-4" /><span className="hidden sm:inline">Read</span></button>
-                                    <button onClick={handleCopyText} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zen-surface border border-zen-border text-zen-muted hover:text-zen-text hover:border-zen-accent hover:bg-zen-surface/80 transition-colors text-xs font-bold" title="Copy"><Copy className="w-4 h-4" /><span className="hidden sm:inline">{isCopied ? 'Copied' : 'Copy'}</span></button>
-                                    <button onClick={handleDownloadPdf} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zen-surface border border-zen-border text-zen-muted hover:text-zen-text hover:border-zen-accent hover:bg-zen-surface/80 transition-colors text-xs font-bold" title="Export PDF"><FileText className="w-4 h-4" /><span className="hidden sm:inline">PDF</span></button>
+                                    <button onClick={handleSpeak} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 transition-all text-xs font-bold active:scale-95" title="Read Aloud"><Volume2 className="w-4 h-4" /><span className="hidden sm:inline">Read</span></button>
+                                    <button onClick={handleCopyText} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 transition-all text-xs font-bold active:scale-95" title="Copy"><Copy className="w-4 h-4" /><span className="hidden sm:inline">{isCopied ? 'Copied' : 'Copy'}</span></button>
+                                    <button onClick={handleDownloadPdf} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 transition-all text-xs font-bold active:scale-95" title="Export PDF"><FileText className="w-4 h-4" /><span className="hidden sm:inline">PDF</span></button>
                                 </div>
                             )}
                         </div>
@@ -519,7 +689,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onDownload, onNa
                                     const favicon = getFaviconUrl(source.uri);
 
                                     return (
-                                        <div key={idx} className="flex flex-col bg-zen-surface/40 border border-zen-border rounded-2xl transition-all duration-300 backdrop-blur-sm hover:bg-zen-surface hover:border-zen-accent/40 hover:shadow-lg group/source hover-lift">
+                                        <div key={idx} className="flex flex-col bg-white/5 border border-white/10 rounded-2xl transition-all duration-300 backdrop-blur-sm hover:bg-white/10 hover:border-zen-accent/50 hover:shadow-lg group/source hover:-translate-y-1">
                                             <a href={source.uri || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { e.preventDefault(); if (source.uri) { if (onNavigate) onNavigate(source.uri); else window.open(source.uri, '_blank'); } }} className="flex items-center gap-3 p-4 w-full relative overflow-hidden">
 
                                                 {ytId ? (

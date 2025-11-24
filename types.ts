@@ -66,7 +66,7 @@ export interface DownloadItem {
   id: string;
   filename: string;
   timestamp: number;
-  type: 'image' | 'video' | 'pdf';
+  type: 'image' | 'video' | 'pdf' | 'file';
   uri?: string;
 }
 
