@@ -43,7 +43,7 @@ const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
                 <div className="h-14 border-b border-zen-border flex items-center justify-between px-4 bg-zen-bg/50">
                     <span className="text-sm font-bold tracking-widest text-zen-muted uppercase flex items-center gap-2">
                         <Disc className="w-4 h-4 text-zen-accent" />
-                        GX Control
+                        Saturn Control
                     </span>
                     <button onClick={onClose} className="text-zen-muted hover:text-zen-text">
                         <X className="w-4 h-4" />
