@@ -59,4 +59,4 @@ Open settings and paste your API key. You can also select models based on your p
 - **API Errors?** Double-check your settings and ensure your Gemini API key is valid.
 - **Code Execution Not Working?** Ensure you are using the latest version; we use a secure sandbox for `eval()` operations.
 
-Built using **React**, **Vite**, **TailwindCSS**, and **Google Gemini**.
+Built using **React**, **Vite**, **TailwindCSS**, and **Google Gemini** by **Saksham Loonker**, **Vivan Jhaveri** and **Kian Pipalia**.
