@@ -54,6 +54,14 @@ export interface Tab {
   messages: Message[];
   createdAt: number;
   browserState: BrowserState;
+  groupId?: string; // New: Group/Project ID
+}
+
+export interface ThreadGroup {
+  id: string;
+  name: string;
+  color?: string; // e.g. hex code or tailwind class equivalent
+  createdAt: number;
 }
 
 export interface Bookmark {

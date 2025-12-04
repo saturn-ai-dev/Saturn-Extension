@@ -6,7 +6,7 @@ import SidebarPanel from './components/SidebarPanel';
 import MessageBubble from './components/MessageBubble';
 import InputArea from './components/InputArea';
 import SettingsModal from './components/SettingsModal';
-import { Tab, Message, Role, SearchMode, Attachment, Theme, Bookmark, DownloadItem, UserProfile, Extension, BrowserState, CustomShortcut, HistoryItem } from './types';
+import { Tab, Message, Role, SearchMode, Attachment, Theme, Bookmark, DownloadItem, UserProfile, Extension, BrowserState, CustomShortcut, HistoryItem, ThreadGroup } from './types';
 import { createNewTab, streamGeminiResponse, generateImage, generateVideo } from './services/geminiService';
 import { X } from 'lucide-react';
 
@@ -77,6 +77,7 @@ export default function App() {
     const [tabs, setTabs] = useState<Tab[]>([]);
     const [activeTabId, setActiveTabId] = useState<string>('');
     const [archivedTabs, setArchivedTabs] = useState<Tab[]>([]);
+    const [groups, setGroups] = useState<ThreadGroup[]>([]);
     const [downloads, setDownloads] = useState<DownloadItem[]>([]);
     const [globalHistory, setGlobalHistory] = useState<HistoryItem[]>([]);
     const [customInstructions, setCustomInstructions] = useState<string>('');
@@ -113,6 +114,7 @@ export default function App() {
                 setActiveTabId(newTab.id);
 
                 setArchivedTabs([...validPreviousTabs, ...previousArchives]);
+                setGroups(data.groups || []);
                 setDownloads(data.downloads || []);
                 setGlobalHistory(data.globalHistory || []);
                 setCustomBackdrop(data.customBackdrop || null);
@@ -123,6 +125,7 @@ export default function App() {
                 setTabs([newTab]);
                 setActiveTabId(newTab.id);
                 setArchivedTabs([]);
+                setGroups([]);
                 setDownloads([]);
                 setGlobalHistory([]);
                 setCustomBackdrop(null);
@@ -135,6 +138,7 @@ export default function App() {
             setTabs([newTab]);
             setActiveTabId(newTab.id);
             setArchivedTabs([]);
+            setGroups([]);
             setDownloads([]);
             setGlobalHistory([]);
             setCustomBackdrop(null);
@@ -152,10 +156,10 @@ export default function App() {
         // In incognito mode, don't persist conversation history (tabs/archivedTabs/globalHistory)
         const dataToSave = isIncognito
             ? { downloads, customBackdrop, customInstructions, isIncognito }
-            : { tabs, activeTabId, archivedTabs, downloads, customBackdrop, globalHistory, customInstructions, isIncognito };
+            : { tabs, activeTabId, archivedTabs, downloads, customBackdrop, globalHistory, customInstructions, isIncognito, groups };
 
         localStorage.setItem(storageKey, JSON.stringify(dataToSave));
-    }, [tabs, archivedTabs, activeTabId, downloads, customBackdrop, globalHistory, customInstructions, isIncognito]);
+    }, [tabs, archivedTabs, activeTabId, downloads, customBackdrop, globalHistory, customInstructions, isIncognito, groups]);
 
     useEffect(() => {
         localStorage.setItem('deepsearch_users', JSON.stringify(users));
@@ -575,6 +579,14 @@ export default function App() {
                 onClose={() => setIsSidebarOpen(false)}
                 pastConversations={archivedTabs}
                 onRestoreTab={handleRestoreTab}
+                groups={groups}
+                onCreateGroup={(name) => setGroups(prev => [...prev, { id: Date.now().toString(), name, createdAt: Date.now() }])}
+                onDeleteGroup={(id) => {
+                    setGroups(prev => prev.filter(g => g.id !== id));
+                    setArchivedTabs(prev => prev.map(t => t.groupId === id ? { ...t, groupId: undefined } : t));
+                }}
+                onRenameGroup={(id, name) => setGroups(prev => prev.map(g => g.id === id ? { ...g, name } : g))}
+                onMoveTabToGroup={(tabId, groupId) => setArchivedTabs(prev => prev.map(t => t.id === tabId ? { ...t, groupId } : t))}
             />
 
             <SidebarPanel

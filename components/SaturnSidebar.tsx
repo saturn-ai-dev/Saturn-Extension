@@ -57,68 +57,118 @@ const SaturnSidebar: React.FC<SaturnSidebarProps> = ({
 }) => {
 
     const apps = [
-        { id: 'notes', label: 'Notes', icon: <FileText className="w-5 h-5" /> },
-        { id: 'calculator', label: 'Calculator', icon: <Calculator className="w-5 h-5" /> },
-        { id: 'spotify', label: 'Music', icon: <SpotifyLogo className="w-5 h-5" /> },
-        { id: 'twitch', label: 'Twitch', icon: <Twitch className="w-5 h-5" /> },
-        { id: 'whatsapp', label: 'WhatsApp', icon: <WhatsAppLogo className="w-5 h-5" /> },
-        { id: 'reddit', label: 'Reddit', icon: <RedditLogo className="w-5 h-5" /> },
-        { id: 'x', label: 'X', icon: <XLogo className="w-5 h-5" /> },
-        { id: 'youtube', label: 'YouTube', icon: <YouTubeLogo className="w-5 h-5" /> },
+        { id: 'notes', label: 'Notes', icon: <FileText className="w-[18px] h-[18px]" /> },
+        { id: 'calculator', label: 'Calculator', icon: <Calculator className="w-[18px] h-[18px]" /> },
+        { id: 'spotify', label: 'Music', icon: <SpotifyLogo className="w-[18px] h-[18px]" /> },
+        { id: 'twitch', label: 'Twitch', icon: <Twitch className="w-[18px] h-[18px]" /> },
+        { id: 'whatsapp', label: 'WhatsApp', icon: <WhatsAppLogo className="w-[18px] h-[18px]" /> },
+        { id: 'reddit', label: 'Reddit', icon: <RedditLogo className="w-[18px] h-[18px]" /> },
+        { id: 'x', label: 'X', icon: <XLogo className="w-[18px] h-[18px]" /> },
+        { id: 'youtube', label: 'YouTube', icon: <YouTubeLogo className="w-[18px] h-[18px]" /> },
     ];
 
     const displayedApps = apps.filter(app => enabledApps.includes(app.id));
 
+    // Simple icon button component for cleaner code
+    const IconButton = ({
+        onClick,
+        isActive = false,
+        title,
+        children,
+        className = ""
+    }: {
+        onClick: () => void;
+        isActive?: boolean;
+        title: string;
+        children: React.ReactNode;
+        className?: string;
+    }) => (
+        <button
+            onClick={onClick}
+            className={`
+                w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-200 relative group
+                ${isActive
+                    ? 'bg-zen-text/10 text-zen-text'
+                    : 'text-zen-muted/70 hover:text-zen-text hover:bg-zen-text/5'
+                }
+                ${className}
+            `}
+            title={title}
+        >
+            {children}
+            <div className="absolute left-full ml-3 px-2.5 py-1.5 bg-zen-bg/95 backdrop-blur-sm border border-zen-border/50 rounded-lg text-xs font-medium opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50 text-zen-text shadow-xl">
+                {title}
+            </div>
+        </button>
+    );
+
     return (
-        <div className="w-16 h-full bg-zen-surface/60 backdrop-blur-xl border-r border-zen-border flex flex-col items-center py-4 gap-6 z-50 flex-shrink-0 relative transition-all duration-300 shadow-2xl select-none app-drag" style={{ paddingTop: 'max(2.5rem, env(titlebar-area-height))' }}>
-            <div className="mb-2 group cursor-pointer relative flex items-center justify-center app-no-drag" onClick={onNewTab}>
-                <div className="absolute inset-0 bg-zen-accent/40 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                <svg viewBox="0 0 100 100" className="w-9 h-9 text-zen-accent animate-spin-slow relative z-10 drop-shadow-lg">
-                    <circle cx="50" cy="50" r="20" fill="currentColor" />
-                    <ellipse cx="50" cy="50" rx="40" ry="10" fill="none" stroke="currentColor" strokeWidth="8" transform="rotate(-15 50 50)" />
+        <div
+            className="fixed left-3 top-3 bottom-3 w-14 bg-zen-bg/80 backdrop-blur-xl border border-zen-border/30 rounded-2xl flex flex-col items-center py-3 z-50 transition-all duration-300 shadow-lg select-none"
+        >
+            {/* Logo / New Chat */}
+            <div
+                className="mb-4 cursor-pointer flex items-center justify-center app-no-drag group"
+                onClick={onNewTab}
+                title="New Chat"
+            >
+                <svg viewBox="0 0 100 100" className="w-7 h-7 text-zen-accent group-hover:scale-110 transition-transform duration-200">
+                    <circle cx="50" cy="50" r="18" fill="currentColor" />
+                    <ellipse cx="50" cy="50" rx="38" ry="9" fill="none" stroke="currentColor" strokeWidth="6" transform="rotate(-15 50 50)" />
                 </svg>
             </div>
 
-            <div className="flex flex-col gap-3 w-full px-2.5 app-no-drag overflow-y-auto no-scrollbar pb-2">
-                <button onClick={onNewTab} className="w-full aspect-square rounded-xl bg-zen-bg/50 border border-zen-border hover:border-zen-accent hover:text-zen-accent text-zen-muted flex items-center justify-center transition-all group relative overflow-hidden shadow-sm shrink-0" title="New Tab">
-                    <div className="absolute inset-0 bg-zen-accent/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
-                    <Plus className="w-5 h-5 group-hover:scale-110 transition-transform relative z-10" />
-                </button>
+            {/* New Tab Button */}
+            <IconButton onClick={onNewTab} title="New Chat">
+                <Plus className="w-5 h-5" />
+            </IconButton>
 
-                {(displayedApps.length > 0 || customShortcuts.length > 0) && <div className="w-full h-px bg-zen-border/50 my-1 shrink-0" />}
+            {/* Divider */}
+            {(displayedApps.length > 0 || customShortcuts.length > 0) && (
+                <div className="w-6 h-px bg-zen-border/30 my-2" />
+            )}
 
+            {/* Apps */}
+            <div className="flex-1 flex flex-col gap-1 overflow-y-auto no-scrollbar app-no-drag py-1">
                 {displayedApps.map(app => (
-                    <button
+                    <IconButton
                         key={app.id}
                         onClick={() => onOpenApp(app.id)}
-                        className={`w-full aspect-square rounded-xl flex items-center justify-center transition-all relative group shrink-0 ${activeApp === app.id ? 'bg-zen-accent text-white shadow-[0_0_15px_rgba(220,38,38,0.4)]' : 'text-zen-muted hover:bg-zen-bg/80 hover:text-zen-text border border-transparent hover:border-zen-border/50'}`}
+                        isActive={activeApp === app.id}
                         title={app.label}
                     >
                         {app.icon}
-                        <div className="absolute left-full ml-3 px-2 py-1 bg-zen-surface border border-zen-border rounded-md text-[10px] font-bold tracking-widest opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50 text-zen-text uppercase shadow-lg backdrop-blur-md">{app.label}</div>
-                    </button>
+                    </IconButton>
                 ))}
 
                 {customShortcuts.map(sc => (
-                    <button
+                    <IconButton
                         key={sc.id}
                         onClick={() => onOpenApp(sc.id)}
-                        className="w-full aspect-square rounded-xl flex items-center justify-center transition-all relative group shrink-0 text-xl hover:bg-zen-bg/80 hover:scale-110 border border-transparent hover:border-zen-border/50"
                         title={sc.label}
                     >
-                        {sc.emoji}
-                        <div className="absolute left-full ml-3 px-2 py-1 bg-zen-surface border border-zen-border rounded-md text-[10px] font-bold tracking-widest opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50 text-zen-text uppercase shadow-lg backdrop-blur-md">{sc.label}</div>
-                    </button>
+                        <span className="text-base">{sc.emoji}</span>
+                    </IconButton>
                 ))}
             </div>
 
-            <div className="mt-auto flex flex-col gap-3 w-full px-2.5 pb-2 app-no-drag">
-                <button onClick={onToggleHistory} className={`w-full aspect-square rounded-xl flex items-center justify-center transition-all border ${isHistoryOpen ? 'bg-zen-text text-zen-bg border-zen-text' : 'text-zen-muted border-transparent hover:bg-zen-bg hover:text-zen-text hover:border-zen-border'}`} title="Saturn Control / History">
-                    <LayoutGrid className="w-5 h-5" />
-                </button>
-                <button onClick={onOpenSettings} className="w-full aspect-square rounded-xl text-zen-muted hover:bg-zen-bg hover:text-zen-text hover:border-zen-border border border-transparent flex items-center justify-center transition-all hover:rotate-45" title="Settings">
-                    <Settings className="w-5 h-5" />
-                </button>
+            {/* Bottom Actions */}
+            <div className="flex flex-col gap-1 mt-auto pt-2 app-no-drag">
+                <IconButton
+                    onClick={onToggleHistory}
+                    isActive={isHistoryOpen}
+                    title="History"
+                >
+                    <LayoutGrid className="w-[18px] h-[18px]" />
+                </IconButton>
+
+                <IconButton
+                    onClick={onOpenSettings}
+                    title="Settings"
+                    className="hover:rotate-45"
+                >
+                    <Settings className="w-[18px] h-[18px]" />
+                </IconButton>
             </div>
         </div>
     );
