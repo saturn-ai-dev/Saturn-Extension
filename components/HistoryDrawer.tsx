@@ -1,16 +1,11 @@
 
-import React, { useState } from 'react';
-import { Tab, Bookmark, HistoryItem } from '../types';
-import { Star, Clock, X, ExternalLink, Disc, History, Globe, Search, Download, Trash2 } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Tab } from '../types';
+import { X, History, Search, Trash2 } from 'lucide-react';
 
 interface HistoryDrawerProps {
     isOpen: boolean;
     onClose: () => void;
-    tabs: Tab[];
-    activeTabId: string;
-    onSelectTab: (id: string) => void;
-    bookmarks: Bookmark[];
-    onSelectBookmark: (bookmark: Bookmark) => void;
     pastConversations: Tab[];
     onRestoreTab: (id: string) => void;
 }
@@ -18,135 +13,77 @@ interface HistoryDrawerProps {
 const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
     isOpen,
     onClose,
-    tabs,
-    activeTabId,
-    onSelectTab,
-    bookmarks,
-    onSelectBookmark,
     pastConversations,
     onRestoreTab,
 }) => {
-    const [view, setView] = useState<'tabs' | 'history'>('tabs');
+    const [searchTerm, setSearchTerm] = useState('');
 
     const handleRestore = (tabId: string) => {
         onRestoreTab(tabId);
         onClose();
     };
 
+    const filteredHistory = useMemo(() => {
+        if (!searchTerm.trim()) return pastConversations;
+        const lowerTerm = searchTerm.toLowerCase();
+        return pastConversations.filter(tab =>
+            tab.title.toLowerCase().includes(lowerTerm) ||
+            tab.messages.some(m => m.content.toLowerCase().includes(lowerTerm))
+        );
+    }, [pastConversations, searchTerm]);
+
     return (
         <div className={`
-        fixed inset-y-0 left-16 w-80 bg-zen-surface border-r border-zen-border shadow-2xl z-40 transform transition-transform duration-300 ease-in-out
-        ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+        fixed top-4 bottom-4 left-24 w-80 bg-zen-surface/95 backdrop-blur-2xl border border-zen-border/50 shadow-2xl z-40 rounded-3xl transform transition-all duration-300 ease-in-out
+        ${isOpen ? 'translate-x-0 opacity-100' : '-translate-x-10 opacity-0 pointer-events-none'}
     `}>
             <div className="h-full flex flex-col">
                 {/* Header */}
                 <div className="h-14 border-b border-zen-border flex items-center justify-between px-4 bg-zen-bg/50">
                     <span className="text-sm font-bold tracking-widest text-zen-muted uppercase flex items-center gap-2">
-                        <Disc className="w-4 h-4 text-zen-accent" />
-                        Saturn Control
+                        <History className="w-4 h-4 text-zen-accent" />
+                        History
                     </span>
                     <button onClick={onClose} className="text-zen-muted hover:text-zen-text">
                         <X className="w-4 h-4" />
                     </button>
                 </div>
 
-                {/* Switcher */}
-                <div className="p-4 pb-0">
-                    <div className="flex bg-zen-bg/50 p-1 rounded-lg border border-zen-border/50">
-                        <button
-                            onClick={() => setView('tabs')}
-                            className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-colors ${view === 'tabs' ? 'bg-zen-accent text-white shadow-sm' : 'text-zen-muted hover:text-zen-text'}`}
-                        >
-                            Active
-                        </button>
-                        <button
-                            onClick={() => setView('history')}
-                            className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-colors ${view === 'history' ? 'bg-zen-accent text-white shadow-sm' : 'text-zen-muted hover:text-zen-text'}`}
-                        >
-                            History
-                        </button>
+                {/* Search */}
+                <div className="p-4 pb-2">
+                    <div className="relative">
+                        <input
+                            type="text"
+                            placeholder="Search history..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full bg-zen-bg/50 border border-zen-border rounded-lg py-2 pl-9 pr-3 text-xs focus:outline-none focus:border-zen-accent text-zen-text placeholder-zen-muted transition-colors"
+                        />
+                        <Search className="w-3.5 h-3.5 text-zen-muted absolute left-3 top-1/2 -translate-y-1/2" />
                     </div>
                 </div>
 
                 {/* Content */}
                 <div className="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar">
-
-                    {view === 'tabs' && (
-                        <div className="space-y-6 animate-fade-in">
-                            {/* Active Tabs Section */}
-                            <div>
-                                <div className="flex items-center gap-2 text-xs font-bold text-zen-text mb-3 uppercase tracking-wider">
-                                    <Clock className="w-3.5 h-3.5 text-zen-accent" />
-                                    Open Tabs
-                                </div>
-                                <div className="space-y-1">
-                                    {tabs.map(tab => (
-                                        <button
-                                            key={tab.id}
-                                            onClick={() => onSelectTab(tab.id)}
-                                            className={`w-full text-left px-3 py-2.5 rounded-lg text-sm truncate transition-colors border border-transparent ${activeTabId === tab.id ? 'bg-zen-bg text-zen-text border-zen-border/50' : 'text-zen-muted hover:bg-zen-bg/50 hover:text-zen-text'}`}
-                                        >
-                                            {tab.title || "New Thread"}
-                                        </button>
-                                    ))}
-                                </div>
+                    <div className="space-y-2">
+                        {filteredHistory.length === 0 && (
+                            <div className="text-center text-xs text-zen-muted py-10 italic opacity-50">
+                                {searchTerm ? 'No matches found.' : 'No past conversations.'}
                             </div>
-
-                            {/* Bookmarks Section */}
-                            <div>
-                                <div className="flex items-center gap-2 text-xs font-bold text-zen-text mb-3 uppercase tracking-wider">
-                                    <Star className="w-3.5 h-3.5 text-yellow-500" />
-                                    Bookmarks
+                        )}
+                        {filteredHistory.map((tab) => (
+                            <button
+                                key={tab.id}
+                                onClick={() => handleRestore(tab.id)}
+                                className="w-full text-left p-3 rounded-xl bg-zen-bg/40 border border-zen-border/50 hover:border-zen-accent/30 hover:bg-zen-bg transition-all group"
+                            >
+                                <div className="text-sm font-medium text-zen-text truncate">{tab.title}</div>
+                                <div className="text-xs text-zen-muted opacity-60 truncate">
+                                    {new Date(tab.createdAt).toLocaleDateString()} · {tab.messages.length} msgs
                                 </div>
-                                <div className="space-y-1">
-                                    {bookmarks.length === 0 && (
-                                        <div className="text-xs text-zen-muted italic px-2">No bookmarks yet.</div>
-                                    )}
-                                    {bookmarks.map(bookmark => (
-                                        <button
-                                            key={bookmark.id}
-                                            onClick={() => onSelectBookmark(bookmark)}
-                                            className="w-full text-left px-3 py-2.5 rounded-lg text-sm transition-colors text-zen-muted hover:bg-zen-bg/50 hover:text-zen-text flex items-center gap-2 group"
-                                        >
-                                            <span className="truncate flex-1">{bookmark.title}</span>
-                                            <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {view === 'history' && (
-                        <div className="space-y-4 animate-fade-in">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2 text-xs font-bold text-zen-text uppercase tracking-wider">
-                                    <History className="w-3.5 h-3.5 text-zen-accent" />
-                                    Past Conversations
-                                </div>
-                            </div>
-                            <div className="space-y-2">
-                                {pastConversations.length === 0 && (
-                                    <div className="text-center text-xs text-zen-muted py-10 italic opacity-50">
-                                        No past conversations found.
-                                    </div>
-                                )}
-                                {pastConversations.map((tab) => (
-                                    <button
-                                        key={tab.id}
-                                        onClick={() => handleRestore(tab.id)}
-                                        className="w-full text-left p-3 rounded-xl bg-zen-bg/40 border border-zen-border/50 hover:border-zen-accent/30 hover:bg-zen-bg transition-all group"
-                                    >
-                                        <div className="text-sm font-medium text-zen-text truncate">{tab.title}</div>
-                                        <div className="text-xs text-zen-muted opacity-60">
-                                            {tab.messages.length} messages · {new Date(tab.createdAt).toLocaleDateString()}
-                                        </div>
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
+                            </button>
+                        ))}
+                    </div>
                 </div>
 
                 {/* Footer Status */}

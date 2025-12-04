@@ -77,7 +77,6 @@ export default function App() {
     const [tabs, setTabs] = useState<Tab[]>([]);
     const [activeTabId, setActiveTabId] = useState<string>('');
     const [archivedTabs, setArchivedTabs] = useState<Tab[]>([]);
-    const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
     const [downloads, setDownloads] = useState<DownloadItem[]>([]);
     const [globalHistory, setGlobalHistory] = useState<HistoryItem[]>([]);
     const [customInstructions, setCustomInstructions] = useState<string>('');
@@ -114,7 +113,6 @@ export default function App() {
                 setActiveTabId(newTab.id);
 
                 setArchivedTabs([...validPreviousTabs, ...previousArchives]);
-                setBookmarks(data.bookmarks || []);
                 setDownloads(data.downloads || []);
                 setGlobalHistory(data.globalHistory || []);
                 setCustomBackdrop(data.customBackdrop || null);
@@ -125,7 +123,6 @@ export default function App() {
                 setTabs([newTab]);
                 setActiveTabId(newTab.id);
                 setArchivedTabs([]);
-                setBookmarks([]);
                 setDownloads([]);
                 setGlobalHistory([]);
                 setCustomBackdrop(null);
@@ -138,7 +135,6 @@ export default function App() {
             setTabs([newTab]);
             setActiveTabId(newTab.id);
             setArchivedTabs([]);
-            setBookmarks([]);
             setDownloads([]);
             setGlobalHistory([]);
             setCustomBackdrop(null);
@@ -155,11 +151,11 @@ export default function App() {
 
         // In incognito mode, don't persist conversation history (tabs/archivedTabs/globalHistory)
         const dataToSave = isIncognito
-            ? { bookmarks, downloads, customBackdrop, customInstructions, isIncognito }
-            : { tabs, activeTabId, archivedTabs, bookmarks, downloads, customBackdrop, globalHistory, customInstructions, isIncognito };
+            ? { downloads, customBackdrop, customInstructions, isIncognito }
+            : { tabs, activeTabId, archivedTabs, downloads, customBackdrop, globalHistory, customInstructions, isIncognito };
 
         localStorage.setItem(storageKey, JSON.stringify(dataToSave));
-    }, [tabs, archivedTabs, activeTabId, bookmarks, downloads, customBackdrop, globalHistory, customInstructions, isIncognito]);
+    }, [tabs, archivedTabs, activeTabId, downloads, customBackdrop, globalHistory, customInstructions, isIncognito]);
 
     useEffect(() => {
         localStorage.setItem('deepsearch_users', JSON.stringify(users));
@@ -370,22 +366,6 @@ export default function App() {
         }
     };
 
-    const handleLoadHistory = (title: string) => {
-        const newId = createNewTab();
-        const newTab: Tab = {
-            id: newId,
-            title: title,
-            messages: [
-                { id: 'h1', role: Role.USER, content: `Tell me about ${title}`, timestamp: Date.now() }
-            ],
-            createdAt: Date.now(),
-            browserState: { ...DEFAULT_BROWSER_STATE }
-        };
-        setTabs([newTab]);
-        setActiveTabId(newId);
-        setIsSidebarOpen(false);
-    };
-
     const handleNavigate = (url: string) => {
         const currentTabId = activeTabId;
         let finalUrl = url.trim();
@@ -593,11 +573,6 @@ export default function App() {
             <HistoryDrawer
                 isOpen={isSidebarOpen}
                 onClose={() => setIsSidebarOpen(false)}
-                tabs={tabs}
-                activeTabId={activeTabId}
-                onSelectTab={(id) => { setActiveTabId(id); setIsSidebarOpen(false); }}
-                bookmarks={bookmarks}
-                onSelectBookmark={(b) => handleLoadHistory(b.query)}
                 pastConversations={archivedTabs}
                 onRestoreTab={handleRestoreTab}
             />
@@ -608,7 +583,7 @@ export default function App() {
                 onClose={() => setActiveSidebarApp(null)}
             />
 
-            <div className="flex-1 flex flex-col min-w-0 z-10 relative h-full transition-all duration-500">
+            <div className="flex-1 flex flex-col min-w-0 z-10 relative h-full transition-all duration-500 pl-24">
                 <SettingsModal
                     isOpen={isSettingsOpen}
                     onClose={() => setIsSettingsOpen(false)}

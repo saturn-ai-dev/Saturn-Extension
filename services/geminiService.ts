@@ -148,6 +148,41 @@ export const generateVideo = async (prompt: string): Promise<GeneratedMedia> => 
     }
 };
 
+export const generateOptimizedSystemInstructions = async (answers: string[]): Promise<string> => {
+    try {
+        const ai = getAI();
+        const prompt = `
+            You are an expert prompt engineer. A user wants to customize their AI assistant's behavior. 
+            Here are their preferences based on a questionnaire:
+            
+            1. Desired Tone: ${answers[0] || "Not specified"}
+            2. Detail Level: ${answers[1] || "Not specified"}
+            3. Formatting Preferences: ${answers[2] || "Not specified"}
+            4. User's Role/Goal: ${answers[3] || "Not specified"}
+            
+            TASK:
+            Write a concise, high-quality "System Instruction" or "System Prompt" that captures these preferences perfectly.
+            The output will be fed directly into an LLM as a system instruction.
+            
+            - Do not include any introductory text like "Here is the prompt:".
+            - Do not include quotes around the output.
+            - Write in the second person (e.g., "You are an AI that...").
+            - Focus on behavioral constraints and style.
+        `;
+
+        const response = await ai.models.generateContent({
+            model: 'gemini-flash-lite-latest',
+            contents: [{ role: 'user', parts: [{ text: prompt }] }]
+        });
+
+        return response.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    } catch (e) {
+        console.error("Failed to generate system instructions", e);
+        // Fallback in case of error
+        return `Behavioral Overrides:\n- Tone: ${answers[0]}\n- Depth: ${answers[1]}\n- Format: ${answers[2]}\n- Context: ${answers[3]}`;
+    }
+};
+
 const getExtensionInstructions = (extensions: Extension[]): string => {
     if (!extensions || extensions.length === 0) return "";
     // Format clearly so the model recognizes these as distinct behavioral modifiers
