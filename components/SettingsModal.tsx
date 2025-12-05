@@ -191,16 +191,16 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     };
 
     return (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] flex items-center justify-center p-4 animate-fade-in">
-            <div className="bg-zen-bg w-full max-w-4xl h-[80vh] rounded-3xl border border-zen-border shadow-deep flex overflow-hidden scale-100 animate-scale-in">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] flex items-center justify-center p-0 md:p-4 animate-fade-in">
+            <div className="bg-zen-bg w-full h-full md:h-[80vh] md:max-w-4xl rounded-none md:rounded-3xl border-0 md:border border-zen-border shadow-deep flex flex-col md:flex-row overflow-hidden scale-100 animate-scale-in">
 
                 {/* Sidebar */}
-                <div className="w-64 border-r border-zen-border bg-zen-surface/30 flex flex-col p-4">
-                    <div className="text-2xl font-bold text-zen-text mb-8 px-2 flex items-center gap-2">
-                        <Rocket className="w-6 h-6 text-zen-accent" />
-                        Saturn
+                <div className="w-full md:w-64 border-b md:border-b-0 md:border-r border-zen-border bg-zen-surface/30 flex flex-row md:flex-col p-4 gap-4 md:gap-0 items-center md:items-stretch flex-shrink-0">
+                    <div className="text-xl md:text-2xl font-bold text-zen-text md:mb-8 px-2 flex items-center gap-2">
+                        <Rocket className="w-5 h-5 md:w-6 md:h-6 text-zen-accent" />
+                        <span className="hidden md:inline">Saturn</span>
                     </div>
-                    <nav className="flex-1 space-y-1">
+                    <nav className="flex-1 flex flex-row md:flex-col gap-1 overflow-x-auto no-scrollbar md:space-y-1">
                         {[
                             { id: 'general', label: 'General', icon: <Box className="w-4 h-4" /> },
                             { id: 'personas', label: 'Personas', icon: <User className="w-4 h-4" /> },
@@ -210,14 +210,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id as any)}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${activeTab === tab.id ? `bg-zen-accent shadow-lg ${getActiveTextColor()}` : 'text-zen-muted hover:text-zen-text hover:bg-zen-surface'}`}
+                                className={`flex-shrink-0 md:w-full flex items-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-xl text-sm font-medium transition-colors whitespace-nowrap ${activeTab === tab.id ? `bg-zen-accent shadow-lg ${getActiveTextColor()}` : 'text-zen-muted hover:text-zen-text hover:bg-zen-surface'}`}
                             >
                                 {tab.icon}
-                                {tab.label}
+                                <span className="md:inline">{tab.label}</span>
                             </button>
                         ))}
                     </nav>
-                    <div className="mt-auto pt-4 border-t border-zen-border/30">
+                    <div className="mt-auto pt-4 border-t border-zen-border/30 hidden md:block">
                         <div className="flex items-center gap-3 px-2 py-2">
                             <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white ${currentUser.avatarColor}`}>
                                 {currentUser.name.substring(0, 2).toUpperCase()}
@@ -228,18 +228,23 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                             </div>
                         </div>
                     </div>
+
+                    {/* Mobile Close Button (Top Right of Sidebar area) */}
+                    <button onClick={onClose} className="md:hidden p-2 hover:bg-zen-surface rounded-full text-zen-muted hover:text-zen-text transition-colors ml-auto">
+                        <X className="w-5 h-5" />
+                    </button>
                 </div>
 
                 {/* Main Content */}
-                <div className="flex-1 flex flex-col min-w-0">
-                    <div className="flex items-center justify-between p-6 border-b border-zen-border">
-                        <h2 className="text-xl font-bold text-zen-text capitalize">{activeTab} Settings</h2>
-                        <button onClick={onClose} className="p-2 hover:bg-zen-surface rounded-full text-zen-muted hover:text-zen-text transition-colors">
+                <div className="flex-1 flex flex-col min-w-0 min-h-0">
+                    <div className="flex items-center justify-between p-4 md:p-6 border-b border-zen-border">
+                        <h2 className="text-lg md:text-xl font-bold text-zen-text capitalize">{activeTab} Settings</h2>
+                        <button onClick={onClose} className="hidden md:block p-2 hover:bg-zen-surface rounded-full text-zen-muted hover:text-zen-text transition-colors">
                             <X className="w-5 h-5" />
                         </button>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto p-8">
+                    <div className="flex-1 overflow-y-auto p-4 md:p-8">
 
                         {/* TAB: GENERAL */}
                         {activeTab === 'general' && (

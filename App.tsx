@@ -389,9 +389,9 @@ export default function App() {
         setTabs([newTab]);
         setActiveTabId(newId);
         setShowHistory(false);
-        
+
         // TRIGGER THE SEARCH
-        handleSendMessage(title); 
+        handleSendMessage(title);
     };
 
     const handleNavigate = (url: string) => {
@@ -576,7 +576,7 @@ export default function App() {
             />
 
             {/* Overlays */}
-            <HistoryView 
+            <HistoryView
                 isOpen={showHistory}
                 onClose={() => setShowHistory(false)}
                 history={globalHistory}
@@ -597,35 +597,35 @@ export default function App() {
             />
 
             <SettingsModal
-                    isOpen={isSettingsOpen}
-                    onClose={() => setIsSettingsOpen(false)}
-                    theme={currentTheme}
-                    setTheme={setCurrentTheme}
-                    isIncognito={isIncognito}
-                    toggleIncognito={toggleIncognito}
-                    customBackdrop={customBackdrop}
-                    setCustomBackdrop={setCustomBackdrop}
-                    enabledSidebarApps={currentUser.enabledSidebarApps || []}
-                    toggleSidebarApp={handleToggleSidebarApp}
-                    currentUser={currentUser}
-                    users={users}
-                    onSwitchUser={handleSwitchUser}
-                    onAddUser={handleAddUser}
-                    downloads={downloads}
-                    availableExtensions={allExtensions}
-                    onToggleExtension={handleToggleExtension}
-                    onCreateExtension={handleCreateExtension}
-                    onDeleteExtension={handleDeleteExtension}
-                    onAddCustomShortcut={handleAddCustomShortcut}
-                    onDeleteCustomShortcut={handleDeleteCustomShortcut}
-                    onSetModel={handleSetModel}
-                    onSetImageModel={handleSetImageModel}
-                    tabs={tabs}
-                    setTabs={setTabs}
-                    archivedTabs={archivedTabs}
-                    setArchivedTabs={setArchivedTabs}
-                    customInstructions={customInstructions}
-                    setCustomInstructions={setCustomInstructions}
+                isOpen={isSettingsOpen}
+                onClose={() => setIsSettingsOpen(false)}
+                theme={currentTheme}
+                setTheme={setCurrentTheme}
+                isIncognito={isIncognito}
+                toggleIncognito={toggleIncognito}
+                customBackdrop={customBackdrop}
+                setCustomBackdrop={setCustomBackdrop}
+                enabledSidebarApps={currentUser.enabledSidebarApps || []}
+                toggleSidebarApp={handleToggleSidebarApp}
+                currentUser={currentUser}
+                users={users}
+                onSwitchUser={handleSwitchUser}
+                onAddUser={handleAddUser}
+                downloads={downloads}
+                availableExtensions={allExtensions}
+                onToggleExtension={handleToggleExtension}
+                onCreateExtension={handleCreateExtension}
+                onDeleteExtension={handleDeleteExtension}
+                onAddCustomShortcut={handleAddCustomShortcut}
+                onDeleteCustomShortcut={handleDeleteCustomShortcut}
+                onSetModel={handleSetModel}
+                onSetImageModel={handleSetImageModel}
+                tabs={tabs}
+                setTabs={setTabs}
+                archivedTabs={archivedTabs}
+                setArchivedTabs={setArchivedTabs}
+                customInstructions={customInstructions}
+                setCustomInstructions={setCustomInstructions}
             />
 
             <SidebarPanel
@@ -635,35 +635,35 @@ export default function App() {
             />
 
             {/* Main Content Area */}
-            <div className="absolute inset-0 left-24 right-0 bottom-0 top-0 flex flex-col overflow-hidden z-0">
+            <div className="absolute inset-0 left-0 md:left-24 right-0 bottom-0 top-0 flex flex-col overflow-hidden z-0">
                 {isIframeOpen && browserState ? (
-                     <div className="relative w-full h-full animate-scale-in bg-zen-surface/95 z-40 rounded-l-[2rem] overflow-hidden border-l border-y border-zen-border shadow-2xl backdrop-blur-xl">
-                         <button
-                             onClick={handleExitIframe}
-                             className="absolute top-4 right-4 z-50 bg-black/50 border border-white/10 text-white px-4 py-2 rounded-full shadow-xl hover:bg-zen-accent hover:border-transparent transition-all flex items-center gap-2 font-bold text-xs group backdrop-blur-md hover:shadow-glow"
-                         >
-                             <X className="w-3.5 h-3.5" />
-                             Close Browser
-                         </button>
-                         <iframe
-                             key={browserState.key}
-                             src={browserState.url}
-                             className="w-full h-full border-0 bg-white"
-                             title="Search Results"
-                             sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-presentation"
-                         />
-                     </div>
+                    <div className="relative w-full h-full animate-scale-in bg-zen-surface/95 z-40 rounded-none md:rounded-l-[2rem] overflow-hidden border-l-0 md:border-l border-y border-zen-border shadow-2xl backdrop-blur-xl">
+                        <button
+                            onClick={handleExitIframe}
+                            className="absolute top-4 right-4 z-50 bg-black/50 border border-white/10 text-white px-4 py-2 rounded-full shadow-xl hover:bg-zen-accent hover:border-transparent transition-all flex items-center gap-2 font-bold text-xs group backdrop-blur-md hover:shadow-glow"
+                        >
+                            <X className="w-3.5 h-3.5" />
+                            Close Browser
+                        </button>
+                        <iframe
+                            key={browserState.key}
+                            src={browserState.url}
+                            className="w-full h-full border-0 bg-white"
+                            title="Search Results"
+                            sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-presentation"
+                        />
+                    </div>
                 ) : (
                     <div className="flex-1 flex flex-col relative overflow-hidden min-h-0">
                         {/* Messages Container */}
-                        <div className="flex-1 w-full h-full overflow-y-auto pb-32 px-4 md:px-8 pt-4 scrollbar-thumb-zen-accent scrollbar-track-transparent">
-                             <div className="max-w-4xl mx-auto w-full pt-12 min-h-full flex flex-col">
+                        <div className="flex-1 w-full h-full overflow-y-auto pb-48 md:pb-32 px-4 md:px-8 pt-4 scrollbar-thumb-zen-accent scrollbar-track-transparent">
+                            <div className="max-w-4xl mx-auto w-full pt-12 min-h-full flex flex-col">
                                 {!activeTab?.messages.length ? (
                                     <div className="flex-1 flex flex-col items-center justify-center animate-slide-up select-none">
                                         <div className="mb-8 relative flex items-center justify-center group">
                                             <div className="absolute inset-0 bg-zen-accent/20 blur-3xl rounded-full animate-pulse-slow" />
                                             <div className="w-24 h-24 rounded-2xl bg-zen-surface border border-zen-border flex items-center justify-center text-zen-accent shadow-2xl transform group-hover:scale-105 transition-transform duration-500">
-                                                 <svg viewBox="0 0 100 100" className="w-12 h-12 fill-current">
+                                                <svg viewBox="0 0 100 100" className="w-12 h-12 fill-current">
                                                     <circle cx="50" cy="50" r="20" />
                                                     <ellipse cx="50" cy="50" rx="40" ry="10" fill="none" stroke="currentColor" strokeWidth="8" transform="rotate(-15 50 50)" />
                                                 </svg>
@@ -694,19 +694,19 @@ export default function App() {
                                         <div ref={messagesEndRef} />
                                     </div>
                                 )}
-                             </div>
+                            </div>
                         </div>
 
                         {/* Floating OmniBar */}
-                        <div className="absolute bottom-6 left-0 right-0 z-30 flex justify-center pointer-events-none">
-                             <div className="w-full max-w-4xl pointer-events-auto">
+                        <div className="absolute bottom-24 md:bottom-6 left-0 right-0 z-30 flex justify-center pointer-events-none">
+                            <div className="w-full max-w-4xl pointer-events-auto">
                                 <OmniBar
                                     onSend={(text, attach) => handleSendMessage(text, attach)}
                                     disabled={activeTab?.messages[activeTab.messages.length - 1]?.isStreaming || false}
                                     mode={searchMode}
                                     setMode={setSearchMode}
                                 />
-                             </div>
+                            </div>
                         </div>
                     </div>
                 )}

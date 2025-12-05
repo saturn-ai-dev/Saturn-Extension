@@ -10,6 +10,9 @@
     "deploy": "npm run build"
   },
   "dependencies": {
+    "@capacitor/android": "^7.4.4",
+    "@capacitor/cli": "^7.4.4",
+    "@capacitor/core": "^7.4.4",
     "@google/genai": "^1.30.0",
     "@types/react-syntax-highlighter": "^15.5.13",
     "jspdf": "^2.5.1",

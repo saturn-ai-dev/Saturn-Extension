@@ -103,7 +103,7 @@ const OmniBar: React.FC<OmniBarProps> = ({ onSend, disabled, mode, setMode }) =>
   }
 
   return (
-    <div className="w-full max-w-3xl mx-auto px-6 pb-10">
+    <div className="w-full max-w-3xl mx-auto px-2 md:px-6 pb-2 md:pb-10">
       <div className={`
           relative group transition-all duration-500 ease-out 
           ${isFocused ? 'scale-[1.02]' : 'scale-100'}
@@ -116,59 +116,59 @@ const OmniBar: React.FC<OmniBarProps> = ({ onSend, disabled, mode, setMode }) =>
             ${isFocused ? 'shadow-[0_0_50px_-10px_rgba(var(--accent-color),0.2)]' : 'shadow-deep'}
         `}>
 
-            {/* Attachments Area */}
-            {attachments.length > 0 && (
-                <div className="flex px-5 pt-5 gap-3 overflow-x-auto no-scrollbar">
-                    {attachments.map((att, idx) => (
-                        <div key={idx} className="relative group/preview animate-scale-in flex-shrink-0">
-                            {renderPreview(att)}
-                            <button
-                                onClick={() => removeAttachment(idx)}
-                                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-lg hover:scale-110 transition-transform"
-                            >
-                                <X className="w-3 h-3" />
-                            </button>
-                        </div>
-                    ))}
+          {/* Attachments Area */}
+          {attachments.length > 0 && (
+            <div className="flex px-5 pt-5 gap-3 overflow-x-auto no-scrollbar">
+              {attachments.map((att, idx) => (
+                <div key={idx} className="relative group/preview animate-scale-in flex-shrink-0">
+                  {renderPreview(att)}
+                  <button
+                    onClick={() => removeAttachment(idx)}
+                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-lg hover:scale-110 transition-transform"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
                 </div>
-            )}
+              ))}
+            </div>
+          )}
 
           <div className="flex items-end px-3 py-3">
-             {/* File Upload Button */}
-             <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileSelect} multiple />
+            {/* File Upload Button */}
+            <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileSelect} multiple />
             <button
-                onClick={() => fileInputRef.current?.click()}
-                className={`
+              onClick={() => fileInputRef.current?.click()}
+              className={`
                     p-3 mb-1 rounded-2xl transition-all duration-300 flex-shrink-0
                     ${attachments.length > 0 ? 'text-zen-accent bg-zen-accent/10' : 'text-zen-muted hover:bg-white/5 hover:text-zen-text'}
                 `}
-                disabled={mode === 'video'}
-                title="Attach files"
+              disabled={mode === 'video'}
+              title="Attach files"
             >
-                <Paperclip className="w-5 h-5" />
+              <Paperclip className="w-5 h-5" />
             </button>
 
             {/* Text Input */}
             <div className="flex-1 min-w-0 mx-3 mb-1.5">
-                {showPreview ? (
-                    <div className="w-full py-3 px-2 max-h-[200px] overflow-y-auto custom-scrollbar text-zen-text prose prose-invert prose-sm" onClick={() => setShowPreview(false)}>
-                        <ReactMarkdown>{input}</ReactMarkdown>
-                    </div>
-                ) : (
-                    <textarea
-                        ref={textareaRef}
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        onFocus={() => setIsFocused(true)}
-                        onBlur={() => setIsFocused(false)}
-                        onKeyDown={handleKeyDown}
-                        placeholder={getPlaceholder()}
-                        disabled={disabled}
-                        rows={1}
-                        className="w-full bg-transparent border-0 focus:ring-0 text-zen-text placeholder-zen-muted/50 resize-none py-2 px-0 text-[1.1rem] leading-relaxed max-h-[200px] overflow-y-auto disabled:opacity-50 caret-zen-accent font-medium tracking-wide"
-                        style={{ minHeight: '28px' }}
-                    />
-                )}
+              {showPreview ? (
+                <div className="w-full py-3 px-2 max-h-[200px] overflow-y-auto custom-scrollbar text-zen-text prose prose-invert prose-sm" onClick={() => setShowPreview(false)}>
+                  <ReactMarkdown>{input}</ReactMarkdown>
+                </div>
+              ) : (
+                <textarea
+                  ref={textareaRef}
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onFocus={() => setIsFocused(true)}
+                  onBlur={() => setIsFocused(false)}
+                  onKeyDown={handleKeyDown}
+                  placeholder={getPlaceholder()}
+                  disabled={disabled}
+                  rows={1}
+                  className="w-full bg-transparent border-0 focus:ring-0 text-zen-text placeholder-zen-muted/50 resize-none py-2 px-0 text-[1.1rem] leading-relaxed max-h-[200px] overflow-y-auto disabled:opacity-50 caret-zen-accent font-medium tracking-wide"
+                  style={{ minHeight: '28px' }}
+                />
+              )}
             </div>
 
             {/* Send Button */}
@@ -183,12 +183,12 @@ const OmniBar: React.FC<OmniBarProps> = ({ onSend, disabled, mode, setMode }) =>
               `}
             >
               {disabled ? (
-                  <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
               ) : (
-                  <>
-                    <div className="absolute inset-0 bg-gradient-to-tr from-zen-accent to-purple-500 opacity-0 group-hover/send:opacity-100 transition-opacity duration-300" />
-                    <ArrowUp className="w-5 h-5 relative z-10 group-hover/send:text-white transition-colors" />
-                  </>
+                <>
+                  <div className="absolute inset-0 bg-gradient-to-tr from-zen-accent to-purple-500 opacity-0 group-hover/send:opacity-100 transition-opacity duration-300" />
+                  <ArrowUp className="w-5 h-5 relative z-10 group-hover/send:text-white transition-colors" />
+                </>
               )}
             </button>
           </div>
@@ -199,27 +199,27 @@ const OmniBar: React.FC<OmniBarProps> = ({ onSend, disabled, mode, setMode }) =>
             ${isFocused || input || attachments.length > 0 ? 'opacity-100 h-auto' : 'opacity-0 h-0 overflow-hidden p-0 border-none'}
           `}>
             <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar mask-gradient-right">
-               {modes.map((m) => (
-                   <button
-                        key={m.id}
-                        onClick={() => setMode(m.id)}
-                        className={`
+              {modes.map((m) => (
+                <button
+                  key={m.id}
+                  onClick={() => setMode(m.id)}
+                  className={`
                             flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wider transition-all whitespace-nowrap border
-                            ${mode === m.id 
-                                ? 'bg-zen-surface border-zen-accent text-zen-accent shadow-[0_0_15px_-5px_rgba(var(--accent-color),0.5)]' 
-                                : 'border-transparent text-zen-muted hover:text-zen-text hover:bg-white/5'}
+                            ${mode === m.id
+                      ? 'bg-zen-surface border-zen-accent text-zen-accent shadow-[0_0_15px_-5px_rgba(var(--accent-color),0.5)]'
+                      : 'border-transparent text-zen-muted hover:text-zen-text hover:bg-white/5'}
                         `}
-                   >
-                       {m.icon}
-                       <span>{m.label}</span>
-                   </button>
-               ))}
+                >
+                  {m.icon}
+                  <span>{m.label}</span>
+                </button>
+              ))}
             </div>
-            
+
             <div className="flex items-center gap-3 pl-4 border-l border-white/10 ml-2 flex-shrink-0">
-                 <button onClick={() => setShowPreview(!showPreview)} className={`text-[10px] font-bold uppercase tracking-widest transition-colors hover:underline ${showPreview ? 'text-zen-accent' : 'text-zen-muted hover:text-zen-text'}`}>
-                     {showPreview ? 'Edit' : 'Preview'}
-                 </button>
+              <button onClick={() => setShowPreview(!showPreview)} className={`text-[10px] font-bold uppercase tracking-widest transition-colors hover:underline ${showPreview ? 'text-zen-accent' : 'text-zen-muted hover:text-zen-text'}`}>
+                {showPreview ? 'Edit' : 'Preview'}
+              </button>
             </div>
           </div>
 

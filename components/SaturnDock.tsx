@@ -69,41 +69,41 @@ const SaturnDock: React.FC<SaturnDockProps> = ({
     const displayedApps = apps.filter(app => enabledApps.includes(app.id));
 
     return (
-        <div className="fixed left-6 top-1/2 -translate-y-1/2 h-[80vh] w-16 glass-panel rounded-[2rem] flex flex-col items-center py-8 gap-6 z-50 app-drag transition-all duration-500 hover:shadow-glow border-zen-border/30">
+        <div className="fixed z-50 glass-panel transition-all duration-500 hover:shadow-glow border-zen-border/30 flex items-center app-drag md:left-6 md:top-1/2 md:-translate-y-1/2 md:h-[80vh] md:w-16 md:flex-col md:py-8 md:gap-6 md:rounded-[2rem] bottom-4 left-4 right-4 h-16 w-auto flex-row px-4 gap-4 rounded-2xl">
             {/* Logo / New Tab */}
             <div className="group cursor-pointer relative flex items-center justify-center app-no-drag mb-2 hover-lift" onClick={onNewTab}>
                 <div className="absolute inset-0 bg-zen-accent/30 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 <div className="w-11 h-11 rounded-2xl bg-zen-surface border border-zen-border/50 flex items-center justify-center text-zen-accent shadow-lg transition-all duration-500 group-hover:rotate-[360deg]">
                     <svg viewBox="0 0 100 100" className="w-6 h-6 fill-current">
-                         <circle cx="50" cy="50" r="20" />
-                         <ellipse cx="50" cy="50" rx="40" ry="10" fill="none" stroke="currentColor" strokeWidth="8" transform="rotate(-15 50 50)" />
+                        <circle cx="50" cy="50" r="20" />
+                        <ellipse cx="50" cy="50" rx="40" ry="10" fill="none" stroke="currentColor" strokeWidth="8" transform="rotate(-15 50 50)" />
                     </svg>
                 </div>
             </div>
 
-            <div className="w-8 h-px bg-gradient-to-r from-transparent via-zen-border/50 to-transparent shrink-0" />
+            <div className="md:w-8 md:h-px w-px h-8 bg-gradient-to-r md:bg-gradient-to-r from-transparent via-zen-border/50 to-transparent shrink-0" />
 
             {/* Apps Scroll Area */}
-            <div className="flex flex-col gap-4 w-full px-2 app-no-drag overflow-y-auto no-scrollbar flex-1 items-center py-2">
+            <div className="flex md:flex-col flex-row gap-4 md:w-full md:px-2 w-auto px-0 app-no-drag md:overflow-y-auto overflow-x-auto no-scrollbar flex-1 items-center md:py-2">
                 {displayedApps.map(app => (
                     <button
                         key={app.id}
                         onClick={() => onOpenApp(app.id)}
                         className={`
                             w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 relative group shrink-0
-                            ${activeApp === app.id 
-                                ? 'bg-gradient-to-br from-zen-accent to-purple-600 text-white shadow-glow scale-110' 
+                            ${activeApp === app.id
+                                ? 'bg-gradient-to-br from-zen-accent to-purple-600 text-white shadow-glow scale-110'
                                 : 'text-zen-muted hover:bg-white/10 hover:text-zen-text hover:scale-110'}
                         `}
                     >
                         {app.icon}
-                        
+
                         {/* Tooltip */}
                         <div className="absolute left-full ml-5 px-3 py-1.5 bg-black/80 backdrop-blur-xl border border-white/10 rounded-lg text-[10px] font-bold tracking-widest opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 whitespace-nowrap z-50 text-white uppercase shadow-2xl translate-x-2 group-hover:translate-x-0">
                             {app.label}
                             <div className="absolute top-1/2 -left-1 -translate-y-1/2 w-2 h-2 bg-black/80 border-l border-b border-white/10 transform rotate-45"></div>
                         </div>
-                        
+
                         {/* Active Indicator */}
                         {activeApp === app.id && (
                             <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-1 h-4 bg-zen-accent rounded-r-full shadow-[0_0_10px_var(--accent-color)]" />
@@ -123,10 +123,10 @@ const SaturnDock: React.FC<SaturnDockProps> = ({
                 ))}
             </div>
 
-            <div className="w-8 h-px bg-gradient-to-r from-transparent via-zen-border/50 to-transparent shrink-0" />
+            <div className="md:w-8 md:h-px w-px h-8 bg-gradient-to-r md:bg-gradient-to-r from-transparent via-zen-border/50 to-transparent shrink-0" />
 
             {/* System Controls */}
-            <div className="flex flex-col gap-4 w-full px-2 app-no-drag items-center">
+            <div className="flex md:flex-col flex-row gap-4 md:w-full md:px-2 w-auto px-0 app-no-drag items-center">
                 <button onClick={onToggleHistory} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 hover-lift ${isHistoryOpen ? 'bg-zen-text text-zen-bg shadow-glow' : 'text-zen-muted hover:bg-white/10 hover:text-zen-text'}`}>
                     <LayoutGrid className="w-5 h-5" />
                 </button>
