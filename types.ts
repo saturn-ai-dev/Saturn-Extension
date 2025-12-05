@@ -55,6 +55,7 @@ export interface Tab {
   createdAt: number;
   browserState: BrowserState;
   groupId?: string; // New: Group/Project ID
+  renameAttempted?: boolean;
 }
 
 export interface ThreadGroup {
@@ -105,6 +106,7 @@ export interface UserProfile {
   customShortcuts: CustomShortcut[];
   preferredModel?: string;
   preferredImageModel?: string;
+  autoRenameChats?: boolean;
 }
 
 export interface ChatState {

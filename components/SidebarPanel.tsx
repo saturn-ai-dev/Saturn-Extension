@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { X, RefreshCw, Save, Trash2, GripVertical, Copy, Download, Clock } from 'lucide-react';
 
@@ -207,7 +206,7 @@ const CalculatorWidget = () => {
                 {/* Row 6 */}
                 <button onClick={() => handlePress('1')} className={btnClass}>1</button>
                 <button onClick={() => handlePress('2')} className={btnClass}>2</button>
-                <button onClick={() => handlePress('3')} className={btnClass}>3</button>
+                <button onClick={() => handlePress('3')} className={sciClass}>3</button>
                 <button onClick={() => handlePress('sqrt')} className={sciClass}>√</button>
 
                 {/* Row 7 */}

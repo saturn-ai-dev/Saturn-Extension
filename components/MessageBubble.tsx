@@ -8,6 +8,7 @@ import 'katex/dist/katex.min.css';
 import '../katex-custom.css';
 import { Message, Role, DownloadItem } from '../types';
 import { User, Globe, ExternalLink, Sparkles, Volume2, Download, FileText, Play, X, Youtube, FileType, Copy, Check, Music, Video, Terminal, RotateCcw, Eye, EyeOff } from 'lucide-react';
+import CodeArtifact from './CodeArtifact';
 // @ts-ignore
 import { jsPDF } from 'jspdf';
 
@@ -62,7 +63,7 @@ const LinkRenderer = ({ href, children, onNavigate }: any) => {
 // Custom Markdown Components
 // Custom Markdown Components
 const TableRenderer = ({ children }: any) => (
-    <div className="overflow-x-auto my-8 rounded-2xl border border-white/10 shadow-2xl bg-white/5 backdrop-blur-md">
+    <div className="overflow-x-auto my-6 rounded-xl border border-white/10 shadow-lg bg-white/5 backdrop-blur-md">
         <table className="w-full border-collapse text-sm text-left min-w-[600px]">{children}</table>
     </div>
 );
@@ -84,70 +85,69 @@ const TableRowRenderer = ({ children }: any) => (
 );
 
 const TableHeaderCellRenderer = ({ children }: any) => (
-    <th className="px-6 py-5 font-bold text-white tracking-wide whitespace-nowrap">{children}</th>
+    <th className="px-6 py-4 font-bold text-white tracking-wide whitespace-nowrap">{children}</th>
 );
 
 const TableCellRenderer = ({ children }: any) => (
-    <td className="px-6 py-4 border-r border-white/5 last:border-r-0 group-hover:text-white transition-colors">{children}</td>
+    <td className="px-6 py-3 border-r border-white/5 last:border-r-0 group-hover:text-white transition-colors">{children}</td>
 );
 
 const BlockquoteRenderer = ({ children }: any) => (
-    <blockquote className="relative pl-6 py-4 my-6 border-l-4 border-zen-accent bg-gradient-to-r from-zen-accent/10 to-transparent rounded-r-xl text-zen-muted italic">
-        <span className="absolute -left-2 -top-2 text-4xl text-zen-accent opacity-40 font-serif">“</span>
+    <blockquote className="relative pl-6 py-3 my-4 border-l-4 border-zen-accent bg-zen-accent/5 rounded-r-lg text-zen-muted italic">
         <div className="relative z-10">{children}</div>
     </blockquote>
 );
 
 const H1Renderer = ({ children }: any) => (
-    <h1 className="text-4xl font-bold text-white mt-10 mb-6 pb-4 border-b border-white/10 flex items-center gap-4 group tracking-tight">
-        <div className="w-1.5 h-8 bg-zen-accent rounded-full shadow-[0_0_15px_var(--accent-color)] group-hover:scale-y-110 transition-transform duration-300"></div>
+    <h1 className="text-3xl font-bold text-white mt-8 mb-4 pb-3 border-b border-white/10 flex items-center gap-3 group tracking-tight">
+        <div className="w-1.5 h-6 bg-zen-accent rounded-full shadow-[0_0_15px_var(--accent-color)] group-hover:scale-y-110 transition-transform duration-300"></div>
         {children}
     </h1>
 );
 
 const H2Renderer = ({ children }: any) => (
-    <h2 className="text-2xl font-bold text-white mt-10 mb-5 flex items-center gap-3 group tracking-tight">
-        <span className="text-zen-accent/70 text-xl group-hover:text-zen-accent transition-colors">#</span>
+    <h2 className="text-xl font-bold text-white mt-6 mb-3 flex items-center gap-2 group tracking-tight">
+        <span className="text-zen-accent/70 text-lg group-hover:text-zen-accent transition-colors">#</span>
         <span className="text-white/90 group-hover:text-white transition-colors">{children}</span>
     </h2>
 );
 
 const H3Renderer = ({ children }: any) => (
-    <h3 className="text-xl font-bold text-white/90 mt-8 mb-4 flex items-center gap-3 tracking-wide">
+    <h3 className="text-lg font-bold text-white/90 mt-6 mb-2 flex items-center gap-2 tracking-wide">
         <div className="w-1.5 h-1.5 rounded-full bg-zen-accent"></div>
         {children}
     </h3>
 );
 
 const UlRenderer = ({ children }: any) => (
-    <ul className="my-5 space-y-2 ml-1">{children}</ul>
+    <ul className="my-3 space-y-1 ml-1">{children}</ul>
 );
 
 const OlRenderer = ({ children }: any) => (
-    <ol className="my-5 space-y-4 pl-2 list-none counter-reset-item">{children}</ol>
+    <ol className="my-3 space-y-2 pl-2 list-none counter-reset-item">{children}</ol>
 );
 
 const LiRenderer = ({ children, ordered }: any) => {
     if (ordered) {
         return (
-            <li className="flex items-start gap-4 text-gray-300 leading-relaxed group/li relative pl-2 hover:text-white transition-colors duration-200">
-                <span className="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-white/5 border border-white/20 text-[11px] font-bold text-white group-hover/li:border-zen-accent group-hover/li:bg-zen-accent group-hover/li:text-white transition-all duration-200 mt-0.5 shadow-sm">
-                    <span className="w-1.5 h-1.5 rounded-full bg-white"></span>
+            <li className="flex items-start gap-3 text-gray-300 leading-relaxed group/li relative pl-2 hover:text-white transition-colors duration-200">
+                <span className="flex-shrink-0 flex items-center justify-center w-5 h-5 rounded-full bg-white/5 border border-white/20 text-[10px] font-bold text-white group-hover/li:border-zen-accent group-hover/li:bg-zen-accent group-hover/li:text-white transition-all duration-200 mt-0.5 shadow-sm">
+                    <span className="w-1 h-1 rounded-full bg-white"></span>
                 </span>
                 <span className="flex-1">{children}</span>
             </li>
         )
     }
     return (
-        <li className="flex items-start gap-4 text-gray-300 leading-relaxed group/li hover:text-white transition-colors duration-200">
-            <span className="mt-2.5 w-1.5 h-1.5 rounded-full bg-white group-hover/li:bg-zen-accent group-hover/li:scale-125 transition-all duration-200 flex-shrink-0 shadow-[0_0_5px_rgba(255,255,255,0.5)]"></span>
+        <li className="flex items-start gap-3 text-gray-300 leading-relaxed group/li hover:text-white transition-colors duration-200">
+            <span className="mt-2 w-1.5 h-1.5 rounded-full bg-white group-hover/li:bg-zen-accent group-hover/li:scale-125 transition-all duration-200 flex-shrink-0 shadow-[0_0_5px_rgba(255,255,255,0.5)]"></span>
             <span className="flex-1">{children}</span>
         </li>
     );
 };
 
 const ParagraphRenderer = ({ children }: any) => (
-    <p className="mb-6 leading-8 text-gray-300 text-[1.05rem] font-medium tracking-wide">{children}</p>
+    <p className="mb-4 leading-7 text-gray-300 text-[1rem] font-medium tracking-normal">{children}</p>
 );
 
 const StrongRenderer = ({ children }: any) => (
@@ -155,131 +155,29 @@ const StrongRenderer = ({ children }: any) => (
 );
 
 const HrRenderer = () => (
-    <hr className="my-10 border-none h-px bg-white/10" />
+    <hr className="my-6 border-none h-px bg-white/10" />
 );
 
 const PreRenderer = ({ children }: any) => {
-    return <pre className="my-6 rounded-xl bg-[#0d1117] border border-zen-border/40 shadow-xl overflow-hidden">{children}</pre>;
+    // Pass-through wrapper to avoid double styling with CodeArtifact
+    return <>{children}</>;
 };
 
 const CodeRenderer = ({ node, inline, className, children, ...props }: any) => {
-    const [copied, setCopied] = useState(false);
-    const [output, setOutput] = useState<string | null>(null);
-    const [isExecuting, setIsExecuting] = useState(false);
-    const codeRef = React.useRef<HTMLElement>(null);
-
-    React.useEffect(() => {
-        if (codeRef.current && !inline) {
-            // @ts-ignore
-            if (window.Prism) window.Prism.highlightElement(codeRef.current);
-        }
-    }, [children, inline, className]);
-
     const match = /language-(\w+)/.exec(className || '');
     const language = match ? match[1].toLowerCase() : '';
-    // Allow execution for JavaScript/JSX
-    const canExecute = ['javascript', 'js', 'jsx'].includes(language);
-
-    const handleCopy = () => {
-        navigator.clipboard.writeText(String(children).replace(/\n$/, ''));
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-    };
-
-    const handleExecute = async () => {
-        if (!canExecute) return;
-        setIsExecuting(true);
-
-        // Create invisible iframe for sandbox if not exists
-        let iframe = document.getElementById('saturn-sandbox') as HTMLIFrameElement;
-        if (!iframe) {
-            iframe = document.createElement('iframe');
-            iframe.id = 'saturn-sandbox';
-            iframe.src = 'sandbox.html';
-            iframe.style.display = 'none';
-            document.body.appendChild(iframe);
-            // Wait for load
-            await new Promise(resolve => iframe.onload = resolve);
-        }
-
-        const code = String(children);
-        const msgId = Date.now().toString();
-
-        const handleMessage = (event: MessageEvent) => {
-            if (event.data.id === msgId) {
-                setOutput(event.data.output);
-                setIsExecuting(false);
-                window.removeEventListener('message', handleMessage);
-            }
-        };
-
-        window.addEventListener('message', handleMessage);
-        iframe.contentWindow?.postMessage({ code, id: msgId }, '*');
-    };
+    const codeContent = String(children).replace(/\n$/, '');
 
     if (inline) {
         return <code className="bg-zen-surface px-1.5 py-0.5 rounded-md text-zen-accent font-mono text-sm" {...props}>{children}</code>;
     }
 
     return (
-        <div className="relative group font-sans my-6 rounded-xl overflow-hidden border border-white/10 shadow-2xl bg-[#0d1117]/80 backdrop-blur-md transition-all duration-300 hover:border-zen-accent/30 hover:shadow-[0_0_30px_-10px_rgba(var(--accent-color),0.3)]">
-            {/* Code Header */}
-            <div className="flex items-center justify-between px-4 py-3 bg-white/5 border-b border-white/5 text-xs text-gray-400 select-none backdrop-blur-xl">
-                <div className="flex items-center gap-3">
-                    <div className="flex gap-1.5">
-                        <div className="w-3 h-3 rounded-full bg-[#ff5f56] shadow-inner" />
-                        <div className="w-3 h-3 rounded-full bg-[#ffbd2e] shadow-inner" />
-                        <div className="w-3 h-3 rounded-full bg-[#27c93f] shadow-inner" />
-                    </div>
-                    <span className="uppercase font-bold tracking-widest opacity-60 ml-3 text-[10px]">{language || 'TEXT'}</span>
-                </div>
-                <div className="flex items-center gap-3">
-                    {canExecute && (
-                        <button
-                            onClick={handleExecute}
-                            disabled={isExecuting}
-                            className={`flex items-center gap-1.5 transition-all px-2 py-1 rounded-md ${isExecuting ? 'text-zen-accent bg-zen-accent/10' : 'hover:bg-white/10 text-zen-accent/80 hover:text-zen-accent'}`}
-                        >
-                            <Play className="w-3 h-3 fill-current" />
-                            <span className="font-bold text-[10px]">{isExecuting ? 'RUNNING...' : 'RUN'}</span>
-                        </button>
-                    )}
-                    <button onClick={handleCopy} className="flex items-center gap-1.5 hover:bg-white/10 px-2 py-1 rounded-md transition-all text-gray-400 hover:text-white">
-                        {copied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
-                        <span className="text-[10px] font-bold">{copied ? 'COPIED' : 'COPY'}</span>
-                    </button>
-                </div>
-            </div>
-            {/* Code Body */}
-            <div className="p-0 overflow-x-auto custom-scrollbar font-mono text-sm bg-transparent">
-                <code ref={codeRef} className={`block p-5 ${className || 'language-text'} !bg-transparent !text-sm !leading-relaxed`} {...props}>
-                    {children}
-                </code>
-            </div>
-
-            {/* Execution Output */}
-            {output !== null && (
-                <div className="border-t border-white/10 bg-[#0d1117] font-sans">
-                    <div className="flex items-center justify-between px-4 py-2 bg-[#161b22]/50 border-b border-white/5">
-                        <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                            <Terminal className="w-3.5 h-3.5" />
-                            Console Output
-                        </div>
-                        <button
-                            onClick={() => setOutput(null)}
-                            className="text-[10px] font-bold text-zen-muted hover:text-zen-text bg-zen-surface hover:bg-zen-surface/80 px-2 py-1 rounded border border-zen-border flex items-center gap-1 transition-colors"
-                            title="Clear Output"
-                        >
-                            <RotateCcw className="w-3 h-3" />
-                            CLEAR
-                        </button>
-                    </div>
-                    <div className="p-4 font-mono text-xs text-gray-300 whitespace-pre-wrap max-h-[300px] overflow-y-auto custom-scrollbar bg-black/20 border-l-2 border-zen-accent/50 ml-0">
-                        {output}
-                    </div>
-                </div>
-            )}
-        </div>
+        <CodeArtifact 
+            code={codeContent} 
+            language={language || 'text'} 
+            filename="snippet"
+        />
     );
 };
 

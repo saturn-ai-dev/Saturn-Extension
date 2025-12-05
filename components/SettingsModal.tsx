@@ -35,6 +35,8 @@ interface SettingsModalProps {
     // Model
     onSetModel: (model: string) => void;
     onSetImageModel: (model: string) => void;
+    autoRenameChats: boolean;
+    toggleAutoRenameChats: () => void;
 
     // Data
     tabs: Tab[];
@@ -51,6 +53,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     currentUser, users, onSwitchUser, onAddUser, downloads, availableExtensions,
     onToggleExtension, onCreateExtension, onDeleteExtension,
     onAddCustomShortcut, onDeleteCustomShortcut, onSetModel, onSetImageModel,
+    autoRenameChats, toggleAutoRenameChats,
     tabs, setTabs, archivedTabs, setArchivedTabs, customInstructions, setCustomInstructions
 }) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -306,6 +309,17 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                                     <div className="text-xs text-zen-muted">{model.desc}</div>
                                                 </button>
                                             ))}
+                                        </div>
+
+                                        {/* Auto-Rename Toggle */}
+                                        <div className="flex items-center justify-between p-4 rounded-xl bg-zen-bg/30 border border-zen-border/50 mb-4">
+                                            <div>
+                                                <div className="text-sm font-bold text-zen-text">Auto-Rename Chats</div>
+                                                <div className="text-xs text-zen-muted">Smartly title conversations using Gemini 2.5 Flash Lite</div>
+                                            </div>
+                                            <button onClick={toggleAutoRenameChats} className={`w-11 h-6 rounded-full p-0.5 transition-colors relative ${autoRenameChats ? 'bg-zen-accent' : 'bg-zen-border'}`}>
+                                                <div className={`w-5 h-5 bg-white rounded-full shadow-md transition-transform ${autoRenameChats ? 'translate-x-5' : 'translate-x-0'}`} />
+                                            </button>
                                         </div>
 
                                         <div className="flex items-center gap-4 mb-4 pt-4 border-t border-zen-border/50">

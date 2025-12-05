@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, type GenerateContentResponse } from "@google/genai";
 import { Message, Role, Source, SearchMode, GeneratedMedia, Extension } from "../types";
 
@@ -153,7 +152,7 @@ export const generateOptimizedSystemInstructions = async (answers: string[]): Pr
         const ai = getAI();
         const prompt = `
             You are an expert prompt engineer. A user wants to customize their AI assistant's behavior. 
-            Here are their preferences based on a questionnaire:
+            Here are their preferences based on a questionnaire: 
             
             1. Desired Tone: ${answers[0] || "Not specified"}
             2. Detail Level: ${answers[1] || "Not specified"}
@@ -182,6 +181,51 @@ export const generateOptimizedSystemInstructions = async (answers: string[]): Pr
         return `Behavioral Overrides:\n- Tone: ${answers[0]}\n- Depth: ${answers[1]}\n- Format: ${answers[2]}\n- Context: ${answers[3]}`;
     }
 };
+
+export const generateChatTitle = async (history: Message[]): Promise<string> => {
+    try {
+        // Use the very first message (User) as the primary context
+        const firstMessage = history[0];
+        if (!firstMessage) return "New Chat";
+
+        console.log("Auto-renaming chat based on:", firstMessage.content.substring(0, 50));
+        const ai = getAI();
+        const prompt = `
+            Generate a short, concise, and descriptive title (3-6 words) for a chat that starts with this message:
+            "${firstMessage.content.slice(0, 500)}"
+            
+            Do not use quotes or prefixes. Just the title.
+        `;
+
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash-lite',
+            contents: [{ role: 'user', parts: [{ text: prompt }] }],
+            config: {
+                tools: [], // Explicitly disable tools to prevent functionCall warnings
+                responseModalities: ['TEXT']
+            }
+        });
+
+        const title = response.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+        console.log("Generated title:", title);
+        return title || "New Chat";
+    } catch (e) {
+        console.error("Failed to auto-rename chat with gemini-2.5-flash-lite. Retrying with fallback...", e);
+        // Fallback to standard flash model if lite fails (e.g. due to access or waitlist)
+        try {
+            const ai = getAI();
+            const fallbackResponse = await ai.models.generateContent({
+                model: 'gemini-flash-latest', 
+                contents: [{ role: 'user', parts: [{ text: "Generate a 3-word title for this: " + history[0]?.content.slice(0, 100) }] }],
+                config: { tools: [], responseModalities: ['TEXT'] }
+            });
+            return fallbackResponse.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "New Chat";
+        } catch (fallbackError) {
+            console.error("Fallback rename failed too", fallbackError);
+            return "New Chat";
+        }
+    }
+}
 
 const getExtensionInstructions = (extensions: Extension[]): string => {
     if (!extensions || extensions.length === 0) return "";
@@ -318,7 +362,18 @@ export const streamGeminiResponse = async (
 
             for await (const chunk of synthesisStream) {
                 const responseChunk = chunk as GenerateContentResponse;
-                const text = responseChunk.text || "";
+                
+                // Safely extract text
+                let text = "";
+                const parts = responseChunk.candidates?.[0]?.content?.parts;
+                if (parts) {
+                    parts.forEach(part => {
+                        if (part.text) text += part.text;
+                    });
+                } else {
+                    text = responseChunk.text || "";
+                }
+                
                 // We stream the synthesis text, attaching the aggregated sources found in the first step
                 onChunk(text, aggregatedSources);
             }
@@ -351,7 +406,8 @@ export const streamGeminiResponse = async (
            Example for a PDF:
            with open('output.pdf', 'rb') as f:
                import base64
-               print(f"$$$FILE:::output.pdf:::application/pdf$$$\{base64.b64encode(f.read()).decode()\}$$$END_FILE$$$")
+               print(f"$$$FILE:::output.pdf:::application/pdf$$$\
+{base64.b64encode(f.read()).decode()}$$$END_FILE$$$")
         
         4. Do NOT say "I have saved the file to /mnt/data...". Instead, say "I have generated the file for you to download." and the system will handle the rest.
         
@@ -419,7 +475,22 @@ export const streamGeminiResponse = async (
 
             for await (const chunk of resultStream) {
                 const responseChunk = chunk as GenerateContentResponse;
-                const text = responseChunk.text || "";
+                
+                // Safely extract text, checking candidates parts first to avoid 'non-text parts' warning
+                let text = "";
+                const parts = responseChunk.candidates?.[0]?.content?.parts;
+                if (parts) {
+                    parts.forEach(part => {
+                        if (part.text) {
+                            text += part.text;
+                        }
+                    });
+                } else {
+                    // Fallback to getter if needed (though the above loop covers it)
+                    // But avoid calling .text directly if we know it might have non-text parts.
+                    // If parts is undefined, responseChunk.text might be safe or empty.
+                    text = responseChunk.text || "";
+                }
 
                 // Robustly extract sources from potentially streaming chunks
                 if (responseChunk.candidates && responseChunk.candidates[0]) {

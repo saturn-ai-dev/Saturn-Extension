@@ -7,7 +7,7 @@ import MessageBubble from './components/MessageBubble';
 import InputArea from './components/InputArea';
 import SettingsModal from './components/SettingsModal';
 import { Tab, Message, Role, SearchMode, Attachment, Theme, Bookmark, DownloadItem, UserProfile, Extension, BrowserState, CustomShortcut, HistoryItem, ThreadGroup } from './types';
-import { createNewTab, streamGeminiResponse, generateImage, generateVideo } from './services/geminiService';
+import { createNewTab, streamGeminiResponse, generateImage, generateVideo, generateChatTitle } from './services/geminiService';
 import { X } from 'lucide-react';
 
 const DEFAULT_USER: UserProfile = {
@@ -19,7 +19,8 @@ const DEFAULT_USER: UserProfile = {
     enabledSidebarApps: ['notes', 'calculator', 'spotify', 'whatsapp', 'youtube', 'reddit', 'x'],
     customShortcuts: [],
     preferredModel: 'gemini-flash-latest',
-    preferredImageModel: 'gemini-2.5-flash-image'
+    preferredImageModel: 'gemini-2.5-flash-image',
+    autoRenameChats: true
 };
 
 const DEFAULT_BROWSER_STATE: BrowserState = {
@@ -325,6 +326,12 @@ export default function App() {
         setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
     };
 
+    const handleToggleAutoRename = () => {
+        const updatedUser = { ...currentUser, autoRenameChats: !currentUser.autoRenameChats };
+        setCurrentUser(updatedUser);
+        setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
+    };
+
     const handleCreateExtension = (ext: Extension) => {
         setCustomExtensions(prev => [...prev, ext]);
         handleToggleExtension(ext.id);
@@ -344,6 +351,10 @@ export default function App() {
             };
             setCurrentUser(updatedUser);
         }
+    };
+
+    const handleDeleteArchivedTab = (tabId: string) => {
+        setArchivedTabs(prev => prev.filter(tab => tab.id !== tabId));
     };
 
     const handleNewTab = () => {
@@ -508,7 +519,10 @@ export default function App() {
                     setTabs(prev => prev.map(tab => tab.id === currentTabId ? { ...tab, messages: tab.messages.map(msg => msg.id === botMsgId ? { ...msg, content: msg.content + textChunk, sources: sources || msg.sources } : msg) } : tab));
                 },
                 () => {
-                    setTabs(prev => prev.map(tab => tab.id === currentTabId ? { ...tab, messages: tab.messages.map(msg => msg.id === botMsgId ? { ...msg, isStreaming: false } : msg) } : tab));
+                    setTabs(prev => {
+                        const updatedTabs = prev.map(tab => tab.id === currentTabId ? { ...tab, messages: tab.messages.map(msg => msg.id === botMsgId ? { ...msg, isStreaming: false } : msg) } : tab);
+                        return updatedTabs;
+                    });
                 },
                 (error) => {
                     setTabs(prev => prev.map(tab => tab.id === currentTabId ? { ...tab, messages: tab.messages.map(msg => msg.id === botMsgId ? { ...msg, content: msg.content + `\n\n*[Error: ${error.message}]*`, isStreaming: false } : msg) } : tab));
@@ -542,6 +556,43 @@ export default function App() {
         return <div className="cosmic-stars">{stars}{fallingStars}</div>;
     }, [currentTheme]);
 
+
+    // --- Auto-Rename Effect ---
+    useEffect(() => {
+        if (currentUser.autoRenameChats === false) return;
+
+        // Find tabs that need renaming:
+        // 1. Title is default 'New Thread'
+        // 2. Have at least 1 message (User) or more
+        // 3. Not currently streaming
+        // 4. Have NOT attempted rename yet
+        const tabsToRename = tabs.filter(t => 
+            t.title === 'New Thread' && 
+            t.messages.length > 0 && 
+            !t.messages[t.messages.length - 1].isStreaming &&
+            !t.renameAttempted
+        );
+        
+        if (tabsToRename.length === 0) return;
+
+        // Mark them as attempted immediately to prevent loops
+        setTabs(currentTabs => currentTabs.map(t => {
+            if (tabsToRename.find(r => r.id === t.id)) {
+                return { ...t, renameAttempted: true };
+            }
+            return t;
+        }));
+
+        // Trigger rename for each
+        tabsToRename.forEach(tab => {
+            console.log("Initiating auto-rename for tab:", tab.id);
+            generateChatTitle(tab.messages).then(newTitle => {
+                if (newTitle && newTitle !== 'New Chat') {
+                     setTabs(currentTabs => currentTabs.map(t => t.id === tab.id ? { ...t, title: newTitle } : t));
+                }
+            });
+        });
+    }, [tabs, currentUser.autoRenameChats]);
 
     return (
         <div
@@ -587,6 +638,7 @@ export default function App() {
                 }}
                 onRenameGroup={(id, name) => setGroups(prev => prev.map(g => g.id === id ? { ...g, name } : g))}
                 onMoveTabToGroup={(tabId, groupId) => setArchivedTabs(prev => prev.map(t => t.id === tabId ? { ...t, groupId } : t))}
+                onDeleteArchivedTab={handleDeleteArchivedTab}
             />
 
             <SidebarPanel
@@ -622,6 +674,8 @@ export default function App() {
                     onDeleteCustomShortcut={handleDeleteCustomShortcut}
                     onSetModel={handleSetModel}
                     onSetImageModel={handleSetImageModel}
+                    autoRenameChats={currentUser.autoRenameChats ?? true}
+                    toggleAutoRenameChats={handleToggleAutoRename}
                     tabs={tabs}
                     setTabs={setTabs}
                     archivedTabs={archivedTabs}
