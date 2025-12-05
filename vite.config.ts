@@ -19,6 +19,18 @@ export default defineConfig(({ mode }) => {
         '@': path.resolve(__dirname, '.'),
       }
     },
-    base: './'
+    base: './',
+    build: {
+      rollupOptions: {
+        input: {
+          main: path.resolve(__dirname, 'index.html'),
+          sidebar: path.resolve(__dirname, 'sidebar.html'),
+          background: path.resolve(__dirname, 'background.ts')
+        },
+        output: {
+          entryFileNames: '[name].js',
+        }
+      }
+    }
   };
 });

@@ -13,11 +13,23 @@
   },
   "permissions": [
     "storage",
-    "geolocation"
+    "geolocation",
+    "sidePanel",
+    "activeTab",
+    "scripting"
   ],
   "host_permissions": [
     "<all_urls>"
   ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "Open Saturn Sidebar"
+  },
+  "side_panel": {
+    "default_path": "sidebar.html"
+  },
   "content_security_policy": {
     "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
   },

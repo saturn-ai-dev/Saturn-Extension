@@ -1,7 +1,7 @@
 
 import React, { useRef, useEffect, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { ArrowUp, Zap, Globe, BrainCircuit, Paperclip, X, Image as ImageIcon, Video, Target, Eye, EyeOff, ChevronDown, Check } from 'lucide-react';
+import { ArrowUp, Zap, Globe, BrainCircuit, Paperclip, X, Image as ImageIcon, Video, Target, Eye, EyeOff, ChevronDown, Check, FileText } from 'lucide-react';
 import { SearchMode, Attachment } from '../types';
 
 interface InputAreaProps {
@@ -9,9 +9,10 @@ interface InputAreaProps {
   disabled: boolean;
   mode: SearchMode;
   setMode: (mode: SearchMode) => void;
+  onGetContext?: () => void;
 }
 
-const InputArea: React.FC<InputAreaProps> = ({ onSend, disabled, mode, setMode }) => {
+const InputArea: React.FC<InputAreaProps> = ({ onSend, disabled, mode, setMode, onGetContext }) => {
   const [input, setInput] = useState('');
   const [isFocused, setIsFocused] = useState(false);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
@@ -168,6 +169,16 @@ const InputArea: React.FC<InputAreaProps> = ({ onSend, disabled, mode, setMode }
               >
                 <Paperclip className="w-5 h-5" />
               </button>
+              {onGetContext && (
+                <button
+                  onClick={onGetContext}
+                  className="p-2 rounded-full hover:bg-zen-bg/50 hover:text-zen-text transition-colors"
+                  title="Add Current Page Content"
+                  disabled={disabled}
+                >
+                  <FileText className="w-5 h-5" />
+                </button>
+              )}
             </div>
 
             {/* Text Input */}

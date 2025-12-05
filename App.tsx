@@ -44,7 +44,11 @@ function getInitialTab(): Tab {
     };
 }
 
-export default function App() {
+interface AppProps {
+    mode?: 'full' | 'sidebar';
+}
+
+export default function App({ mode = 'full' }: AppProps) {
     // --- User Management ---
     const [users, setUsers] = useState<UserProfile[]>(() => {
         try {
@@ -448,6 +452,38 @@ export default function App() {
         setTabs(prev => prev.map(tab => tab.id === activeTabId ? { ...tab, browserState: { ...tab.browserState, isOpen: false } } : tab));
     };
 
+    const handleGetPageContext = async () => {
+        // @ts-ignore - chrome API might not be fully typed in this context or requires checking
+        if (typeof chrome !== 'undefined' && chrome.tabs && chrome.scripting) {
+            try {
+                const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+                if (tab?.id) {
+                    const results = await chrome.scripting.executeScript({
+                        target: { tabId: tab.id },
+                        func: () => {
+                            // Simple text extraction
+                            return document.body.innerText;
+                        }
+                    });
+
+                    if (results && results[0] && results[0].result) {
+                        const pageText = results[0].result;
+                        const contextMsg = `Here is the content of the current page ("${tab.title}"):\n\n${pageText.substring(0, 15000)}`;
+                        
+                        // Send as a user message but maybe visually distinct? 
+                        // For now just send it to the model.
+                        handleSendMessage(contextMsg, []);
+                    }
+                }
+            } catch (error) {
+                console.error("Failed to get page context", error);
+                // Maybe show a toast or error message
+            }
+        } else {
+            console.warn("Chrome API not available");
+        }
+    };
+
     const handleSendMessage = async (text: string, attachments?: Attachment[], modeOverride?: SearchMode) => {
         const currentTabId = activeTabId;
         const effectiveMode = modeOverride || searchMode;
@@ -754,6 +790,7 @@ export default function App() {
                                             disabled={activeTab?.messages[activeTab.messages.length - 1]?.isStreaming || false}
                                             mode={searchMode}
                                             setMode={setSearchMode}
+                                            onGetContext={mode === 'sidebar' ? handleGetPageContext : undefined}
                                         />
                                     </div>
                                 </div>
