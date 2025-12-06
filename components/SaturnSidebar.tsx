@@ -165,9 +165,8 @@ const SaturnSidebar: React.FC<SaturnSidebarProps> = ({
                 <IconButton
                     onClick={onOpenSettings}
                     title="Settings"
-                    className="hover:rotate-45"
                 >
-                    <Settings className="w-[18px] h-[18px]" />
+                    <Settings className="w-[18px] h-[18px] transition-transform duration-200 group-hover:rotate-45" />
                 </IconButton>
             </div>
         </div>

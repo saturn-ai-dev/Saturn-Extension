@@ -358,7 +358,12 @@ export default function App({ mode = 'full' }: AppProps) {
     };
 
     const handleDeleteArchivedTab = (tabId: string) => {
-        setArchivedTabs(prev => prev.filter(tab => tab.id !== tabId));
+        console.log('Deleting archived tab:', tabId);
+        setArchivedTabs(prev => {
+            const newTabs = prev.filter(tab => tab.id !== tabId);
+            console.log('Remaining tabs:', newTabs.map(t => t.id));
+            return newTabs;
+        });
     };
 
     const handleNewTab = () => {

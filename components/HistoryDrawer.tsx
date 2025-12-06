@@ -370,7 +370,7 @@ const HistoryItem: React.FC<{
                     e.stopPropagation();
                     onDelete(tab.id);
                 }}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-zen-muted hover:text-red-500 hover:bg-red-500/10 transition-opacity opacity-0 group-hover:opacity-100"
+                className="absolute right-3 bottom-4 p-1.5 rounded-lg text-zen-muted hover:text-red-500 hover:bg-red-500/10 transition-opacity opacity-0 group-hover:opacity-100 z-10"
                 title="Delete conversation"
             >
                 <Trash2 className="w-4 h-4" />
