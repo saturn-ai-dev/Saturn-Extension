@@ -27,8 +27,8 @@ Follow these steps to get Saturn running on your browser.
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/saksham-loonker/saturn-extension.git
-cd saturn-extension
+git clone https://github.com/saksham-loonker/Saturn-extension.git
+cd Saturn-extension
 ```
 
 ### 2. Install Dependencies
