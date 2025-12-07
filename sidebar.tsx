@@ -22,6 +22,8 @@ if ('serviceWorker' in navigator) {
 }
 
 class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean, error: any }> {
+  state: any;
+  props: any;
   constructor(props: any) {
     super(props);
     this.state = { hasError: false, error: null };

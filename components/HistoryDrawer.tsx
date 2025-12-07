@@ -1,432 +1,381 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Tab, ThreadGroup } from '../types';
-import { X, History, Search, FolderPlus, Folder, FolderOpen, ChevronRight, ChevronDown, MoreVertical, Edit2, Trash2, Check, CornerUpLeft, MessageSquare, Calendar } from 'lucide-react';
+
+import React, { useState, useMemo } from 'react';
+import { Tab, Bookmark, HistoryItem, Role, Message } from '../types';
+import { X, History, Search, GitGraph, List, Star, Clock, MessageSquare, Globe, Trash2, Layout, ExternalLink, GitBranch } from 'lucide-react';
 
 interface HistoryDrawerProps {
     isOpen: boolean;
     onClose: () => void;
-    pastConversations: Tab[];
-    onRestoreTab: (id: string) => void;
-    groups: ThreadGroup[];
-    onCreateGroup: (name: string) => void;
-    onDeleteGroup: (id: string) => void;
-    onRenameGroup: (id: string, name: string) => void;
-    onMoveTabToGroup: (tabId: string, groupId?: string) => void;
-    onDeleteArchivedTab: (tabId: string) => void;
+    tabs: Tab[];
+    activeTabId: string;
+    onSelectTab: (id: string) => void;
+    bookmarks: Bookmark[];
+    onSelectBookmark: (b: Bookmark) => void;
+    history: HistoryItem[];
+    onClearHistory: () => void;
+    isSidebarVisible: boolean;
+    onJumpToMessage: (tabId: string, messageId: string) => void;
 }
+
+type ViewMode = 'list' | 'tree' | 'history' | 'bookmarks';
 
 const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
     isOpen,
     onClose,
-    pastConversations,
-    onRestoreTab,
-    groups,
-    onCreateGroup,
-    onDeleteGroup,
-    onRenameGroup,
-    onMoveTabToGroup,
-    onDeleteArchivedTab // Destructure the prop here
+    tabs,
+    activeTabId,
+    onSelectTab,
+    bookmarks,
+    onSelectBookmark,
+    history,
+    onClearHistory,
+    isSidebarVisible,
+    onJumpToMessage
 }) => {
+    const [viewMode, setViewMode] = useState<ViewMode>('tree');
     const [searchTerm, setSearchTerm] = useState('');
-    const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
-    const [isCreatingGroup, setIsCreatingGroup] = useState(false);
-    const [newGroupName, setNewGroupName] = useState('');
-    const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
-    const [renameValue, setRenameValue] = useState('');
-    
-    // For the "Move to" menu
-    const [movingTabId, setMovingTabId] = useState<string | null>(null);
-    const moveMenuRef = useRef<HTMLDivElement>(null);
 
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (moveMenuRef.current && !moveMenuRef.current.contains(event.target as Node)) {
-                setMovingTabId(null);
-            }
-        };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
+    // --- Data Filtering ---
+    const filteredTabs = useMemo(() => {
+        if (!searchTerm) return tabs;
+        const lower = searchTerm.toLowerCase();
+        return tabs.filter(t => 
+            t.title.toLowerCase().includes(lower) || 
+            t.messages.some(m => m.content.toLowerCase().includes(lower))
+        );
+    }, [tabs, searchTerm]);
 
-    const handleRestore = (tabId: string) => {
-        onRestoreTab(tabId);
-        onClose();
-    };
+    const filteredHistory = useMemo(() => {
+        if (!searchTerm) return history;
+        const lower = searchTerm.toLowerCase();
+        return history.filter(h => h.title.toLowerCase().includes(lower) || h.url.toLowerCase().includes(lower));
+    }, [history, searchTerm]);
 
-    const toggleGroup = (id: string) => {
-        const newSet = new Set(expandedGroups);
-        if (newSet.has(id)) newSet.delete(id);
-        else newSet.add(id);
-        setExpandedGroups(newSet);
-    };
+    const filteredBookmarks = useMemo(() => {
+        if (!searchTerm) return bookmarks;
+        const lower = searchTerm.toLowerCase();
+        return bookmarks.filter(b => b.title.toLowerCase().includes(lower));
+    }, [bookmarks, searchTerm]);
 
-    const handleCreateGroup = () => {
-        if (newGroupName.trim()) {
-            onCreateGroup(newGroupName.trim());
-            setNewGroupName('');
-            setIsCreatingGroup(false);
-        }
-    };
+    // --- Topic Recognition Heuristic ---
+    const detectTopicShift = (curr: Message, prev: Message | null): boolean => {
+        if (!prev) return false;
 
-    const startRenaming = (group: ThreadGroup) => {
-        setEditingGroupId(group.id);
-        setRenameValue(group.name);
-    };
+        // 1. Time Heuristic: > 5 minutes gap implies new session/topic
+        const timeDiff = curr.timestamp - prev.timestamp;
+        if (timeDiff > 5 * 60 * 1000) return true;
 
-    const finishRenaming = () => {
-        if (editingGroupId && renameValue.trim()) {
-            onRenameGroup(editingGroupId, renameValue.trim());
-        }
-        setEditingGroupId(null);
-    };
+        // 2. Continuation Heuristic: Check for connecting words
+        const continuationWords = ['and', 'but', 'also', 'or', 'so', 'then', 'because', 'why', 'how'];
+        const firstWord = curr.content.trim().toLowerCase().split(/\s+/)[0].replace(/[^a-z]/g, '');
+        if (continuationWords.includes(firstWord)) return false; 
 
-    const { grouped, uncategorized } = useMemo(() => {
-        let filtered = pastConversations;
-        if (searchTerm.trim()) {
-             const lowerTerm = searchTerm.toLowerCase();
-             filtered = pastConversations.filter(tab =>
-                tab.title.toLowerCase().includes(lowerTerm) ||
-                tab.messages.some(m => m.content.toLowerCase().includes(lowerTerm))
+        // 3. Semantic Heuristic: Jaccard Similarity on keywords
+        const getWords = (str: string) => {
+            return new Set(
+                str.toLowerCase()
+                   .replace(/[^\w\s]/g, '') // Remove punctuation
+                   .split(/\s+/)
+                   .filter(w => w.length >= 2) // Keep words with 2+ chars
+                   .filter(w => !['the', 'and', 'is', 'in', 'at', 'of', 'to', 'for', 'a', 'an', 'it', 'that', 'this'].includes(w)) // Basic stopwords
             );
-        }
+        };
 
-        const grouped: Record<string, Tab[]> = {};
-        const uncategorized: Tab[] = [];
+        const wordsA = getWords(prev.content);
+        const wordsB = getWords(curr.content);
 
-        filtered.forEach(tab => {
-            if (tab.groupId && groups.some(g => g.id === tab.groupId)) {
-                if (!grouped[tab.groupId]) grouped[tab.groupId] = [];
-                grouped[tab.groupId].push(tab);
-            } else {
-                uncategorized.push(tab);
-            }
-        });
+        // If strict keyword extraction failed (e.g. mostly stopwords), default to False (keep together) 
+        // unless time gap handled above.
+        if (wordsA.size === 0 || wordsB.size === 0) return false;
 
-        return { grouped, uncategorized };
-    }, [pastConversations, groups, searchTerm]);
+        const intersection = new Set([...wordsA].filter(x => wordsB.has(x)));
+        const union = new Set([...wordsA, ...wordsB]);
 
-    // Auto-expand groups if searching
-    useEffect(() => {
-        if (searchTerm.trim()) {
-            const allGroupIds = groups.map(g => g.id);
-            setExpandedGroups(new Set(allGroupIds));
-        }
-    }, [searchTerm, groups]);
+        const similarity = intersection.size / union.size;
+
+        // Strict splitting: If absolutely no common keywords, split.
+        return similarity === 0;
+    };
+
+    // --- Renderers ---
+
+    const renderTreeView = () => (
+        <div className="relative px-2 py-6">
+            {filteredTabs.map((tab, index) => {
+                const isActive = tab.id === activeTabId;
+                const isLast = index === filteredTabs.length - 1;
+                
+                // Filter only USER messages
+                const userMessages = tab.messages.filter(m => m.role === Role.USER);
+                
+                // Group messages by topic branches
+                const branches: Message[][] = [];
+                let currentBranch: Message[] = [];
+                
+                userMessages.forEach((msg, i) => {
+                    const prev = i > 0 ? userMessages[i-1] : null;
+                    if (prev && detectTopicShift(msg, prev)) {
+                        branches.push(currentBranch);
+                        currentBranch = [msg];
+                    } else {
+                        currentBranch.push(msg);
+                    }
+                });
+                if (currentBranch.length > 0) branches.push(currentBranch);
+
+                return (
+                    <div key={tab.id} className="relative z-10 mb-0 animate-fade-in group/branch">
+                        {/* Vertical Connector for the main sequence of tabs */}
+                        {!isLast && (
+                            <div className="absolute left-[19px] top-10 bottom-[-40px] w-px bg-zen-border/20 z-0"></div>
+                        )}
+
+                        {/* Tab Node (Root) */}
+                        <div className="flex items-start gap-4 mb-2 relative">
+                             <div 
+                                onClick={() => onSelectTab(tab.id)}
+                                className={`
+                                    w-10 h-10 rounded-full border-2 flex items-center justify-center cursor-pointer transition-all z-10 relative flex-shrink-0
+                                    ${isActive 
+                                        ? 'bg-zen-surface border-zen-accent shadow-[0_0_15px_rgba(var(--accent-color-rgb),0.4)] text-zen-text scale-110' 
+                                        : 'bg-zen-bg border-zen-border text-zen-muted hover:border-zen-text hover:bg-zen-surface'}
+                                `}
+                             >
+                                <div className="text-[10px] font-bold text-center leading-none tracking-tighter select-none">
+                                    {tab.title.substring(0, 2).toUpperCase()}
+                                </div>
+                             </div>
+                             
+                             <div onClick={() => onSelectTab(tab.id)} className="cursor-pointer pt-2 min-w-0">
+                                  <div className={`text-xs font-bold transition-colors truncate pr-2 ${isActive ? 'text-zen-accent' : 'text-zen-text group-hover/branch:text-zen-text/80'}`}>
+                                    {tab.title}
+                                  </div>
+                                  <div className="text-[9px] text-zen-muted opacity-50 font-mono mt-0.5">
+                                    {new Date(tab.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                  </div>
+                             </div>
+                        </div>
+
+                        {/* Branches Container */}
+                        <div className="ml-[19px] border-l border-zen-border/20 pl-0 space-y-6 pb-8 relative pt-0">
+                            {branches.map((branch, bIndex) => (
+                                <div key={bIndex} className="relative animate-slide-up pl-6">
+                                    
+                                    {/* Branch Indicator (New Topic) */}
+                                    {bIndex > 0 && (
+                                        <div className="absolute -left-[1px] top-[-10px] w-6 h-6 flex items-center">
+                                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="text-zen-accent opacity-50">
+                                                <path d="M1 0V12C1 16 4 19 8 19H12" stroke="currentColor" strokeWidth="1.5" />
+                                             </svg>
+                                        </div>
+                                    )}
+
+                                    {branch.map((msg, mIndex) => (
+                                        <div 
+                                            key={msg.id}
+                                            onClick={() => onJumpToMessage(tab.id, msg.id)}
+                                            className="relative group/msg cursor-pointer mb-4 last:mb-0"
+                                        >
+                                            {/* Node Connector */}
+                                            <div className={`absolute -left-[25px] top-[9px] w-4 h-px transition-colors ${bIndex > 0 && mIndex === 0 ? 'bg-zen-accent/50' : 'bg-zen-border/20 group-hover/msg:bg-zen-accent/50'}`}></div>
+
+                                            {/* Message Node Circle */}
+                                            <div className={`
+                                                absolute -left-[29px] top-[5px] w-2.5 h-2.5 rounded-full border-2 z-10 transition-all duration-300
+                                                ${bIndex > 0 && mIndex === 0 ? 'border-zen-accent bg-zen-accent animate-pulse' : 'border-zen-border bg-zen-bg group-hover/msg:border-zen-text'}
+                                            `}></div>
+                                            
+                                            {/* Content */}
+                                            <div className="text-xs transition-colors line-clamp-2 leading-relaxed text-zen-muted group-hover/msg:text-zen-text">
+                                                {msg.content || (msg.attachment ? <span className="italic">Attachment: {msg.attachment.name}</span> : '...')}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ))}
+                            
+                            {/* Empty State */}
+                            {userMessages.length === 0 && (
+                                <div className="text-[10px] text-zen-muted italic opacity-30 pt-4 pl-6">New conversation...</div>
+                            )}
+                        </div>
+                    </div>
+                );
+            })}
+        </div>
+    );
+
+    const renderListView = () => (
+        <div className="space-y-2 px-1">
+            {filteredTabs.map(tab => (
+                <button
+                    key={tab.id}
+                    onClick={() => onSelectTab(tab.id)}
+                    className={`w-full text-left p-3 rounded-xl border transition-all group flex flex-col gap-1
+                    ${tab.id === activeTabId 
+                        ? 'bg-zen-surface border-zen-accent/50 shadow-md' 
+                        : 'bg-zen-bg/50 border-zen-border hover:bg-zen-surface hover:border-zen-border'}`}
+                >
+                    <div className="flex justify-between items-center">
+                        <span className={`text-sm font-bold truncate ${tab.id === activeTabId ? 'text-zen-text' : 'text-zen-muted group-hover:text-zen-text'}`}>
+                            {tab.title}
+                        </span>
+                        {tab.id === activeTabId && <div className="w-2 h-2 rounded-full bg-zen-accent shadow-[0_0_8px_var(--accent-color)]"></div>}
+                    </div>
+                    <div className="text-[10px] text-zen-muted flex gap-3">
+                         <span className="flex items-center gap-1"><Clock className="w-3 h-3"/> {new Date(tab.createdAt).toLocaleDateString()}</span>
+                         <span className="flex items-center gap-1"><MessageSquare className="w-3 h-3"/> {tab.messages.length}</span>
+                    </div>
+                </button>
+            ))}
+        </div>
+    );
+
+    const renderHistoryView = () => (
+        <div className="space-y-8 relative px-2">
+             <div className="absolute left-[23px] top-2 bottom-0 w-px bg-zen-border/30"></div>
+            {filteredHistory.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-10 text-zen-muted opacity-50">
+                    <History className="w-12 h-12 mb-2 stroke-1" />
+                    <span>No history found</span>
+                </div>
+            ) : (
+                Object.entries(filteredHistory.reduce((acc, item) => {
+                    const date = new Date(item.timestamp).toLocaleDateString();
+                    if (!acc[date]) acc[date] = [];
+                    acc[date].push(item);
+                    return acc;
+                }, {} as Record<string, HistoryItem[]>)).map(([date, items]) => (
+                    <div key={date} className="relative z-10 animate-fade-in">
+                        <div className="flex items-center gap-3 mb-3">
+                            <div className="w-8 h-8 rounded-full bg-zen-surface border border-zen-border flex items-center justify-center text-[10px] font-bold text-zen-muted shadow-sm z-10">
+                                {date.split('/')[0]}/{date.split('/')[1]}
+                            </div>
+                            <div className="h-px flex-1 bg-zen-border/50"></div>
+                        </div>
+                        <div className="pl-11 space-y-2">
+                            {items.map(item => (
+                                <a 
+                                    key={item.id}
+                                    href={item.url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="block p-3 rounded-xl bg-zen-bg/50 border border-zen-border/50 hover:bg-zen-surface hover:border-zen-accent/30 transition-all group"
+                                >
+                                    <div className="flex items-center gap-2 mb-1">
+                                        {item.type === 'search' ? <Search className="w-3 h-3 text-zen-accent" /> : <Globe className="w-3 h-3 text-blue-400" />}
+                                        <div className="text-xs font-bold text-zen-text truncate group-hover:text-zen-accent transition-colors">{item.title}</div>
+                                        <ExternalLink className="w-3 h-3 text-zen-muted opacity-0 group-hover:opacity-100 ml-auto" />
+                                    </div>
+                                    <div className="text-[10px] text-zen-muted truncate opacity-60 font-mono">
+                                        {item.url}
+                                    </div>
+                                </a>
+                            ))}
+                        </div>
+                    </div>
+                ))
+            )}
+            
+            {filteredHistory.length > 0 && (
+                <div className="flex justify-center pt-4 pl-8">
+                     <button onClick={onClearHistory} className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1 px-3 py-1.5 rounded-lg hover:bg-red-500/10 transition-colors">
+                         <Trash2 className="w-3 h-3" /> Clear History
+                     </button>
+                </div>
+            )}
+        </div>
+    );
+
+    const renderBookmarksView = () => (
+        <div className="grid grid-cols-1 gap-2 px-1">
+            {filteredBookmarks.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-10 text-zen-muted opacity-50">
+                    <Star className="w-12 h-12 mb-2 stroke-1" />
+                    <span>No bookmarks yet</span>
+                </div>
+            ) : (
+                filteredBookmarks.map(b => (
+                    <button 
+                        key={b.id}
+                        onClick={() => onSelectBookmark(b)}
+                        className="flex items-center gap-3 p-3 rounded-xl bg-zen-bg/50 border border-zen-border hover:bg-zen-surface hover:border-yellow-500/50 transition-all group text-left"
+                    >
+                        <div className="p-2 rounded-lg bg-yellow-500/10 text-yellow-500 group-hover:bg-yellow-500 group-hover:text-white transition-colors">
+                            <Star className="w-4 h-4 fill-current" />
+                        </div>
+                        <div className="min-w-0">
+                            <div className="text-sm font-bold text-zen-text truncate">{b.title}</div>
+                            <div className="text-[10px] text-zen-muted truncate font-mono opacity-70">{b.query}</div>
+                        </div>
+                    </button>
+                ))
+            )}
+        </div>
+    );
 
     return (
         <div className={`
-        fixed top-4 bottom-4 left-24 w-[500px] bg-zen-surface/95 backdrop-blur-2xl border border-zen-border/50 shadow-2xl z-40 rounded-3xl transform transition-all duration-300 ease-in-out flex flex-col
-        ${isOpen ? 'translate-x-0 opacity-100' : '-translate-x-10 opacity-0 pointer-events-none'}
-    `}>
+            fixed top-4 bottom-4 w-[400px] bg-zen-surface/95 backdrop-blur-3xl border border-zen-border/50 shadow-2xl z-40 rounded-3xl transform transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] flex flex-col overflow-hidden
+            ${isOpen ? 'translate-x-0 opacity-100' : '-translate-x-10 opacity-0 pointer-events-none'}
+            ${isSidebarVisible ? 'left-20' : 'left-4'}
+        `}>
             {/* Header */}
-            <div className="h-16 border-b border-zen-border flex items-center justify-between px-6 bg-zen-bg/50 shrink-0">
-                <span className="text-base font-bold tracking-widest text-zen-muted uppercase flex items-center gap-2">
-                    <History className="w-5 h-5 text-zen-accent" />
-                    Deep History
-                </span>
+            <div className="p-5 border-b border-zen-border bg-zen-bg/30 flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-2 text-zen-text font-bold text-lg">
+                    <GitGraph className="w-5 h-5 text-zen-accent" />
+                    <span>Time Machine</span>
+                </div>
                 <button onClick={onClose} className="p-2 rounded-full hover:bg-zen-bg text-zen-muted hover:text-zen-text transition-colors">
                     <X className="w-5 h-5" />
                 </button>
             </div>
 
-            {/* Search & Actions */}
-            <div className="p-6 pb-4 shrink-0 space-y-4">
+            {/* Navigation & Search */}
+            <div className="p-4 space-y-4 shrink-0 bg-zen-bg/20">
+                {/* Mode Switcher */}
+                <div className="flex p-1 bg-zen-bg rounded-xl border border-zen-border">
+                    {[
+                        { id: 'tree', icon: GitGraph, label: 'Tree' },
+                        { id: 'list', icon: Layout, label: 'List' },
+                        { id: 'history', icon: History, label: 'History' },
+                        { id: 'bookmarks', icon: Star, label: 'Saved' }
+                    ].map(mode => (
+                        <button
+                            key={mode.id}
+                            onClick={() => setViewMode(mode.id as ViewMode)}
+                            className={`flex-1 flex flex-col sm:flex-row items-center justify-center gap-1.5 py-2 rounded-lg text-[10px] sm:text-xs font-bold transition-all ${
+                                viewMode === mode.id 
+                                ? 'bg-zen-surface text-zen-text shadow-sm' 
+                                : 'text-zen-muted hover:text-zen-text'
+                            }`}
+                        >
+                            <mode.icon className="w-3.5 h-3.5" />
+                            {mode.label}
+                        </button>
+                    ))}
+                </div>
+
+                {/* Search Bar */}
                 <div className="relative group">
                     <input
                         type="text"
-                        placeholder="Search conversations..."
+                        placeholder={viewMode === 'list' || viewMode === 'tree' ? "Search conversations..." : "Search history..."}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full bg-zen-bg/50 border border-zen-border rounded-2xl py-3 pl-11 pr-4 text-sm focus:outline-none focus:border-zen-accent focus:bg-zen-bg text-zen-text placeholder-zen-muted transition-all shadow-sm group-hover:border-zen-border/80"
+                        className="w-full bg-zen-surface border border-zen-border rounded-xl py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:border-zen-accent/50 focus:bg-zen-surface/80 text-zen-text placeholder-zen-muted transition-all shadow-inner"
                     />
-                    <Search className="w-5 h-5 text-zen-muted absolute left-4 top-1/2 -translate-y-1/2 transition-colors group-hover:text-zen-text" />
-                </div>
-                
-                {!isCreatingGroup ? (
-                    <button 
-                        onClick={() => setIsCreatingGroup(true)}
-                        className="w-full flex items-center justify-center gap-2 text-sm font-medium text-zen-muted hover:text-zen-accent py-2.5 border border-dashed border-zen-border rounded-xl hover:border-zen-accent/50 hover:bg-zen-bg/30 transition-all"
-                    >
-                        <FolderPlus className="w-4 h-4" />
-                        Create New Project Group
-                    </button>
-                ) : (
-                    <div className="flex items-center gap-2 animate-fade-in bg-zen-bg p-2 rounded-xl border border-zen-border shadow-lg">
-                        <Folder className="w-4 h-4 text-zen-accent ml-2" />
-                        <input
-                            type="text"
-                            value={newGroupName}
-                            onChange={(e) => setNewGroupName(e.target.value)}
-                            placeholder="Project Name"
-                            className="flex-1 bg-transparent border-none px-2 py-1 text-sm focus:outline-none text-zen-text font-medium"
-                            autoFocus
-                            onKeyDown={(e) => e.key === 'Enter' && handleCreateGroup()}
-                        />
-                        <button onClick={handleCreateGroup} className="p-1.5 hover:bg-green-500/10 text-green-500 hover:text-green-400 rounded-lg transition-colors"><Check className="w-4 h-4" /></button>
-                        <button onClick={() => setIsCreatingGroup(false)} className="p-1.5 hover:bg-red-500/10 text-red-500 hover:text-red-400 rounded-lg transition-colors"><X className="w-4 h-4" /></button>
-                    </div>
-                )}
-            </div>
-
-            {/* Content */}
-            <div className="flex-1 overflow-y-auto px-6 pb-6 space-y-6 custom-scrollbar">
-                <div className="space-y-6">
-                    {/* Groups */}
-                    {groups.map(group => (
-                        <div key={group.id} className="space-y-2">
-                            <div className="flex items-center justify-between group/header px-3 py-2 rounded-xl hover:bg-zen-bg/50 transition-colors cursor-pointer select-none" onClick={() => toggleGroup(group.id)}>
-                                <div className="flex items-center gap-3 flex-1 min-w-0">
-                                    <div className="p-1 rounded bg-zen-surface border border-zen-border text-zen-muted group-hover/header:text-zen-text group-hover/header:border-zen-accent/50 transition-all">
-                                        {expandedGroups.has(group.id) ? 
-                                            <ChevronDown className="w-3.5 h-3.5" /> : 
-                                            <ChevronRight className="w-3.5 h-3.5" />
-                                        }
-                                    </div>
-                                    {editingGroupId === group.id ? (
-                                        <input
-                                            type="text"
-                                            value={renameValue}
-                                            onChange={(e) => setRenameValue(e.target.value)}
-                                            onBlur={finishRenaming}
-                                            onKeyDown={(e) => e.key === 'Enter' && finishRenaming()}
-                                            className="bg-transparent border-b border-zen-accent focus:outline-none text-sm font-bold text-zen-text w-full"
-                                            autoFocus
-                                            onClick={(e) => e.stopPropagation()}
-                                        />
-                                    ) : (
-                                        <div className="flex flex-col">
-                                            <span className="text-sm font-bold text-zen-text truncate">
-                                                {group.name}
-                                            </span>
-                                            <span className="text-[10px] text-zen-muted font-medium">
-                                                {grouped[group.id]?.length || 0} items
-                                            </span>
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="flex items-center gap-1 opacity-0 group-hover/header:opacity-100 transition-opacity bg-zen-bg/80 rounded-lg p-1 backdrop-blur-sm border border-zen-border/50 shadow-sm">
-                                    <button onClick={(e) => { e.stopPropagation(); startRenaming(group); }} className="p-1.5 text-zen-muted hover:text-zen-text hover:bg-zen-surface rounded-md transition-colors" title="Rename">
-                                        <Edit2 className="w-3.5 h-3.5" />
-                                    </button>
-                                    <button onClick={(e) => { e.stopPropagation(); onDeleteGroup(group.id); }} className="p-1.5 text-zen-muted hover:text-red-500 hover:bg-red-500/10 rounded-md transition-colors" title="Delete">
-                                        <Trash2 className="w-3.5 h-3.5" />
-                                    </button>
-                                </div>
-                            </div>
-
-                            {(expandedGroups.has(group.id) || searchTerm) && (
-                                <div className="pl-4 space-y-2 relative">
-                                    <div className="absolute left-[1.1rem] top-0 bottom-0 w-px bg-gradient-to-b from-zen-border/50 to-transparent"></div>
-                                    <div className="pl-6 space-y-3">
-                                        {grouped[group.id]?.map(tab => (
-                                            <HistoryItem 
-                                                key={tab.id} 
-                                                tab={tab} 
-                                                searchTerm={searchTerm}
-                                                onRestore={handleRestore}
-                                                onMove={(groupId) => onMoveTabToGroup(tab.id, groupId)}
-                                                onDelete={onDeleteArchivedTab}
-                                                groups={groups}
-                                                isMoving={movingTabId === tab.id}
-                                                setMovingTabId={setMovingTabId}
-                                            />
-                                        ))}
-                                        {(!grouped[group.id] || grouped[group.id].length === 0) && (
-                                            <div className="text-xs text-zen-muted italic py-2 pl-1">No conversations in this project</div>
-                                        )}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    ))}
-
-                    {/* Uncategorized */}
-                    {uncategorized.length > 0 && (
-                        <div className="space-y-3">
-                             {groups.length > 0 && (
-                                <div className="px-3 py-2 text-xs font-bold text-zen-muted uppercase tracking-wider flex items-center gap-2">
-                                    <div className="h-px flex-1 bg-zen-border"></div>
-                                    <span>Uncategorized</span>
-                                    <div className="h-px flex-1 bg-zen-border"></div>
-                                </div>
-                            )}
-                            {uncategorized.map(tab => (
-                                <HistoryItem 
-                                    key={tab.id} 
-                                    tab={tab} 
-                                    searchTerm={searchTerm}
-                                    onRestore={handleRestore}
-                                    onMove={(groupId) => onMoveTabToGroup(tab.id, groupId)}
-                                    onDelete={onDeleteArchivedTab}
-                                    groups={groups}
-                                    isMoving={movingTabId === tab.id}
-                                    setMovingTabId={setMovingTabId}
-                                />
-                            ))}
-                        </div>
-                    )}
-
-                    {pastConversations.length === 0 && (
-                        <div className="flex flex-col items-center justify-center py-20 text-zen-muted opacity-50 space-y-4">
-                            <Search className="w-12 h-12 stroke-1" />
-                            <div className="text-sm font-medium">
-                                {searchTerm ? 'No matching conversations found' : 'Your history is empty'}
-                            </div>
-                        </div>
-                    )}
+                    <Search className="w-4 h-4 text-zen-muted absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors group-hover:text-zen-text" />
                 </div>
             </div>
 
-             {/* Footer Status */}
-             <div className="p-6 border-t border-zen-border bg-zen-bg/30 shrink-0">
-                <div className="flex items-center justify-between text-[10px] text-zen-muted font-mono tracking-tight">
-                    <span className="flex items-center gap-1.5">
-                        <div className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]"></div>
-                        SYSTEM ONLINE
-                    </span>
-                    <span>{pastConversations.length} ITEMS STORED</span>
-                </div>
+            {/* Content Area */}
+            <div className="flex-1 overflow-y-auto px-4 pb-6 custom-scrollbar">
+                {viewMode === 'list' && renderListView()}
+                {viewMode === 'tree' && renderTreeView()}
+                {viewMode === 'history' && renderHistoryView()}
+                {viewMode === 'bookmarks' && renderBookmarksView()}
             </div>
-        </div>
-    );
-};
-
-// Helper Component for individual Items
-const HistoryItem: React.FC<{
-    tab: Tab;
-    searchTerm: string;
-    onRestore: (id: string) => void;
-    onMove: (groupId?: string) => void;
-    onDelete: (id: string) => void;
-    groups: ThreadGroup[];
-    isMoving: boolean;
-    setMovingTabId: (id: string | null) => void;
-}> = ({ tab, searchTerm, onRestore, onMove, groups, isMoving, setMovingTabId }) => {
-    
-    // Smart snippet generation
-    const snippet = useMemo(() => {
-        if (!searchTerm.trim()) return null;
-        const lowerTerm = searchTerm.toLowerCase();
-        
-        // First check if title matches (prioritize title)
-        if (tab.title.toLowerCase().includes(lowerTerm)) {
-            // If title matches, show the latest message as preview
-            const lastMsg = tab.messages[tab.messages.length - 1];
-            return lastMsg ? lastMsg.content.slice(0, 100) + (lastMsg.content.length > 100 ? '...' : '') : '';
-        }
-
-        // Find the matching message
-        const matchingMsg = tab.messages.find(m => m.content.toLowerCase().includes(lowerTerm));
-        if (matchingMsg) {
-            // Extract context around the match
-            const content = matchingMsg.content;
-            const index = content.toLowerCase().indexOf(lowerTerm);
-            const start = Math.max(0, index - 30);
-            const end = Math.min(content.length, index + lowerTerm.length + 60);
-            return (start > 0 ? '...' : '') + content.slice(start, end) + (end < content.length ? '...' : '');
-        }
-        return null;
-    }, [tab, searchTerm]);
-
-    return (
-        <div className="relative group">
-            <button
-                onClick={() => onRestore(tab.id)}
-                className="w-full text-left p-4 rounded-2xl bg-zen-bg/40 border border-zen-border/50 hover:border-zen-accent/40 hover:bg-zen-bg hover:shadow-md transition-all group pr-10 flex flex-col gap-1.5"
-            >
-                <div className="flex items-start justify-between gap-2">
-                    <div className="text-sm font-bold text-zen-text truncate leading-tight">
-                        {tab.title}
-                    </div>
-                </div>
-
-                {/* Smart Search Highlight */}
-                {searchTerm && snippet ? (
-                    <div className="text-xs text-zen-accent/90 font-medium bg-zen-accent/5 px-2 py-1.5 rounded-lg border border-zen-accent/10 line-clamp-2">
-                        <span className="opacity-70 text-[10px] uppercase tracking-wider mr-1 font-bold">Match:</span> 
-                        "{snippet}"
-                    </div>
-                ) : (
-                    <div className="text-xs text-zen-muted opacity-70 line-clamp-2">
-                        {tab.messages[tab.messages.length - 1]?.content || "Empty conversation"}
-                    </div>
-                )}
-
-                <div className="flex items-center gap-3 mt-1">
-                     <div className="flex items-center gap-1.5 text-[10px] text-zen-muted font-medium bg-zen-surface/50 px-2 py-0.5 rounded-md border border-zen-border/30">
-                        <Calendar className="w-3 h-3" />
-                        {new Date(tab.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                    </div>
-                    <div className="flex items-center gap-1.5 text-[10px] text-zen-muted font-medium bg-zen-surface/50 px-2 py-0.5 rounded-md border border-zen-border/30">
-                        <MessageSquare className="w-3 h-3" />
-                        {tab.messages.length}
-                    </div>
-                </div>
-            </button>
-            
-            {/* Delete Button */}
-            <button 
-                onClick={(e) => {
-                    e.stopPropagation();
-                    onDelete(tab.id);
-                }}
-                className="absolute right-3 bottom-4 p-1.5 rounded-lg text-zen-muted hover:text-red-500 hover:bg-red-500/10 transition-opacity opacity-0 group-hover:opacity-100 z-10"
-                title="Delete conversation"
-            >
-                <Trash2 className="w-4 h-4" />
-            </button>
-            
-            {/* Move Menu Trigger */}
-            <button 
-                onClick={(e) => {
-                    e.stopPropagation();
-                    setMovingTabId(isMoving ? null : tab.id);
-                }}
-                className={`absolute right-3 top-4 p-1.5 rounded-lg text-zen-muted hover:text-zen-text hover:bg-zen-surface transition-all ${isMoving ? 'opacity-100 bg-zen-accent/10 text-zen-accent' : 'opacity-0 group-hover:opacity-100'}`}
-                title="Move to group"
-            >
-                <FolderOpen className="w-4 h-4" />
-            </button>
-
-            {/* Context Menu */}
-            {isMoving && (
-                <div className="absolute right-0 top-10 mt-1 w-56 bg-zen-surface border border-zen-border rounded-xl shadow-2xl z-50 overflow-hidden animate-scale-in origin-top-right backdrop-blur-xl">
-                    <div className="p-1.5 space-y-0.5">
-                        <div className="px-3 py-2 text-[10px] font-bold text-zen-muted uppercase tracking-wider">
-                            Move project to...
-                        </div>
-                        <button
-                            onClick={() => { onMove(undefined); setMovingTabId(null); }}
-                            className="w-full text-left px-3 py-2 text-xs hover:bg-zen-bg rounded-lg flex items-center gap-3 text-zen-text transition-colors font-medium"
-                        >
-                            <div className="w-6 h-6 rounded-md bg-zen-bg border border-zen-border flex items-center justify-center">
-                                <CornerUpLeft className="w-3.5 h-3.5" />
-                            </div>
-                            Uncategorized
-                        </button>
-                        <div className="h-px bg-zen-border/50 my-1 mx-2"></div>
-                        <div className="max-h-48 overflow-y-auto custom-scrollbar space-y-0.5">
-                            {groups.map(g => (
-                                <button
-                                    key={g.id}
-                                    onClick={() => { onMove(g.id); setMovingTabId(null); }}
-                                    className={`w-full text-left px-3 py-2 text-xs hover:bg-zen-bg rounded-lg flex items-center gap-3 text-zen-text transition-colors font-medium ${tab.groupId === g.id ? 'bg-zen-accent/10 text-zen-accent' : ''}`}
-                                >
-                                    <div className={`w-6 h-6 rounded-md border flex items-center justify-center ${tab.groupId === g.id ? 'bg-zen-accent border-zen-accent text-white' : 'bg-zen-bg border-zen-border'}`}>
-                                        <Folder className="w-3.5 h-3.5" />
-                                    </div>
-                                    <span className="truncate">{g.name}</span>
-                                </button>
-                            ))}
-                        </div>
-                        {groups.length === 0 && (
-                            <div className="px-3 py-3 text-[10px] text-zen-muted italic text-center bg-zen-bg/30 rounded-lg mx-1">
-                                Create a group first
-                            </div>
-                        )}
-                    </div>
-                </div>
-            )}
         </div>
     );
 };
