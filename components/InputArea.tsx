@@ -35,7 +35,6 @@ const InputArea: React.FC<InputAreaProps> = ({ onSend, disabled, mode, setMode, 
         setShowModeDropdown(false);
       }
     };
-
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
