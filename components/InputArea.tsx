@@ -1,18 +1,20 @@
 
+
 import React, { useRef, useEffect, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { ArrowUp, Zap, Globe, BrainCircuit, Paperclip, X, Image as ImageIcon, Video, Target, Eye, EyeOff, ChevronDown, Check, FileText } from 'lucide-react';
+import { ArrowUp, Zap, Globe, BrainCircuit, Paperclip, X, Image as ImageIcon, Video, Target, Eye, EyeOff, ChevronDown, Check, FileText, Square, Music } from 'lucide-react';
 import { SearchMode, Attachment } from '../types';
 
 interface InputAreaProps {
   onSend: (text: string, attachments?: Attachment[]) => void;
   disabled: boolean;
+  onStop?: () => void;
   mode: SearchMode;
   setMode: (mode: SearchMode) => void;
   onGetContext?: () => void;
 }
 
-const InputArea: React.FC<InputAreaProps> = ({ onSend, disabled, mode, setMode, onGetContext }) => {
+const InputArea: React.FC<InputAreaProps> = ({ onSend, disabled, onStop, mode, setMode, onGetContext }) => {
   const [input, setInput] = useState('');
   const [isFocused, setIsFocused] = useState(false);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
@@ -29,6 +31,7 @@ const InputArea: React.FC<InputAreaProps> = ({ onSend, disabled, mode, setMode, 
     }
   }, [input, showPreview]);
 
+  // Handle click outside for dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -61,11 +64,16 @@ const InputArea: React.FC<InputAreaProps> = ({ onSend, disabled, mode, setMode, 
     }
   };
 
+  const handleStop = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (onStop) onStop();
+  };
+
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const files = Array.from(e.target.files);
 
-      files.forEach(file => {
+      files.forEach((file: File) => {
         const reader = new FileReader();
         reader.onloadend = () => {
           const result = reader.result as string;
@@ -112,10 +120,28 @@ const InputArea: React.FC<InputAreaProps> = ({ onSend, disabled, mode, setMode, 
     if (type.startsWith('image/')) {
       return <img src={attachment.preview} alt="Preview" className="h-16 w-16 rounded-xl border border-white/10 shadow-lg object-cover" />;
     }
-    // ... (Rest of preview logic same as before, just smaller size if needed)
+    
+    if (type.startsWith('video/')) {
+        return (
+           <div className="h-16 w-16 rounded-xl border border-white/10 shadow-lg bg-black flex items-center justify-center relative overflow-hidden">
+               <video src={attachment.preview} className="absolute inset-0 w-full h-full object-cover opacity-50" />
+               <Video className="w-6 h-6 text-white relative z-10" />
+           </div>
+        );
+    }
+
+    if (type.startsWith('audio/')) {
+        return (
+           <div className="h-16 w-16 rounded-xl border border-white/10 shadow-lg bg-zen-surface flex flex-col items-center justify-center gap-1 p-1">
+               <Music className="w-6 h-6 text-pink-500" />
+               <span className="text-[8px] text-zen-muted truncate w-full text-center">{attachment.name}</span>
+           </div>
+        );
+    }
+
     return (
       <div className="h-16 w-16 rounded-xl border border-white/10 shadow-lg bg-zen-surface flex flex-col items-center justify-center gap-1 p-1 text-center">
-        <Paperclip className="w-5 h-5 text-zen-accent" />
+        <FileText className="w-6 h-6 text-zen-accent" />
         <span className="text-[8px] text-zen-muted font-medium truncate w-full px-1">{attachment.name || 'File'}</span>
       </div>
     );
@@ -165,7 +191,7 @@ const InputArea: React.FC<InputAreaProps> = ({ onSend, disabled, mode, setMode, 
                 onClick={() => fileInputRef.current?.click()}
                 className="p-2 rounded-full hover:bg-zen-bg/50 hover:text-zen-text transition-colors"
                 title="Attach File"
-                disabled={mode === 'image' || mode === 'video'}
+                disabled={mode === 'image' || mode === 'video' || disabled}
               >
                 <Paperclip className="w-5 h-5" />
               </button>
@@ -185,7 +211,7 @@ const InputArea: React.FC<InputAreaProps> = ({ onSend, disabled, mode, setMode, 
             <div className="flex-1 min-w-0">
               {showPreview ? (
                 <div
-                  className="w-full py-3 px-2 text-base leading-relaxed max-h-[200px] overflow-y-auto custom-scrollbar text-zen-text prose prose-neutral dark:prose-invert max-w-none cursor-pointer"
+                  className="w-full py-3 px-2 text-base leading-relaxed max-h-[200px] overflow-y-auto custom-scrollbar text-zen-text prose prose-neutral dark:prose-invert max-w-none cursor-pointer outline-none"
                   onClick={() => setShowPreview(false)}
                   title="Click to edit"
                 >
@@ -202,7 +228,7 @@ const InputArea: React.FC<InputAreaProps> = ({ onSend, disabled, mode, setMode, 
                   placeholder={getPlaceholder()}
                   disabled={disabled}
                   rows={1}
-                  className="w-full bg-transparent border-0 focus:ring-0 text-zen-text placeholder-zen-muted/60 resize-none py-3 px-2 text-base leading-relaxed max-h-[200px] overflow-y-auto disabled:opacity-50 caret-zen-accent font-medium"
+                  className="w-full bg-transparent border-0 focus:ring-0 text-zen-text placeholder-zen-muted/60 resize-none py-3 px-2 text-base leading-relaxed max-h-[200px] overflow-y-auto disabled:opacity-50 caret-zen-accent font-medium outline-none"
                   style={{ minHeight: '48px' }}
                 />
               )}
@@ -215,7 +241,8 @@ const InputArea: React.FC<InputAreaProps> = ({ onSend, disabled, mode, setMode, 
               <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={() => setShowModeDropdown(!showModeDropdown)}
-                  className="flex items-center gap-2 px-3 py-2 rounded-xl bg-zen-bg/50 hover:bg-zen-bg text-zen-text border border-zen-border/50 hover:border-zen-accent/50 transition-all text-xs font-bold uppercase tracking-wide min-w-[100px] justify-between"
+                  disabled={disabled}
+                  className="flex items-center gap-2 px-3 py-2 rounded-xl bg-zen-bg/50 hover:bg-zen-bg text-zen-text border border-zen-border/50 hover:border-zen-accent/50 transition-all text-xs font-bold uppercase tracking-wide min-w-[100px] justify-between disabled:opacity-50"
                 >
                   <div className="flex items-center gap-2">
                     {currentMode.icon}
@@ -246,28 +273,34 @@ const InputArea: React.FC<InputAreaProps> = ({ onSend, disabled, mode, setMode, 
                 )}
               </div>
 
-              {/* Send Button */}
-              <button
-                onClick={handleSend}
-                disabled={(!input.trim() && attachments.length === 0) || disabled}
-                className={`
-                    p-3 rounded-xl transition-all duration-300 flex-shrink-0
-                    ${(input.trim() || attachments.length > 0) && !disabled
-                    ? 'bg-zen-text text-zen-bg hover:bg-zen-accent hover:text-white shadow-lg transform hover:scale-105 active:scale-95'
-                    : 'bg-zen-surface text-zen-muted cursor-not-allowed border border-zen-border'}
-                `}
-              >
-                {disabled ? (
-                  <div className="w-5 h-5 animate-spin">
-                    <svg viewBox="0 0 100 100" className="w-full h-full">
-                      <circle cx="50" cy="50" r="20" fill="currentColor" />
-                      <ellipse cx="50" cy="50" rx="40" ry="10" fill="none" stroke="currentColor" strokeWidth="8" transform="rotate(-15 50 50)" />
-                    </svg>
-                  </div>
-                ) : (
-                  <ArrowUp className="w-5 h-5" />
-                )}
-              </button>
+              {/* Send / Stop Button */}
+              {disabled ? (
+                  <button
+                    onClick={handleStop}
+                    className="p-3 rounded-xl transition-all duration-300 flex-shrink-0 bg-zen-surface text-zen-text border border-zen-border hover:bg-red-500/20 hover:text-red-500 group/stop shadow-glow cursor-pointer z-50 pointer-events-auto"
+                    title="Stop Generating"
+                  >
+                     <div className="w-5 h-5 relative flex items-center justify-center">
+                          <svg viewBox="0 0 100 100" className="w-full h-full absolute inset-0 animate-spin opacity-50 group-hover/stop:opacity-0 transition-opacity">
+                              <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" strokeWidth="10" strokeDasharray="200" />
+                          </svg>
+                          <Square className="w-2.5 h-2.5 fill-current animate-scale-in" />
+                     </div>
+                  </button>
+              ) : (
+                  <button
+                    onClick={handleSend}
+                    disabled={!input.trim() && attachments.length === 0}
+                    className={`
+                        p-3 rounded-xl transition-all duration-300 flex-shrink-0
+                        ${(input.trim() || attachments.length > 0)
+                        ? 'bg-zen-text text-zen-bg hover:bg-zen-accent hover:text-white shadow-lg transform hover:scale-105 active:scale-95'
+                        : 'bg-zen-surface text-zen-muted cursor-not-allowed border border-zen-border'}
+                    `}
+                  >
+                    <ArrowUp className="w-5 h-5" />
+                  </button>
+              )}
             </div>
           </div>
         </div>
