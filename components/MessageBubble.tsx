@@ -447,7 +447,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onDownload, onNa
                                 )}
                                 {w.type === 'INPUT' && (
                                     <div className="flex gap-2">
-                                        <input type="text" placeholder={w.content} className="flex-1 bg-zen-bg border border-zen-border rounded-xl px-4 py-2 text-sm focus:border-zen-accent outline-none" />
+                                        <input type="text" placeholder={w.content} className="flex-1 bg-zen-bg border border-zen-border rounded-xl px-4 py-2 text-sm focus:border-zen-accent outline-0" />
                                         <button className="px-4 py-2 bg-zen-text text-zen-bg rounded-xl font-bold text-sm hover:bg-zen-accent hover:text-white transition-colors">Send</button>
                                     </div>
                                 )}
