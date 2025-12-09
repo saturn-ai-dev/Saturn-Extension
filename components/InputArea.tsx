@@ -202,7 +202,7 @@ const InputArea: React.FC<InputAreaProps> = ({ onSend, disabled, mode, setMode, 
                   placeholder={getPlaceholder()}
                   disabled={disabled}
                   rows={1}
-                  className="w-full bg-transparent border-0 focus:ring-0 outline-none focus:outline-none text-zen-text placeholder-zen-muted/60 resize-none py-3 px-2 text-base leading-relaxed max-h-[200px] overflow-y-auto disabled:opacity-0 caret-zen-accent font-medium"
+                  className="w-full bg-transparent border-0 focus:ring-0 text-zen-text placeholder-zen-muted/60 resize-none py-3 px-2 text-base leading-relaxed max-h-[200px] overflow-y-auto disabled:opacity-50 caret-zen-accent font-medium"
                   style={{ minHeight: '48px' }}
                 />
               )}
