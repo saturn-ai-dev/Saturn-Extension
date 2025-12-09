@@ -1,6 +1,9 @@
 
 import React, { useState, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
 import { Message, Role, DownloadItem } from '../types';
 import { User, Globe, ExternalLink, Sparkles, Volume2, Download, FileText, Play, X, Youtube, FileType, Copy, Check, Music, Video, Terminal, RotateCcw } from 'lucide-react';
 // @ts-ignore
@@ -55,8 +58,51 @@ const LinkRenderer = ({ href, children, onNavigate }: any) => {
 };
 
 // Custom Markdown Components
+const H1 = ({ children, ...props }: any) => (
+  <h1 className="text-3xl font-bold mb-6 pb-2 border-b border-zen-border/50 text-zen-text mt-4" {...props}>{children}</h1>
+);
+
+const H2 = ({ children, ...props }: any) => (
+  <h2 className="text-2xl font-bold mb-4 mt-8 text-zen-text flex items-center gap-2" {...props}>
+    <span className="w-1.5 h-6 bg-zen-accent rounded-full inline-block"></span>
+    {children}
+  </h2>
+);
+
+const H3 = ({ children, ...props }: any) => (
+  <h3 className="text-xl font-bold mb-3 mt-6 text-zen-text/90" {...props}>{children}</h3>
+);
+
+const H4 = ({ children, ...props }: any) => (
+  <h4 className="text-lg font-bold mb-2 mt-4 text-zen-text/90" {...props}>{children}</h4>
+);
+
+const P = ({ children, ...props }: any) => (
+  <p className="mb-2 leading-7 text-zen-text/90 last:mb-0" {...props}>{children}</p>
+);
+
+const UL = ({ children, ...props }: any) => (
+  <ul className="my-2 pl-5 space-y-1 list-disc marker:text-zen-accent" {...props}>{children}</ul>
+);
+
+const OL = ({ children, ...props }: any) => (
+  <ol className="my-2 pl-5 space-y-1 list-decimal marker:text-zen-accent marker:font-bold" {...props}>{children}</ol>
+);
+
+const LI = ({ children, ...props }: any) => (
+  <li className="" {...props}>{children}</li>
+);
+
+const Strong = ({ children, ...props }: any) => (
+  <strong className="font-bold text-zen-text" {...props}>{children}</strong>
+);
+
+const HR = ({ ...props }: any) => (
+    <hr className="my-8 border-zen-border/50" {...props} />
+);
+
 const TableRenderer = ({ children }: any) => (
-  <div className="overflow-x-auto my-4 rounded-xl border border-zen-border/50 shadow-sm">
+  <div className="overflow-x-auto my-6 rounded-xl border border-zen-border/50 shadow-sm bg-zen-surface/30">
     <table className="w-full border-collapse text-sm text-left min-w-[400px]">{children}</table>
   </div>
 );
@@ -68,27 +114,27 @@ const TableHeadRenderer = ({ children }: any) => (
 );
 
 const TableBodyRenderer = ({ children }: any) => (
-  <tbody className="divide-y divide-zen-border/30 bg-zen-bg/20">
+  <tbody className="divide-y divide-zen-border/30">
     {children}
   </tbody>
 );
 
 const TableRowRenderer = ({ children }: any) => (
-  <tr className="hover:bg-zen-surface/30 transition-colors group">{children}</tr>
+  <tr className="hover:bg-zen-surface/50 transition-colors group">{children}</tr>
 );
 
 const TableHeaderCellRenderer = ({ children }: any) => (
-  <th className="px-6 py-4 font-bold">{children}</th>
+  <th className="px-6 py-4 font-bold text-zen-text">{children}</th>
 );
 
 const TableCellRenderer = ({ children }: any) => (
-  <td className="px-6 py-3 border-r border-zen-border/10 last:border-r-0">{children}</td>
+  <td className="px-6 py-3 border-r border-zen-border/10 last:border-r-0 text-zen-text/80">{children}</td>
 );
 
 const BlockquoteRenderer = ({ children }: any) => (
-    <blockquote className="border-l-4 border-zen-accent bg-zen-surface/20 pl-6 py-4 my-6 rounded-r-xl italic text-zen-muted relative">
+    <blockquote className="border-l-4 border-zen-accent bg-zen-surface/30 pl-6 py-4 my-6 rounded-r-xl italic text-zen-muted relative">
         <span className="absolute -left-1.5 -top-2 text-4xl text-zen-accent opacity-50 leading-none">“</span>
-        {children}
+        <div className="relative z-10">{children}</div>
     </blockquote>
 );
 
@@ -151,13 +197,13 @@ const CodeRenderer = ({ node, inline, className, children, ...props }: any) => {
     };
 
     if (inline) {
-        return <code className="bg-zen-surface px-1.5 py-0.5 rounded-md text-zen-accent font-mono text-sm" {...props}>{children}</code>;
+        return <code className="bg-zen-surface px-1.5 py-0.5 rounded-md text-zen-accent font-mono text-sm border border-zen-border/50" {...props}>{children}</code>;
     }
 
     return (
-        <div className="relative group font-sans">
+        <div className="relative group font-sans my-6">
              {/* Code Header */}
-            <div className="flex items-center justify-between px-4 py-2 bg-[#161b22] border-b border-white/10 text-xs text-gray-400 select-none font-sans">
+            <div className="flex items-center justify-between px-4 py-2 bg-[#161b22] border-b border-white/10 text-xs text-gray-400 select-none font-sans rounded-t-xl">
                 <div className="flex items-center gap-2">
                     <span className="uppercase font-bold tracking-wider opacity-70">{language || 'CODE'}</span>
                     {canExecute && <span className="text-[10px] bg-zen-accent/20 text-zen-accent px-1.5 py-0.5 rounded border border-zen-accent/30 font-bold">RUNNABLE</span>}
@@ -180,7 +226,7 @@ const CodeRenderer = ({ node, inline, className, children, ...props }: any) => {
                 </div>
             </div>
             {/* Code Body */}
-            <div className="p-4 overflow-x-auto custom-scrollbar font-mono text-sm">
+            <div className="p-4 overflow-x-auto custom-scrollbar font-mono text-sm bg-[#0d1117] rounded-b-xl border border-t-0 border-zen-border/50">
                 <code className={className} {...props}>
                     {children}
                 </code>
@@ -188,8 +234,8 @@ const CodeRenderer = ({ node, inline, className, children, ...props }: any) => {
 
             {/* Execution Output */}
             {output !== null && (
-                <div className="border-t border-white/10 bg-[#0d1117] font-sans">
-                    <div className="flex items-center justify-between px-4 py-2 bg-[#161b22]/50 border-b border-white/5">
+                <div className="mt-2 border border-zen-border/50 rounded-xl overflow-hidden shadow-lg animate-fade-in">
+                    <div className="flex items-center justify-between px-4 py-2 bg-[#161b22] border-b border-white/5">
                         <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
                             <Terminal className="w-3.5 h-3.5" />
                             Console Output
@@ -203,7 +249,7 @@ const CodeRenderer = ({ node, inline, className, children, ...props }: any) => {
                             CLEAR
                         </button>
                     </div>
-                    <div className="p-4 font-mono text-xs text-gray-300 whitespace-pre-wrap max-h-[300px] overflow-y-auto custom-scrollbar bg-black/20 border-l-2 border-zen-accent/50 ml-0">
+                    <div className="p-4 font-mono text-xs text-gray-300 whitespace-pre-wrap max-h-[300px] overflow-y-auto custom-scrollbar bg-black/40">
                         {output}
                     </div>
                 </div>
@@ -342,7 +388,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onDownload, onNa
   };
 
   return (
-    <div id={message.id} className={`flex w-full ${isUser ? 'justify-end' : 'justify-start'} mb-10 animate-slide-up group`}>
+    <div id={message.id} className={`flex w-full ${isUser ? 'justify-end' : 'justify-start'} mb-6 animate-slide-up group`}>
       <div className={`flex gap-6 max-w-[90%] lg:max-w-[85%] w-full ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
         
         <div className={`
@@ -357,7 +403,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onDownload, onNa
           )}
         </div>
 
-        <div className={`flex flex-col gap-3 min-w-0 flex-1 ${isUser ? 'items-end' : 'items-start'}`}>
+        <div className={`flex flex-col gap-3 min-w-0 ${isUser ? 'items-end' : 'items-start'}`}>
           
           <div className="text-[10px] font-bold text-zen-muted/50 flex gap-2 items-center tracking-widest opacity-0 group-hover:opacity-100 transition-opacity duration-300 uppercase">
             <span>{isUser ? 'YOU' : 'SATURN AI'}</span>
@@ -406,16 +452,43 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onDownload, onNa
 
           {(cleanContent || (!isUser && !cleanContent && !message.attachment && !message.generatedMedia)) && (
             <div className={`
-                rounded-3xl px-8 py-6 text-lg leading-8 shadow-lg relative w-full border transition-all duration-300
+                rounded-3xl px-5 py-3 text-lg leading-8 shadow-lg relative w-fit border transition-all duration-300 resize-x overflow-hidden min-w-[200px]
                 ${isUser ? 'bg-zen-surface/80 backdrop-blur-md text-zen-text rounded-tr-sm border-zen-border hover:shadow-glow-lg' : 'text-zen-text rounded-tl-sm border-transparent'}
             `}>
                 {isUser ? (
                 <p className="whitespace-pre-wrap font-medium">{cleanContent}</p>
                 ) : (
-                <div className={`markdown-content prose prose-neutral prose-lg max-w-none dark:prose-invert prose-p:leading-relaxed prose-li:marker:text-zen-accent prose-a:text-zen-accent prose-a:no-underline hover:prose-a:underline ${message.isStreaming ? 'opacity-90' : 'opacity-100'}`}>
+                <div className={`markdown-content w-full ${message.isStreaming ? 'opacity-90' : 'opacity-100'}`}>
                     {cleanContent ? (
                     <>
-                        <ReactMarkdown components={{ a: (props) => <LinkRenderer {...props} onNavigate={onNavigate} />, table: TableRenderer, thead: TableHeadRenderer, tbody: TableBodyRenderer, tr: TableRowRenderer, th: TableHeaderCellRenderer, td: TableCellRenderer, blockquote: BlockquoteRenderer, pre: PreRenderer, code: CodeRenderer }}>
+                        <ReactMarkdown
+                            remarkPlugins={[remarkGfm, remarkMath]}
+                            rehypePlugins={[rehypeKatex]}
+                            components={{
+                                h1: H1,
+                                h2: H2,
+                                h3: H3,
+                                h4: H4,
+                                p: P,
+                                ul: UL,
+                                ol: OL,
+                                li: LI,
+                                strong: Strong,
+                                hr: HR,
+                                a: (props) => <LinkRenderer {...props} onNavigate={onNavigate} />,
+                                table: TableRenderer,
+                                thead: TableHeadRenderer,
+                                tbody: TableBodyRenderer,
+                                tr: TableRowRenderer,
+                                th: TableHeaderCellRenderer,
+                                td: TableCellRenderer,
+                                blockquote: BlockquoteRenderer,
+                                pre: PreRenderer,
+                                code: CodeRenderer,
+                                math: ({ value }) => <span className="katex-html">{value}</span>,
+                                inlineMath: ({ value }) => <span className="katex-html">{value}</span>
+                            }}
+                        >
                             {cleanContent}
                         </ReactMarkdown>
                         {message.isStreaming && <span className="inline-block w-2 h-5 bg-zen-accent ml-1 animate-pulse align-middle rounded-full shadow-[0_0_10px_var(--accent-color)]"></span>}

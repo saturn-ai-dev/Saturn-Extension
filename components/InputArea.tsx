@@ -185,7 +185,7 @@ const InputArea: React.FC<InputAreaProps> = ({ onSend, disabled, mode, setMode, 
             <div className="flex-1 min-w-0">
               {showPreview ? (
                 <div
-                  className="w-full py-3 px-0 text-base leading-relaxed max-h-[200px] overflow-y-auto custom-scrollbar text-zen-text prose prose-neutral dark:prose-invert max-w-none cursor-pointer"
+                  className="w-full py-3 px-0 text-base leading-relaxed max-h-[200px] overflow-y-auto custom-scrollbar text-zen-text prose prose-neutral dark:prose-invert max-w-5xl cursor-pointer"
                   onClick={() => setShowPreview(false)}
                   title="Click to edit"
                 >
@@ -202,7 +202,7 @@ const InputArea: React.FC<InputAreaProps> = ({ onSend, disabled, mode, setMode, 
                   placeholder={getPlaceholder()}
                   disabled={disabled}
                   rows={1}
-                  className="w-full bg-transparent border-0 focus:ring-0 outline-none focus:outline-none text-zen-text placeholder-zen-muted/60 resize-none py-3 px-2 text-base leading-relaxed max-h-[200px] overflow-y-auto disabled:opacity-0 caret-zen-accent font-medium"
+                  className="w-full bg-transparent border-0 focus:ring-0 outline-none focus:outline-none text-zen-text placeholder-zen-muted/60 resize-y py-3 px-2 text-base leading-relaxed max-h-[400px] min-h-[48px] overflow-y-auto disabled:opacity-0 caret-zen-accent font-medium"
                   style={{ minHeight: '48px' }}
                 />
               )}

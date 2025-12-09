@@ -1,6 +1,5 @@
-
-import React from 'react';
-import { Plus, Settings, LayoutGrid, FileText, Calculator, Music, Twitch } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Plus, Settings, LayoutGrid, FileText, Calculator, Twitch, Menu, ChevronLeft, ChevronRight } from 'lucide-react';
 import { CustomShortcut } from '../types';
 
 interface SaturnSidebarProps {
@@ -12,6 +11,8 @@ interface SaturnSidebarProps {
     onOpenApp: (appId: string) => void;
     enabledApps: string[];
     customShortcuts: CustomShortcut[];
+    width: number;
+    onWidthChange: (width: number) => void;
 }
 
 // Custom Logos
@@ -23,7 +24,7 @@ const XLogo = ({ className }: { className?: string }) => (
 
 const RedditLogo = ({ className }: { className?: string }) => (
     <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
-        <path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z" />
+        <path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z" />
     </svg>
 );
 
@@ -53,7 +54,9 @@ const SaturnSidebar: React.FC<SaturnSidebarProps> = ({
     activeApp,
     onOpenApp,
     enabledApps,
-    customShortcuts
+    customShortcuts,
+    width,
+    onWidthChange
 }) => {
 
     const apps = [
@@ -68,6 +71,45 @@ const SaturnSidebar: React.FC<SaturnSidebarProps> = ({
     ];
 
     const displayedApps = apps.filter(app => enabledApps.includes(app.id));
+
+    const [isResizing, setIsResizing] = useState(false);
+    const [lastExpandedWidth, setLastExpandedWidth] = useState(240);
+    const isExpanded = width > 100;
+
+    const handleToggle = () => {
+        if (isExpanded) {
+            setLastExpandedWidth(width);
+            onWidthChange(70);
+        } else {
+            onWidthChange(lastExpandedWidth);
+        }
+    };
+
+    useEffect(() => {
+        const handleMouseMove = (e: MouseEvent) => {
+            if (!isResizing) return;
+            const newWidth = e.clientX - 12; // Account for left margin (3rem approx 12px)
+            if (newWidth > 60 && newWidth < 500) {
+                onWidthChange(newWidth);
+            }
+        };
+
+        const handleMouseUp = () => {
+            setIsResizing(false);
+            document.body.style.cursor = 'default';
+        };
+
+        if (isResizing) {
+            window.addEventListener('mousemove', handleMouseMove);
+            window.addEventListener('mouseup', handleMouseUp);
+            document.body.style.cursor = 'ew-resize';
+        }
+
+        return () => {
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mouseup', handleMouseUp);
+        };
+    }, [isResizing, onWidthChange]);
 
     // Simple icon button component for cleaner code
     const IconButton = ({
@@ -86,50 +128,77 @@ const SaturnSidebar: React.FC<SaturnSidebarProps> = ({
         <button
             onClick={onClick}
             className={`
-                w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-200 relative group
+                h-10 rounded-lg flex items-center transition-all duration-200 relative group shrink-0
+                ${isExpanded ? 'w-full px-3 gap-3 justify-start' : 'w-10 justify-center'}
                 ${isActive
                     ? 'bg-zen-text/10 text-zen-text'
                     : 'text-zen-muted/70 hover:text-zen-text hover:bg-zen-text/5'
                 }
                 ${className}
             `}
-            title={title}
+            title={!isExpanded ? title : undefined}
         >
-            {children}
-            <div className="absolute left-full ml-3 px-2.5 py-1.5 bg-zen-bg/95 backdrop-blur-sm border border-zen-border/50 rounded-lg text-xs font-medium opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50 text-zen-text shadow-xl">
-                {title}
-            </div>
+            <div className="shrink-0">{children}</div>
+            {isExpanded && <span className="text-sm font-medium whitespace-nowrap overflow-hidden text-ellipsis opacity-90">{title}</span>}
+            
+            {!isExpanded && (
+                <div className="absolute left-full ml-3 px-2.5 py-1.5 bg-zen-bg/95 backdrop-blur-sm border border-zen-border/50 rounded-lg text-xs font-medium opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50 text-zen-text shadow-xl">
+                    {title}
+                </div>
+            )}
         </button>
     );
 
     return (
         <div
-            className="fixed left-3 top-3 bottom-3 w-14 bg-zen-bg/80 backdrop-blur-xl border border-zen-border/30 rounded-2xl flex flex-col items-center py-3 z-50 transition-all duration-300 shadow-lg select-none"
+            className="fixed left-3 top-3 bottom-3 bg-zen-bg/80 backdrop-blur-xl border border-zen-border/30 rounded-2xl flex flex-col py-3 z-50 transition-all duration-75 shadow-lg select-none group/sidebar"
+            style={{ width: `${width}px` }}
         >
+             {/* Drag Handle */}
+             <div 
+                className="absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize hover:bg-zen-accent/20 border-r border-transparent group-hover/sidebar:border-zen-border/50 transition-colors z-50"
+                onMouseDown={(e) => { e.preventDefault(); setIsResizing(true); }}
+            />
+
+            {/* Toggle Button */}
+            <div className={`flex ${isExpanded ? 'justify-end px-3' : 'justify-center'} mb-2`}>
+                 <button onClick={handleToggle} className="text-zen-muted hover:text-zen-text p-1 rounded-md hover:bg-zen-surface transition-colors">
+                    {isExpanded ? <ChevronLeft className="w-4 h-4" /> : <Menu className="w-5 h-5" />}
+                 </button>
+            </div>
+
             {/* Logo / New Chat */}
             <div
-                className="mb-4 cursor-pointer flex items-center justify-center app-no-drag group"
+                className={`mb-4 cursor-pointer flex items-center gap-3 app-no-drag group px-3 ${isExpanded ? 'justify-start' : 'justify-center'}`}
                 onClick={onNewTab}
                 title="New Chat"
             >
-                <svg viewBox="0 0 100 100" className="w-7 h-7 text-zen-accent group-hover:scale-110 transition-transform duration-200">
-                    <circle cx="50" cy="50" r="18" fill="currentColor" />
-                    <ellipse cx="50" cy="50" rx="38" ry="9" fill="none" stroke="currentColor" strokeWidth="6" transform="rotate(-15 50 50)" />
-                </svg>
+                <div className="relative shrink-0">
+                    <svg viewBox="0 0 100 100" className="w-8 h-8 text-zen-accent group-hover:scale-110 transition-transform duration-200">
+                        <circle cx="50" cy="50" r="18" fill="currentColor" />
+                        <ellipse cx="50" cy="50" rx="38" ry="9" fill="none" stroke="currentColor" strokeWidth="6" transform="rotate(-15 50 50)" />
+                    </svg>
+                </div>
+                {isExpanded && (
+                    <div className="flex flex-col overflow-hidden">
+                        <span className="font-bold text-base text-zen-text leading-tight tracking-tight">Saturn</span>
+                        <span className="text-[10px] text-zen-muted font-bold tracking-widest uppercase">Extension</span>
+                    </div>
+                )}
             </div>
 
-            {/* New Tab Button */}
-            <IconButton onClick={onNewTab} title="New Chat">
-                <Plus className="w-5 h-5" />
-            </IconButton>
+            {/* Content Container */}
+            <div className="flex-1 flex flex-col gap-1 overflow-y-auto overflow-x-hidden no-scrollbar app-no-drag py-1 px-2">
+                
+                <IconButton onClick={onNewTab} title="New Chat" className="mb-1">
+                    <Plus className="w-5 h-5" />
+                </IconButton>
 
-            {/* Divider */}
-            {(displayedApps.length > 0 || customShortcuts.length > 0) && (
-                <div className="w-6 h-px bg-zen-border/30 my-2" />
-            )}
+                {/* Divider */}
+                {(displayedApps.length > 0 || customShortcuts.length > 0) && (
+                    <div className="w-full h-px bg-zen-border/30 my-2 shrink-0" />
+                )}
 
-            {/* Apps */}
-            <div className="flex-1 flex flex-col gap-1 overflow-y-auto no-scrollbar app-no-drag py-1">
                 {displayedApps.map(app => (
                     <IconButton
                         key={app.id}
@@ -153,7 +222,7 @@ const SaturnSidebar: React.FC<SaturnSidebarProps> = ({
             </div>
 
             {/* Bottom Actions */}
-            <div className="flex flex-col gap-1 mt-auto pt-2 app-no-drag">
+            <div className="flex flex-col gap-1 mt-auto pt-2 app-no-drag px-2">
                 <IconButton
                     onClick={onToggleHistory}
                     isActive={isHistoryOpen}

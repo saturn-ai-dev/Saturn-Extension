@@ -97,6 +97,7 @@ export default function App({ mode = 'full' }: AppProps) {
     const [isIncognito, setIsIncognito] = useState(false);
     const [customBackdrop, setCustomBackdrop] = useState<string | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const [sidebarWidth, setSidebarWidth] = useState(70);
 
     // --- Persistence & User Switching ---
     useEffect(() => {
@@ -108,23 +109,36 @@ export default function App({ mode = 'full' }: AppProps) {
             if (savedData) {
                 const data = JSON.parse(savedData);
 
-                // ARCHIVE OLD TABS: Move any previous active tabs to archive
-                const previousTabs = data.tabs || [];
-                const previousArchives = data.archivedTabs || [];
-                // Filter out empty new tabs from archive to avoid clutter
-                const validPreviousTabs = previousTabs.filter((t: Tab) => t.messages.length > 0);
+                // Check if incognito mode was previously enabled
+                const wasIncognito = data.isIncognito || false;
 
-                const newTab = getInitialTab();
-                setTabs([newTab]);
-                setActiveTabId(newTab.id);
+                // If we're in incognito mode, don't load any chat history
+                if (wasIncognito) {
+                    const newTab = getInitialTab();
+                    setTabs([newTab]);
+                    setActiveTabId(newTab.id);
+                    setArchivedTabs([]);
+                    setGlobalHistory([]);
+                    setIsIncognito(true);
+                } else {
+                    // ARCHIVE OLD TABS: Move any previous active tabs to archive
+                    const previousTabs = data.tabs || [];
+                    const previousArchives = data.archivedTabs || [];
+                    // Filter out empty new tabs from archive to avoid clutter
+                    const validPreviousTabs = previousTabs.filter((t: Tab) => t.messages.length > 0);
 
-                setArchivedTabs([...validPreviousTabs, ...previousArchives]);
-                setGroups(data.groups || []);
-                setDownloads(data.downloads || []);
-                setGlobalHistory(data.globalHistory || []);
-                setCustomBackdrop(data.customBackdrop || null);
-                setCustomInstructions(data.customInstructions || '');
-                setIsIncognito(data.isIncognito || false);
+                    const newTab = getInitialTab();
+                    setTabs([newTab]);
+                    setActiveTabId(newTab.id);
+
+                    setArchivedTabs([...validPreviousTabs, ...previousArchives]);
+                    setGroups(data.groups || []);
+                    setDownloads(data.downloads || []);
+                    setGlobalHistory(data.globalHistory || []);
+                    setCustomBackdrop(data.customBackdrop || null);
+                    setCustomInstructions(data.customInstructions || '');
+                    setIsIncognito(false);
+                }
             } else {
                 const newTab = getInitialTab();
                 setTabs([newTab]);
@@ -160,7 +174,7 @@ export default function App({ mode = 'full' }: AppProps) {
 
         // In incognito mode, don't persist conversation history (tabs/archivedTabs/globalHistory)
         const dataToSave = isIncognito
-            ? { downloads, customBackdrop, customInstructions, isIncognito }
+            ? { downloads, customBackdrop, customInstructions, isIncognito, groups }
             : { tabs, activeTabId, archivedTabs, downloads, customBackdrop, globalHistory, customInstructions, isIncognito, groups };
 
         localStorage.setItem(storageKey, JSON.stringify(dataToSave));
@@ -201,6 +215,12 @@ export default function App({ mode = 'full' }: AppProps) {
         setIsIncognito(newState);
         if (newState) {
             setCurrentTheme('incognito');
+            // Clear all chat history when entering incognito mode
+            const newTab = getInitialTab();
+            setTabs([newTab]);
+            setActiveTabId(newTab.id);
+            setArchivedTabs([]);
+            setGlobalHistory([]);
         } else {
             setCurrentTheme(currentUser.theme);
         }
@@ -364,6 +384,13 @@ export default function App({ mode = 'full' }: AppProps) {
             console.log('Remaining tabs:', newTabs.map(t => t.id));
             return newTabs;
         });
+    };
+
+    const handleRenameArchivedTab = (tabId: string, newTitle: string) => {
+        console.log('Renaming archived tab:', tabId, 'to:', newTitle);
+        setArchivedTabs(prev => prev.map(tab =>
+            tab.id === tabId ? { ...tab, title: newTitle } : tab
+        ));
     };
 
     const handleNewTab = () => {
@@ -664,6 +691,8 @@ export default function App({ mode = 'full' }: AppProps) {
                 onOpenApp={handleOpenApp}
                 enabledApps={currentUser.enabledSidebarApps || []}
                 customShortcuts={currentUser.customShortcuts || []}
+                width={sidebarWidth}
+                onWidthChange={setSidebarWidth}
             />
 
             <HistoryDrawer
@@ -680,6 +709,7 @@ export default function App({ mode = 'full' }: AppProps) {
                 onRenameGroup={(id, name) => setGroups(prev => prev.map(g => g.id === id ? { ...g, name } : g))}
                 onMoveTabToGroup={(tabId, groupId) => setArchivedTabs(prev => prev.map(t => t.id === tabId ? { ...t, groupId } : t))}
                 onDeleteArchivedTab={handleDeleteArchivedTab}
+                onRenameArchivedTab={handleRenameArchivedTab}
             />
 
             <SidebarPanel
@@ -688,7 +718,10 @@ export default function App({ mode = 'full' }: AppProps) {
                 onClose={() => setActiveSidebarApp(null)}
             />
 
-            <div className="flex-1 flex flex-col min-w-0 z-10 relative h-full transition-all duration-500 pl-24">
+            <div 
+                className="flex-1 flex flex-col min-w-0 z-10 relative h-full transition-all duration-500"
+                style={{ paddingLeft: `${sidebarWidth + 24}px` }}
+            >
                 <SettingsModal
                     isOpen={isSettingsOpen}
                     onClose={() => setIsSettingsOpen(false)}
@@ -769,20 +802,6 @@ export default function App({ mode = 'full' }: AppProps) {
                                                         onNavigate={handleNavigate}
                                                     />
                                                 ))}
-                                                {activeTab.messages[activeTab.messages.length - 1]?.isStreaming && !activeTab.messages[activeTab.messages.length - 1]?.content && (
-                                                    <div className="flex justify-start mb-8 animate-fade-in">
-                                                        <div className="flex gap-4 max-w-4xl">
-                                                            <div className="glass-panel px-6 py-4 rounded-2xl flex items-center gap-3 shadow-lg">
-                                                                <div className="flex gap-1.5">
-                                                                    <div className="w-2 h-2 bg-zen-accent rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
-                                                                    <div className="w-2 h-2 bg-zen-accent rounded-full animate-bounce" style={{ animationDelay: '0.15s' }}></div>
-                                                                    <div className="w-2 h-2 bg-zen-accent rounded-full animate-bounce" style={{ animationDelay: '0.3s' }}></div>
-                                                                </div>
-                                                                <span className="text-sm text-zen-muted font-bold tracking-wider ml-2">PROCESSING</span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                )}
                                                 <div ref={messagesEndRef} />
                                             </div>
                                         )}

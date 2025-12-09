@@ -13,6 +13,7 @@ interface HistoryDrawerProps {
     onRenameGroup: (id: string, name: string) => void;
     onMoveTabToGroup: (tabId: string, groupId?: string) => void;
     onDeleteArchivedTab: (tabId: string) => void;
+    onRenameArchivedTab?: (tabId: string, newTitle: string) => void;
 }
 
 const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
@@ -25,7 +26,8 @@ const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
     onDeleteGroup,
     onRenameGroup,
     onMoveTabToGroup,
-    onDeleteArchivedTab // Destructure the prop here
+    onDeleteArchivedTab, // Destructure the prop here
+    onRenameArchivedTab
 }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
@@ -219,13 +221,14 @@ const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
                                     <div className="absolute left-[1.1rem] top-0 bottom-0 w-px bg-gradient-to-b from-zen-border/50 to-transparent"></div>
                                     <div className="pl-6 space-y-3">
                                         {grouped[group.id]?.map(tab => (
-                                            <HistoryItem 
-                                                key={tab.id} 
-                                                tab={tab} 
+                                            <HistoryItem
+                                                key={tab.id}
+                                                tab={tab}
                                                 searchTerm={searchTerm}
                                                 onRestore={handleRestore}
                                                 onMove={(groupId) => onMoveTabToGroup(tab.id, groupId)}
                                                 onDelete={onDeleteArchivedTab}
+                                                onRenameTab={onRenameArchivedTab}
                                                 groups={groups}
                                                 isMoving={movingTabId === tab.id}
                                                 setMovingTabId={setMovingTabId}
@@ -251,13 +254,14 @@ const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
                                 </div>
                             )}
                             {uncategorized.map(tab => (
-                                <HistoryItem 
-                                    key={tab.id} 
-                                    tab={tab} 
+                                <HistoryItem
+                                    key={tab.id}
+                                    tab={tab}
                                     searchTerm={searchTerm}
                                     onRestore={handleRestore}
                                     onMove={(groupId) => onMoveTabToGroup(tab.id, groupId)}
                                     onDelete={onDeleteArchivedTab}
+                                    onRenameTab={onRenameArchivedTab}
                                     groups={groups}
                                     isMoving={movingTabId === tab.id}
                                     setMovingTabId={setMovingTabId}
@@ -298,10 +302,11 @@ const HistoryItem: React.FC<{
     onRestore: (id: string) => void;
     onMove: (groupId?: string) => void;
     onDelete: (id: string) => void;
+    onRenameTab?: (id: string, newTitle: string) => void;
     groups: ThreadGroup[];
     isMoving: boolean;
     setMovingTabId: (id: string | null) => void;
-}> = ({ tab, searchTerm, onRestore, onMove, groups, isMoving, setMovingTabId }) => {
+}> = ({ tab, searchTerm, onRestore, onMove, onDelete, onRenameTab, groups, isMoving, setMovingTabId }) => {
     
     // Smart snippet generation
     const snippet = useMemo(() => {
@@ -365,7 +370,7 @@ const HistoryItem: React.FC<{
             </button>
             
             {/* Delete Button */}
-            <button 
+            <button
                 onClick={(e) => {
                     e.stopPropagation();
                     onDelete(tab.id);
@@ -374,6 +379,25 @@ const HistoryItem: React.FC<{
                 title="Delete conversation"
             >
                 <Trash2 className="w-4 h-4" />
+            </button>
+
+            {/* Rename Button */}
+            <button
+                onClick={(e) => {
+                    e.stopPropagation();
+                    // Add rename functionality
+                    const newTitle = prompt("Rename chat:", tab.title);
+                    if (newTitle && newTitle.trim()) {
+                        // This will be handled by a new prop
+                        if (onRenameTab) {
+                            onRenameTab(tab.id, newTitle.trim());
+                        }
+                    }
+                }}
+                className="absolute right-3 top-10 p-1.5 rounded-lg text-zen-muted hover:text-zen-text hover:bg-zen-surface transition-opacity opacity-0 group-hover:opacity-100 z-10"
+                title="Rename conversation"
+            >
+                <Edit2 className="w-4 h-4" />
             </button>
             
             {/* Move Menu Trigger */}

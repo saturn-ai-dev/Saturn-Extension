@@ -15,6 +15,8 @@ import 'prismjs/components/prism-json';
 import 'prismjs/components/prism-python';
 import 'prismjs/components/prism-bash';
 import 'prismjs/themes/prism-tomorrow.css';
+import 'katex/dist/katex.min.css';
+import './katex-custom.css';
 
 // Service Worker Registration
 if ('serviceWorker' in navigator) {
