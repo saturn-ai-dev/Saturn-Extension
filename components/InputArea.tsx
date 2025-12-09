@@ -1,7 +1,7 @@
 
-import React, { useRef, useEffect, useState, useCallback } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { ArrowUp, Zap, Globe, BrainCircuit, Paperclip, X, Image as ImageIcon, Video, Target, Eye, EyeOff, ChevronDown, Check, FileText, GripHorizontal } from 'lucide-react';
+import { ArrowUp, Zap, Globe, BrainCircuit, Paperclip, X, Image as ImageIcon, Video, Target, Eye, EyeOff, ChevronDown, Check, FileText } from 'lucide-react';
 import { SearchMode, Attachment } from '../types';
 
 interface InputAreaProps {
@@ -18,19 +18,14 @@ const InputArea: React.FC<InputAreaProps> = ({ onSend, disabled, mode, setMode, 
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [showPreview, setShowPreview] = useState(false);
   const [showModeDropdown, setShowModeDropdown] = useState(false);
-  const [verticalOffset, setVerticalOffset] = useState(0);
-  const [inputWidth, setInputWidth] = useState(100); // percentage width
-  const [isAbove45, setIsAbove45] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (textareaRef.current && !showPreview) {
       textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 600) + 'px';
+      textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 200) + 'px';
     }
   }, [input, showPreview]);
 
@@ -46,84 +41,6 @@ const InputArea: React.FC<InputAreaProps> = ({ onSend, disabled, mode, setMode, 
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
-
-  // Track vertical position to determine dropdown direction
-  useEffect(() => {
-    const updatePosition = () => {
-      if (containerRef.current) {
-        const rect = containerRef.current.getBoundingClientRect();
-        const viewportHeight = window.innerHeight;
-        const centerY = rect.top + rect.height / 2;
-        setIsAbove45(centerY < viewportHeight * 0.45);
-      }
-    };
-
-    updatePosition();
-    window.addEventListener('scroll', updatePosition);
-    window.addEventListener('resize', updatePosition);
-    return () => {
-      window.removeEventListener('scroll', updatePosition);
-      window.removeEventListener('resize', updatePosition);
-    };
-  }, [verticalOffset, inputWidth]);
-
-  // Vertical drag handler (move up/down)
-  const handleVerticalDrag = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-    const startY = e.clientY;
-    const startOffset = verticalOffset;
-    const maxOffset = window.innerHeight * 0.4; // Max 40% of screen height
-
-    const handleMouseMove = (moveEvent: MouseEvent) => {
-      const delta = moveEvent.clientY - startY;
-      const newOffset = Math.max(-maxOffset, Math.min(maxOffset, startOffset + delta));
-      setVerticalOffset(newOffset);
-    };
-
-    const handleMouseUp = () => {
-      setIsDragging(false);
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-  }, [verticalOffset]);
-
-  // Horizontal collapse/expand handler (resize width)
-  const handleWidthResize = useCallback((e: React.MouseEvent, direction: 'left' | 'right') => {
-    e.preventDefault();
-    setIsDragging(true);
-    const startX = e.clientX;
-    const startWidth = inputWidth;
-
-    const handleMouseMove = (moveEvent: MouseEvent) => {
-      const delta = moveEvent.clientX - startX;
-      const containerWidth = containerRef.current?.parentElement?.offsetWidth || window.innerWidth;
-      const deltaPercent = (delta / containerWidth) * 100;
-
-      let newWidth: number;
-      if (direction === 'right') {
-        newWidth = startWidth + deltaPercent * 2; // *2 because we're resizing from center
-      } else {
-        newWidth = startWidth - deltaPercent * 2;
-      }
-
-      // Clamp between 40% and 100%
-      newWidth = Math.max(40, Math.min(100, newWidth));
-      setInputWidth(newWidth);
-    };
-
-    const handleMouseUp = () => {
-      setIsDragging(false);
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-  }, [inputWidth]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -205,45 +122,8 @@ const InputArea: React.FC<InputAreaProps> = ({ onSend, disabled, mode, setMode, 
   }
 
   return (
-    <div
-      ref={containerRef}
-      className="mx-auto relative z-50 transition-all duration-75"
-      style={{
-        transform: `translateY(${verticalOffset}px)`,
-        width: `${inputWidth}%`
-      }}
-    >
-      <div className={`relative group transition-all duration-500 ease-out ${isDragging ? 'cursor-grabbing' : ''}`}>
-
-        {/* Top vertical move bar - drag to move up/down */}
-        <div
-          className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-4 h-2 w-24 rounded-full bg-zen-border/40 
-          hover:bg-zen-accent/60 cursor-ns-resize opacity-0 group-hover:opacity-100 transition-all duration-200
-          hover:h-2.5 hover:w-32 flex items-center justify-center z-10"
-          onMouseDown={handleVerticalDrag}
-        >
-          <GripHorizontal className="w-4 h-4 text-zen-muted opacity-0 group-hover:opacity-70" />
-        </div>
-
-        {/* Left width collapse handle */}
-        <div
-          className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-3 w-2 h-16 rounded-full bg-zen-border/40 
-          hover:bg-zen-accent/60 cursor-ew-resize opacity-0 group-hover:opacity-100 transition-all duration-200
-          hover:w-2.5 hover:h-20 flex items-center justify-center"
-          onMouseDown={(e) => handleWidthResize(e, 'left')}
-        >
-          <div className="w-0.5 h-6 bg-zen-muted/50 rounded-full" />
-        </div>
-
-        {/* Right width collapse handle */}
-        <div
-          className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-3 w-2 h-16 rounded-full bg-zen-border/40 
-          hover:bg-zen-accent/60 cursor-ew-resize opacity-0 group-hover:opacity-100 transition-all duration-200
-          hover:w-2.5 hover:h-20 flex items-center justify-center"
-          onMouseDown={(e) => handleWidthResize(e, 'right')}
-        >
-          <div className="w-0.5 h-6 bg-zen-muted/50 rounded-full" />
-        </div>
+    <div className="w-full mx-auto relative z-50">
+      <div className="relative group transition-all duration-500 ease-out">
 
         <div className={`absolute -inset-0.5 bg-gradient-to-r from-zen-accent via-purple-500 to-zen-accent rounded-[28px] opacity-0 transition-opacity duration-500 blur-xl ${isFocused ? 'opacity-20' : 'group-hover:opacity-10'}`} />
 
@@ -305,87 +185,66 @@ const InputArea: React.FC<InputAreaProps> = ({ onSend, disabled, mode, setMode, 
             <div className="flex-1 min-w-0">
               {showPreview ? (
                 <div
-                  className="w-full py-3 px-0 text-base leading-relaxed max-h-[600px] resize-y overflow-y-auto custom-scrollbar text-zen-text prose prose-neutral dark:prose-invert max-w-none cursor-pointer"
+                  className="w-full py-3 px-0 text-base leading-relaxed max-h-[200px] overflow-y-auto custom-scrollbar text-zen-text prose prose-neutral dark:prose-invert max-w-none cursor-pointer"
                   onClick={() => setShowPreview(false)}
                   title="Click to edit"
                 >
                   {input.trim() ? <ReactMarkdown>{input}</ReactMarkdown> : <span className="text-zen-muted italic">Empty</span>}
                 </div>
               ) : (
-                <div className="relative w-full group/resize">
-                  {/* Top resize handle (mirrored) */}
-                  <div
-                    className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1 w-12 h-1.5 rounded-full bg-zen-border/40 
-                    hover:bg-zen-accent/60 cursor-ns-resize opacity-0 group-hover/resize:opacity-100 transition-all duration-200
-                    hover:h-2 hover:w-16"
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      const textarea = textareaRef.current;
-                      if (!textarea) return;
-                      const startY = e.clientY;
-                      const startHeight = textarea.offsetHeight;
-
-                      const handleMouseMove = (moveEvent: MouseEvent) => {
-                        const delta = startY - moveEvent.clientY; // Inverted for top handle
-                        const newHeight = Math.max(48, Math.min(600, startHeight + delta));
-                        textarea.style.height = `${newHeight}px`;
-                      };
-
-                      const handleMouseUp = () => {
-                        document.removeEventListener('mousemove', handleMouseMove);
-                        document.removeEventListener('mouseup', handleMouseUp);
-                      };
-
-                      document.addEventListener('mousemove', handleMouseMove);
-                      document.addEventListener('mouseup', handleMouseUp);
-                    }}
-                  />
-                  <textarea
-                    ref={textareaRef}
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    onFocus={() => setIsFocused(true)}
-                    onBlur={() => setIsFocused(false)}
-                    onKeyDown={handleKeyDown}
-                    placeholder={getPlaceholder()}
-                    disabled={disabled}
-                    rows={1}
-                    className="w-full bg-transparent border-0 focus:ring-0 outline-none focus:outline-none text-zen-text placeholder-zen-muted/60 resize-y py-3 px-2 text-base leading-relaxed max-h-[600px] overflow-y-auto disabled:opacity-0 caret-zen-accent font-medium"
-                    style={{ minHeight: '48px' }}
-                  />
-                  {/* Bottom resize handle (mirrored) */}
-                  <div
-                    className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1 w-12 h-1.5 rounded-full bg-zen-border/40 
-                    hover:bg-zen-accent/60 cursor-ns-resize opacity-0 group-hover/resize:opacity-100 transition-all duration-200
-                    hover:h-2 hover:w-16"
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      const textarea = textareaRef.current;
-                      if (!textarea) return;
-                      const startY = e.clientY;
-                      const startHeight = textarea.offsetHeight;
-
-                      const handleMouseMove = (moveEvent: MouseEvent) => {
-                        const delta = moveEvent.clientY - startY;
-                        const newHeight = Math.max(48, Math.min(600, startHeight + delta));
-                        textarea.style.height = `${newHeight}px`;
-                      };
-
-                      const handleMouseUp = () => {
-                        document.removeEventListener('mousemove', handleMouseMove);
-                        document.removeEventListener('mouseup', handleMouseUp);
-                      };
-
-                      document.addEventListener('mousemove', handleMouseMove);
-                      document.addEventListener('mouseup', handleMouseUp);
-                    }}
-                  />
-                </div>
+                <textarea
+                  ref={textareaRef}
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onFocus={() => setIsFocused(true)}
+                  onBlur={() => setIsFocused(false)}
+                  onKeyDown={handleKeyDown}
+                  placeholder={getPlaceholder()}
+                  disabled={disabled}
+                  rows={1}
+                  className="w-full bg-transparent border-0 focus:ring-0 outline-none focus:outline-none text-zen-text placeholder-zen-muted/60 resize-none py-3 px-2 text-base leading-relaxed max-h-[200px] overflow-y-auto disabled:opacity-0 caret-zen-accent font-medium"
+                  style={{ minHeight: '48px' }}
+                />
               )}
             </div>
 
             {/* Mode Dropdown & Send Right */}
             <div className="flex items-center gap-3 pb-1.5">
+
+              {/* Mode Selector */}
+              <div className="relative" ref={dropdownRef}>
+                <button
+                  onClick={() => setShowModeDropdown(!showModeDropdown)}
+                  className="flex items-center gap-2 px-3 py-2 rounded-xl bg-zen-bg/50 hover:bg-zen-bg text-zen-text border border-zen-border/50 hover:border-zen-accent/50 transition-all text-xs font-bold uppercase tracking-wide min-w-[100px] justify-between"
+                >
+                  <div className="flex items-center gap-2">
+                    {currentMode.icon}
+                    <span>{currentMode.label}</span>
+                  </div>
+                  <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${showModeDropdown ? 'rotate-180' : ''}`} />
+                </button>
+
+                {showModeDropdown && (
+                  <div className="absolute bottom-full right-0 mb-3 w-56 bg-zen-surface/95 backdrop-blur-xl border border-zen-border rounded-2xl shadow-2xl overflow-hidden animate-scale-in z-[60] origin-bottom-right p-1">
+                    {modes.map((m) => (
+                      <button
+                        key={m.id}
+                        onClick={() => { setMode(m.id); setShowModeDropdown(false); }}
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all group ${mode === m.id ? 'bg-zen-bg text-zen-text shadow-sm' : 'text-zen-muted hover:text-zen-text hover:bg-zen-bg/50'}`}
+                      >
+                        <div className={`p-2 rounded-lg bg-zen-bg border border-zen-border/50 group-hover:border-zen-accent/30 transition-colors ${mode === m.id ? 'border-zen-accent' : ''}`}>
+                          {m.icon}
+                        </div>
+                        <div className="flex-1">
+                          <div className="text-xs font-bold uppercase tracking-wider">{m.label}</div>
+                          <div className="text-[10px] text-zen-muted font-medium">{m.desc}</div>
+                        </div>
+                        {mode === m.id && <Check className="w-3.5 h-3.5 text-zen-accent" />}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
 
               {/* Send Button */}
               <button
@@ -409,26 +268,6 @@ const InputArea: React.FC<InputAreaProps> = ({ onSend, disabled, mode, setMode, 
                   <ArrowUp className="w-5 h-5" />
                 )}
               </button>
-            </div>
-          </div>
-
-          {/* Mode Sidebar - Under Input Area */}
-          <div className="px-4 pb-3 pt-1">
-            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
-              {modes.map((m) => (
-                <button
-                  key={m.id}
-                  onClick={() => setMode(m.id)}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-wide transition-all whitespace-nowrap
-                    ${mode === m.id
-                      ? 'bg-zen-accent/20 text-zen-accent border border-zen-accent/50 shadow-sm'
-                      : 'bg-zen-bg/50 text-zen-muted border border-zen-border/30 hover:text-zen-text hover:bg-zen-bg hover:border-zen-border/60'
-                    }`}
-                >
-                  {m.icon}
-                  <span>{m.label}</span>
-                </button>
-              ))}
             </div>
           </div>
         </div>
