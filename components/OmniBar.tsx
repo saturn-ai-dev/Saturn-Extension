@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { ArrowUp, Zap, Globe, BrainCircuit, Paperclip, X, Image as ImageIcon, Video, Target, FileText } from 'lucide-react';
+import { ArrowUp, Zap, Globe, BrainCircuit, Paperclip, X, Image as ImageIcon, Video, Target, FileText, ChevronDown } from 'lucide-react';
 import { SearchMode, Attachment } from '../types';
 
 interface OmniBarProps {
@@ -17,6 +17,8 @@ const OmniBar: React.FC<OmniBarProps> = ({ onSend, disabled, mode, setMode }) =>
   const [showPreview, setShowPreview] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showModeDropdown, setShowModeDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (textareaRef.current && !showPreview) {
@@ -24,6 +26,17 @@ const OmniBar: React.FC<OmniBarProps> = ({ onSend, disabled, mode, setMode }) =>
       textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 200) + 'px';
     }
   }, [input, showPreview]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowModeDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -112,7 +125,7 @@ const OmniBar: React.FC<OmniBarProps> = ({ onSend, disabled, mode, setMode }) =>
         <div className={`absolute -inset-0.5 bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 rounded-[2rem] opacity-0 transition-opacity duration-500 blur-md ${isFocused ? 'opacity-60' : 'group-hover:opacity-20'}`} />
 
         <div className={`
-            relative glass-panel rounded-[1.8rem] flex flex-col transition-all duration-300 overflow-hidden
+            relative glass-panel rounded-[1.8rem] flex flex-col transition-all duration-300
             ${isFocused ? 'shadow-[0_0_50px_-10px_rgba(var(--accent-color),0.2)]' : 'shadow-deep'}
         `}>
 
@@ -133,13 +146,13 @@ const OmniBar: React.FC<OmniBarProps> = ({ onSend, disabled, mode, setMode }) =>
             </div>
           )}
 
-          <div className="flex items-end px-3 py-3">
+          <div className="flex items-stretch gap-3 px-4 py-3">
             {/* File Upload Button */}
             <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileSelect} multiple />
             <button
               onClick={() => fileInputRef.current?.click()}
               className={`
-                    p-3 mb-1 rounded-2xl transition-all duration-300 flex-shrink-0
+                    w-11 h-11 rounded-2xl transition-all duration-300 flex-shrink-0 flex items-center justify-center
                     ${attachments.length > 0 ? 'text-zen-accent bg-zen-accent/10' : 'text-zen-muted hover:bg-white/5 hover:text-zen-text'}
                 `}
               disabled={mode === 'video'}
@@ -149,7 +162,7 @@ const OmniBar: React.FC<OmniBarProps> = ({ onSend, disabled, mode, setMode }) =>
             </button>
 
             {/* Text Input */}
-            <div className="flex-1 min-w-0 mx-3 mb-1.5">
+            <div className="flex-1 min-w-0 flex items-center h-11">
               {showPreview ? (
                 <div className="w-full py-3 px-2 max-h-[200px] overflow-y-auto custom-scrollbar text-zen-text prose prose-invert prose-sm" onClick={() => setShowPreview(false)}>
                   <ReactMarkdown>{input}</ReactMarkdown>
@@ -165,8 +178,7 @@ const OmniBar: React.FC<OmniBarProps> = ({ onSend, disabled, mode, setMode }) =>
                   placeholder={getPlaceholder()}
                   disabled={disabled}
                   rows={1}
-                  className="w-full bg-transparent border-0 focus:ring-0 text-zen-text placeholder-zen-muted/50 resize-none py-2 px-0 text-[1.1rem] leading-relaxed max-h-[200px] overflow-y-auto disabled:opacity-50 caret-zen-accent font-medium tracking-wide"
-                  style={{ minHeight: '28px' }}
+                  className="w-full h-full bg-transparent border-0 outline-none focus:ring-0 text-zen-text placeholder-zen-muted/50 resize-none px-0 py-0 text-base leading-normal max-h-[200px] overflow-y-auto disabled:opacity-50 caret-zen-accent font-normal"
                 />
               )}
             </div>
@@ -176,7 +188,7 @@ const OmniBar: React.FC<OmniBarProps> = ({ onSend, disabled, mode, setMode }) =>
               onClick={handleSend}
               disabled={(!input.trim() && attachments.length === 0) || disabled}
               className={`
-                p-3 mb-1 rounded-2xl transition-all duration-500 flex-shrink-0 flex items-center justify-center overflow-hidden relative group/send
+                w-11 h-11 rounded-2xl transition-all duration-500 flex-shrink-0 flex items-center justify-center overflow-hidden relative group/send
                 ${(input.trim() || attachments.length > 0) && !disabled
                   ? 'bg-zen-text text-zen-bg hover:scale-105 shadow-glow-lg'
                   : 'bg-white/5 text-zen-muted cursor-not-allowed'}
@@ -194,29 +206,46 @@ const OmniBar: React.FC<OmniBarProps> = ({ onSend, disabled, mode, setMode }) =>
           </div>
 
           {/* Bottom Toolbar */}
-          <div className={`
-            flex items-center justify-between px-5 py-3 bg-black/20 border-t border-white/5 transition-all duration-300
-            ${isFocused || input || attachments.length > 0 ? 'opacity-100 h-auto' : 'opacity-0 h-0 overflow-hidden p-0 border-none'}
-          `}>
-            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar mask-gradient-right">
-              {modes.map((m) => (
-                <button
-                  key={m.id}
-                  onClick={() => setMode(m.id)}
-                  className={`
-                            flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wider transition-all whitespace-nowrap border
-                            ${mode === m.id
-                      ? 'bg-zen-surface border-zen-accent text-zen-accent shadow-[0_0_15px_-5px_rgba(var(--accent-color),0.5)]'
-                      : 'border-transparent text-zen-muted hover:text-zen-text hover:bg-white/5'}
-                        `}
-                >
-                  {m.icon}
-                  <span>{m.label}</span>
-                </button>
-              ))}
+          <div className="flex items-center justify-between px-5 py-3 bg-black/20 border-t border-white/5">
+            {/* Mode Selector Custom Dropdown */}
+            <div className="relative flex items-center gap-2" ref={dropdownRef}>
+              <button
+                onClick={() => setShowModeDropdown(!showModeDropdown)}
+                className="flex items-center gap-2 px-3 py-2 bg-zen-surface border border-zen-border rounded-xl hover:border-zen-accent transition-all text-xs font-bold uppercase tracking-wider text-zen-text"
+              >
+                <span className="text-zen-accent">
+                  {modes.find(m => m.id === mode)?.icon}
+                </span>
+                <span>{modes.find(m => m.id === mode)?.label}</span>
+                <ChevronDown className={`w-3.5 h-3.5 text-zen-muted transition-transform ${showModeDropdown ? 'rotate-180' : ''}`} />
+              </button>
+
+              {/* Dropdown Menu */}
+              {showModeDropdown && (
+                <div className="absolute bottom-full left-0 mb-2 w-48 bg-zen-surface border border-zen-border rounded-xl shadow-2xl overflow-hidden animate-scale-in z-50">
+                  {modes.map((m) => (
+                    <button
+                      key={m.id}
+                      onClick={() => {
+                        setMode(m.id);
+                        setShowModeDropdown(false);
+                      }}
+                      className={`w-full flex items-center gap-3 px-4 py-3 transition-all text-left ${mode === m.id
+                        ? 'bg-zen-accent text-white'
+                        : 'text-zen-text hover:bg-white/5'
+                        }`}
+                    >
+                      <span className={mode === m.id ? 'text-white' : 'text-zen-accent'}>
+                        {m.icon}
+                      </span>
+                      <span className="text-xs font-bold uppercase tracking-wider">{m.label}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
-            <div className="flex items-center gap-3 pl-4 border-l border-white/10 ml-2 flex-shrink-0">
+            <div className="flex items-center gap-3 flex-shrink-0">
               <button onClick={() => setShowPreview(!showPreview)} className={`text-[10px] font-bold uppercase tracking-widest transition-colors hover:underline ${showPreview ? 'text-zen-accent' : 'text-zen-muted hover:text-zen-text'}`}>
                 {showPreview ? 'Edit' : 'Preview'}
               </button>

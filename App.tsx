@@ -15,7 +15,7 @@ const DEFAULT_USER: UserProfile = {
     theme: 'saturn',
     avatarColor: 'bg-blue-600',
     enabledExtensions: [],
-    enabledSidebarApps: ['notes', 'calculator', 'spotify', 'whatsapp', 'youtube', 'reddit', 'x'],
+    enabledSidebarApps: ['notes', 'calculator'],
     customShortcuts: [],
     preferredModel: 'gemini-flash-latest',
     preferredImageModel: 'gemini-2.5-flash-image'
@@ -211,15 +211,12 @@ export default function App() {
 
     const handleOpenApp = (appId: string) => {
         // Apps that should open in the sidebar panel
-        const sidebarWidgets = ['notes', 'calculator', 'twitch'];
+        const sidebarWidgets = ['notes', 'calculator'];
 
         // Apps that should open in a new browser tab
         const externalLinks: Record<string, string> = {
-            'spotify': 'https://open.spotify.com',
-            'whatsapp': 'https://web.whatsapp.com',
-            'reddit': 'https://www.reddit.com',
-            'x': 'https://x.com',
-            'youtube': 'https://www.youtube.com'
+
+
         };
 
         if (sidebarWidgets.includes(appId)) {
@@ -243,7 +240,7 @@ export default function App() {
     const handleSwitchUser = (userId: string) => {
         const user = users.find(u => u.id === userId);
         if (user) {
-            if (!user.enabledSidebarApps) user.enabledSidebarApps = ['notes', 'calculator', 'spotify', 'whatsapp', 'youtube', 'reddit', 'x'];
+            if (!user.enabledSidebarApps) user.enabledSidebarApps = ['notes', 'calculator'];
             if (!user.customShortcuts) user.customShortcuts = [];
             setCurrentUser(user);
         }
@@ -256,7 +253,7 @@ export default function App() {
             theme: 'red',
             avatarColor: AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)],
             enabledExtensions: [],
-            enabledSidebarApps: ['notes', 'calculator', 'spotify', 'whatsapp', 'youtube', 'reddit', 'x'],
+            enabledSidebarApps: ['notes', 'calculator'],
             customShortcuts: []
         };
         setUsers(prev => [...prev, newUser]);

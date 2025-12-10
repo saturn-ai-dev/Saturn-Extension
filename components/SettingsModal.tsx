@@ -166,12 +166,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     const sidebarAppsList = [
         { id: 'notes', label: 'Notes' },
         { id: 'calculator', label: 'Calculator' },
-        { id: 'spotify', label: 'Spotify' },
-        { id: 'twitch', label: 'Twitch' },
-        { id: 'whatsapp', label: 'WhatsApp' },
-        { id: 'reddit', label: 'Reddit' },
-        { id: 'x', label: 'X' },
-        { id: 'youtube', label: 'YouTube' },
     ];
 
     const getDownloadIcon = (type: string) => {
@@ -210,7 +204,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id as any)}
-                                className={`flex-shrink-0 md:w-full flex items-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-xl text-sm font-medium transition-colors whitespace-nowrap ${activeTab === tab.id ? `bg-zen-accent shadow-lg ${getActiveTextColor()}` : 'text-zen-muted hover:text-zen-text hover:bg-zen-surface'}`}
+                                className={`flex-shrink-0 md:w-full flex items-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-xl text-sm font-medium transition-colors whitespace-nowrap ${activeTab === tab.id ? `bg-zen-accent shadow-lg ${getActiveTextColor()}` : 'text-zen-muted active:text-zen-text active:bg-zen-surface md:hover:text-zen-text md:hover:bg-zen-surface'}`}
                             >
                                 {tab.icon}
                                 <span className="md:inline">{tab.label}</span>
@@ -230,7 +224,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                     </div>
 
                     {/* Mobile Close Button (Top Right of Sidebar area) */}
-                    <button onClick={onClose} className="md:hidden p-2 hover:bg-zen-surface rounded-full text-zen-muted hover:text-zen-text transition-colors ml-auto">
+                    <button onClick={onClose} className="md:hidden p-2 active:bg-zen-surface rounded-full text-zen-muted active:text-zen-text transition-colors ml-auto">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
@@ -239,7 +233,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 <div className="flex-1 flex flex-col min-w-0 min-h-0">
                     <div className="flex items-center justify-between p-4 md:p-6 border-b border-zen-border">
                         <h2 className="text-lg md:text-xl font-bold text-zen-text capitalize">{activeTab} Settings</h2>
-                        <button onClick={onClose} className="hidden md:block p-2 hover:bg-zen-surface rounded-full text-zen-muted hover:text-zen-text transition-colors">
+                        <button onClick={onClose} className="hidden md:block p-2 md:hover:bg-zen-surface rounded-full text-zen-muted md:hover:text-zen-text transition-colors">
                             <X className="w-5 h-5" />
                         </button>
                     </div>

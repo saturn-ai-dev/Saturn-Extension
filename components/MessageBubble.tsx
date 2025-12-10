@@ -52,7 +52,7 @@ const LinkRenderer = ({ href, children, onNavigate }: any) => {
         if (onNavigate) onNavigate(href); else window.open(href, '_blank');
     };
     return (
-        <a href={href} target="_blank" rel="noopener noreferrer" onClick={handleClick} className={`inline-flex items-center gap-1 text-zen-accent hover:underline break-all ${isYoutube ? 'font-bold' : ''}`}>
+        <a href={href} target="_blank" rel="noopener noreferrer" onClick={handleClick} className={`inline-flex items-center gap-1 text-zen-accent hover:underline break-words ${isYoutube ? 'font-bold' : ''}`}>
             {children}
             {isYoutube ? <Youtube className="w-3 h-3 ml-1" /> : <ExternalLink className="w-3 h-3 opacity-50" />}
         </a>
@@ -62,8 +62,8 @@ const LinkRenderer = ({ href, children, onNavigate }: any) => {
 // Custom Markdown Components
 // Custom Markdown Components
 const TableRenderer = ({ children }: any) => (
-    <div className="overflow-x-auto my-8 rounded-2xl border border-white/10 shadow-2xl bg-white/5 backdrop-blur-md">
-        <table className="w-full border-collapse text-sm text-left min-w-[600px]">{children}</table>
+    <div className="overflow-x-auto my-8 rounded-2xl border border-white/10 shadow-2xl bg-white/5 backdrop-blur-md max-w-full">
+        <table className="w-full border-collapse text-sm text-left">{children}</table>
     </div>
 );
 
@@ -84,11 +84,11 @@ const TableRowRenderer = ({ children }: any) => (
 );
 
 const TableHeaderCellRenderer = ({ children }: any) => (
-    <th className="px-6 py-5 font-bold text-white tracking-wide whitespace-nowrap">{children}</th>
+    <th className="px-6 py-5 font-bold text-white tracking-wide break-words">{children}</th>
 );
 
 const TableCellRenderer = ({ children }: any) => (
-    <td className="px-6 py-4 border-r border-white/5 last:border-r-0 group-hover:text-white transition-colors">{children}</td>
+    <td className="px-6 py-4 border-r border-white/5 last:border-r-0 group-hover:text-white transition-colors break-words">{children}</td>
 );
 
 const BlockquoteRenderer = ({ children }: any) => (
@@ -251,7 +251,7 @@ const CodeRenderer = ({ node, inline, className, children, ...props }: any) => {
                 </div>
             </div>
             {/* Code Body */}
-            <div className="p-0 overflow-x-auto custom-scrollbar font-mono text-sm bg-transparent">
+            <div className="p-0 overflow-x-auto custom-scrollbar font-mono text-sm bg-transparent max-w-full">
                 <code ref={codeRef} className={`block p-5 ${className || 'language-text'} !bg-transparent !text-sm !leading-relaxed`} {...props}>
                     {children}
                 </code>
@@ -615,7 +615,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onDownload, onNa
                                     </button>
                                 </div>
                             ) : (
-                                <div className={`markdown-content prose prose-neutral prose-lg max-w-none dark:prose-invert prose-p:leading-relaxed prose-li:marker:text-zen-accent prose-a:text-zen-accent prose-a:no-underline hover:prose-a:underline ${message.isStreaming ? 'opacity-90' : 'opacity-100'}`}>
+                                <div className={`markdown-content prose prose-neutral prose-lg max-w-none dark:prose-invert prose-p:leading-relaxed prose-li:marker:text-zen-accent prose-a:text-zen-accent prose-a:no-underline hover:prose-a:underline overflow-x-hidden break-words ${message.isStreaming ? 'opacity-90' : 'opacity-100'}`}>
                                     {cleanContent ? (
                                         <>
                                             <ReactMarkdown
