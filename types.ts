@@ -106,7 +106,6 @@ export interface UserProfile {
   customShortcuts: CustomShortcut[];
   preferredModel?: string;
   preferredImageModel?: string;
-  autoRenameChats?: boolean;
 }
 
 export interface ChatState {

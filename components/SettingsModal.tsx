@@ -35,8 +35,7 @@ interface SettingsModalProps {
     // Model
     onSetModel: (model: string) => void;
     onSetImageModel: (model: string) => void;
-    autoRenameChats: boolean;
-    toggleAutoRenameChats: () => void;
+    onResetLayout: () => void;
 
     // Data
     tabs: Tab[];
@@ -53,7 +52,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     currentUser, users, onSwitchUser, onAddUser, downloads, availableExtensions,
     onToggleExtension, onCreateExtension, onDeleteExtension,
     onAddCustomShortcut, onDeleteCustomShortcut, onSetModel, onSetImageModel,
-    autoRenameChats, toggleAutoRenameChats,
+    onResetLayout,
     tabs, setTabs, archivedTabs, setArchivedTabs, customInstructions, setCustomInstructions
 }) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -311,14 +310,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                             ))}
                                         </div>
 
-                                        {/* Auto-Rename Toggle */}
+                                        {/* Layout Settings */}
                                         <div className="flex items-center justify-between p-4 rounded-xl bg-zen-bg/30 border border-zen-border/50 mb-4">
                                             <div>
-                                                <div className="text-sm font-bold text-zen-text">Auto-Rename Chats</div>
-                                                <div className="text-xs text-zen-muted">Smartly title conversations using Gemini 2.5 Flash Lite</div>
+                                                <div className="text-sm font-bold text-zen-text">Reset Layout</div>
+                                                <div className="text-xs text-zen-muted">Restore sidebar width and defaults</div>
                                             </div>
-                                            <button onClick={toggleAutoRenameChats} className={`w-11 h-6 rounded-full p-0.5 transition-colors relative ${autoRenameChats ? 'bg-zen-accent' : 'bg-zen-border'}`}>
-                                                <div className={`w-5 h-5 bg-white rounded-full shadow-md transition-transform ${autoRenameChats ? 'translate-x-5' : 'translate-x-0'}`} />
+                                            <button onClick={() => { onResetLayout(); }} className="px-3 py-1.5 bg-zen-surface hover:bg-zen-bg border border-zen-border rounded-lg text-xs font-bold transition-colors text-zen-text">
+                                                Reset
                                             </button>
                                         </div>
 

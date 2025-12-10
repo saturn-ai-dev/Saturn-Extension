@@ -139,9 +139,18 @@ const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
                         placeholder="Search conversations..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full bg-zen-bg/50 border border-zen-border rounded-2xl py-3 pl-11 pr-4 text-sm focus:outline-none focus:border-zen-accent focus:bg-zen-bg text-zen-text placeholder-zen-muted transition-all shadow-sm group-hover:border-zen-border/80"
+                        autoFocus
+                        className="w-full bg-zen-bg/50 border border-zen-border rounded-2xl py-3 pl-11 pr-10 text-sm focus:outline-none focus:border-zen-accent focus:bg-zen-bg text-zen-text placeholder-zen-muted transition-all shadow-sm group-hover:border-zen-border/80"
                     />
                     <Search className="w-5 h-5 text-zen-muted absolute left-4 top-1/2 -translate-y-1/2 transition-colors group-hover:text-zen-text" />
+                    {searchTerm && (
+                        <button 
+                            onClick={() => setSearchTerm('')}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-zen-muted hover:text-zen-text p-1 rounded-full hover:bg-zen-surface transition-colors"
+                        >
+                            <X className="w-4 h-4" />
+                        </button>
+                    )}
                 </div>
                 
                 {!isCreatingGroup ? (

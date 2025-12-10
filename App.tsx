@@ -7,7 +7,7 @@ import MessageBubble from './components/MessageBubble';
 import InputArea from './components/InputArea';
 import SettingsModal from './components/SettingsModal';
 import { Tab, Message, Role, SearchMode, Attachment, Theme, Bookmark, DownloadItem, UserProfile, Extension, BrowserState, CustomShortcut, HistoryItem, ThreadGroup } from './types';
-import { createNewTab, streamGeminiResponse, generateImage, generateVideo, generateChatTitle } from './services/geminiService';
+import { createNewTab, streamGeminiResponse, generateImage, generateVideo } from './services/geminiService';
 import { X } from 'lucide-react';
 
 const DEFAULT_USER: UserProfile = {
@@ -19,8 +19,7 @@ const DEFAULT_USER: UserProfile = {
     enabledSidebarApps: ['notes', 'calculator', 'spotify', 'whatsapp', 'youtube', 'reddit', 'x'],
     customShortcuts: [],
     preferredModel: 'gemini-flash-latest',
-    preferredImageModel: 'gemini-2.5-flash-image',
-    autoRenameChats: true
+    preferredImageModel: 'gemini-2.5-flash-image'
 };
 
 const DEFAULT_BROWSER_STATE: BrowserState = {
@@ -97,7 +96,7 @@ export default function App({ mode = 'full' }: AppProps) {
     const [isIncognito, setIsIncognito] = useState(false);
     const [customBackdrop, setCustomBackdrop] = useState<string | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
-    const [sidebarWidth, setSidebarWidth] = useState(70);
+    const [sidebarWidth, setSidebarWidth] = useState(50);
 
     // --- Persistence & User Switching ---
     useEffect(() => {
@@ -350,10 +349,8 @@ export default function App({ mode = 'full' }: AppProps) {
         setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
     };
 
-    const handleToggleAutoRename = () => {
-        const updatedUser = { ...currentUser, autoRenameChats: !currentUser.autoRenameChats };
-        setCurrentUser(updatedUser);
-        setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
+    const handleResetLayout = () => {
+        setSidebarWidth(50);
     };
 
     const handleCreateExtension = (ext: Extension) => {
@@ -603,6 +600,7 @@ export default function App({ mode = 'full' }: AppProps) {
     const browserState = activeTab?.browserState;
     const isIframeOpen = browserState?.isOpen && browserState?.url;
 
+    // --- Star Field Memo ---
     const starField = useMemo(() => {
         if (currentTheme !== 'blackbox' && currentTheme !== 'galaxy') return null;
         const stars = Array.from({ length: currentTheme === 'galaxy' ? 20 : 50 }).map((_, i) => (
@@ -748,8 +746,7 @@ export default function App({ mode = 'full' }: AppProps) {
                     onDeleteCustomShortcut={handleDeleteCustomShortcut}
                     onSetModel={handleSetModel}
                     onSetImageModel={handleSetImageModel}
-                    autoRenameChats={currentUser.autoRenameChats ?? true}
-                    toggleAutoRenameChats={handleToggleAutoRename}
+                    onResetLayout={handleResetLayout}
                     tabs={tabs}
                     setTabs={setTabs}
                     archivedTabs={archivedTabs}

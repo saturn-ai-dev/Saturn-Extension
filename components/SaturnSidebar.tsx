@@ -79,7 +79,7 @@ const SaturnSidebar: React.FC<SaturnSidebarProps> = ({
     const handleToggle = () => {
         if (isExpanded) {
             setLastExpandedWidth(width);
-            onWidthChange(70);
+            onWidthChange(55);
         } else {
             onWidthChange(lastExpandedWidth);
         }
@@ -89,7 +89,7 @@ const SaturnSidebar: React.FC<SaturnSidebarProps> = ({
         const handleMouseMove = (e: MouseEvent) => {
             if (!isResizing) return;
             const newWidth = e.clientX - 12; // Account for left margin (3rem approx 12px)
-            if (newWidth > 60 && newWidth < 500) {
+            if (newWidth > 50 && newWidth < 500) {
                 onWidthChange(newWidth);
             }
         };

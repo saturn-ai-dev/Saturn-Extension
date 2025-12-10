@@ -50,6 +50,7 @@ const NotesWidget = () => {
 const CalculatorWidget = () => {
     const [display, setDisplay] = useState('0');
     const [expression, setExpression] = useState('');
+    const [history, setHistory] = useState<string[]>([]);
 
     const handlePress = async (val: string) => {
         if (val === 'C') {
@@ -67,13 +68,6 @@ const CalculatorWidget = () => {
                     .replace(/\^/g, '**')
                     .replace(/π/g, Math.PI.toString())
                     .replace(/e/g, Math.E.toString());
-
-                // Function replacements (simple regex approach for basic functions)
-                // Note: A full parser is better, but for this simple UI, we can use the Function constructor 
-                // inside a sandbox or just simple replacement if we trust the input (which is button driven).
-                // However, CSP blocks 'new Function'.
-                // So we must use the same sandbox approach or a simple parser.
-                // Let's use the sandbox approach since we already have it!
 
                 let iframe = document.getElementById('saturn-sandbox') as HTMLIFrameElement;
                 if (!iframe) {
@@ -97,23 +91,14 @@ const CalculatorWidget = () => {
                 const handleMessage = (event: MessageEvent) => {
                     if (event.data.id === msgId) {
                         if (event.data.success) {
-                            // The output from sandbox is the log, but we want the return value.
-                            // Our sandbox currently only captures console.log.
-                            // We need to update sandbox to return the result of eval.
-                            // Actually, the sandbox I wrote *does* log the result if it's not undefined.
-                            // But parsing that log is messy.
-                            // Let's just rely on the fact that the sandbox returns the last evaluated expression.
-                            // Wait, my sandbox implementation:
-                            // const result = await eval(...)
-                            // logs.push(result)
-                            // So the output string contains the result.
-                            // Let's parse it.
                             const out = event.data.output.trim();
                             const resMatch = out.match(/> (.*)/);
                             if (resMatch) {
                                 const resStr = resMatch[1];
                                 const resNum = parseFloat(resStr);
-                                setDisplay(Number.isInteger(resNum) ? String(resNum) : resNum.toFixed(8).replace(/\.?0+$/, ''));
+                                const result = Number.isInteger(resNum) ? String(resNum) : resNum.toFixed(8).replace(/\.?0+$/, '');
+                                setDisplay(result);
+                                setHistory(prev => [`${expression}${display} = ${result}`, ...prev].slice(0, 5));
                             } else {
                                 setDisplay('Error');
                             }
@@ -160,59 +145,61 @@ const CalculatorWidget = () => {
         }
     };
 
-    const btnClass = "h-12 rounded-lg bg-zen-surface border border-zen-border/50 hover:bg-zen-surface/80 hover:border-zen-accent/30 hover:text-zen-text text-zen-muted font-medium transition-all active:scale-95 shadow-sm text-sm";
-    const opClass = "h-12 rounded-lg bg-zen-bg border border-zen-border text-zen-accent font-bold hover:bg-zen-accent hover:text-white transition-all";
-    const sciClass = "h-12 rounded-lg bg-zen-surface/30 border border-zen-border/30 text-zen-muted text-xs font-bold hover:bg-zen-surface hover:text-zen-text transition-all";
+    const btnClass = "h-14 rounded-xl bg-zen-surface border border-zen-border/50 hover:bg-zen-surface/80 hover:border-zen-accent/30 hover:text-zen-text text-zen-muted font-semibold text-lg transition-all active:scale-95 shadow-sm";
+    const opClass = "h-14 rounded-xl bg-zen-bg border border-zen-border text-zen-accent font-bold text-xl hover:bg-zen-accent hover:text-white transition-all shadow-sm";
+    const sciClass = "h-14 rounded-xl bg-zen-surface/30 border border-zen-border/30 text-zen-muted text-xs font-bold hover:bg-zen-surface hover:text-zen-text transition-all";
 
     return (
-        <div className="flex flex-col h-full bg-zen-bg p-6 justify-end pb-12">
-            <div className="bg-zen-surface/50 rounded-2xl p-4 mb-6 border border-zen-border shadow-inner relative overflow-hidden min-h-[100px] flex flex-col justify-between">
-                <div className="text-right text-zen-muted text-xs font-mono break-all opacity-70 h-8 overflow-hidden">{expression}</div>
-                <div className="text-right text-3xl font-bold text-zen-text truncate font-mono tracking-tight">{display}</div>
-                <div className="absolute top-0 left-0 w-1 h-full bg-zen-accent shadow-[0_0_10px_var(--accent-color)]"></div>
+        <div className="flex flex-col h-full bg-zen-bg p-6 pb-8">
+            <div className="bg-zen-surface/50 rounded-2xl p-5 mb-6 border border-zen-border shadow-inner relative overflow-hidden flex flex-col justify-end min-h-[140px]">
+                {history.length > 0 && (
+                    <div className="absolute top-4 right-5 text-xs text-zen-muted/50 font-mono flex flex-col items-end gap-1 pointer-events-none select-none">
+                        {history.slice(0, 2).map((h, i) => <div key={i}>{h}</div>)}
+                    </div>
+                )}
+                <div className="text-right text-zen-muted text-sm font-mono break-all opacity-70 h-6 overflow-hidden mb-1">{expression}</div>
+                <div className="text-right text-4xl font-bold text-zen-text truncate font-mono tracking-tight">{display}</div>
+                <div className="absolute top-0 left-0 w-1.5 h-full bg-zen-accent shadow-[0_0_15px_var(--accent-color)]"></div>
             </div>
 
-            <div className="grid grid-cols-4 gap-2.5">
-                {/* Row 1 */}
-                <button onClick={() => handlePress('C')} className="h-12 rounded-lg bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500/20 font-bold">AC</button>
-                <button onClick={() => setDisplay(display.slice(0, -1) || '0')} className={btnClass}>DEL</button>
-                <button onClick={() => handlePress('(')} className={sciClass}>(</button>
-                <button onClick={() => handlePress(')')} className={sciClass}>)</button>
-
-                {/* Row 2 */}
+            <div className="grid grid-cols-4 gap-3 flex-1 content-end">
+                {/* Scientific Row 1 */}
                 <button onClick={() => handlePress('sin')} className={sciClass}>sin</button>
                 <button onClick={() => handlePress('cos')} className={sciClass}>cos</button>
                 <button onClick={() => handlePress('tan')} className={sciClass}>tan</button>
-                <button onClick={() => handlePress('÷')} className={opClass}>÷</button>
+                <button onClick={() => setDisplay(display.slice(0, -1) || '0')} className="h-14 rounded-xl bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500/20 font-bold text-sm">DEL</button>
 
-                {/* Row 3 */}
+                {/* Scientific Row 2 */}
                 <button onClick={() => handlePress('ln')} className={sciClass}>ln</button>
                 <button onClick={() => handlePress('log')} className={sciClass}>log</button>
-                <button onClick={() => handlePress('^')} className={sciClass}>^</button>
-                <button onClick={() => handlePress('×')} className={opClass}>×</button>
+                <button onClick={() => handlePress('sqrt')} className={sciClass}>√</button>
+                <button onClick={() => handlePress('C')} className="h-14 rounded-xl bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500/20 font-bold text-sm">AC</button>
 
-                {/* Row 4 */}
+                {/* Scientific Row 3 */}
+                <button onClick={() => handlePress('(')} className={sciClass}>(</button>
+                <button onClick={() => handlePress(')')} className={sciClass}>)</button>
+                <button onClick={() => handlePress('^')} className={sciClass}>^</button>
+                <button onClick={() => handlePress('÷')} className={opClass}>÷</button>
+
+                {/* Numpad */}
                 <button onClick={() => handlePress('7')} className={btnClass}>7</button>
                 <button onClick={() => handlePress('8')} className={btnClass}>8</button>
                 <button onClick={() => handlePress('9')} className={btnClass}>9</button>
-                <button onClick={() => handlePress('-')} className={opClass}>-</button>
+                <button onClick={() => handlePress('×')} className={opClass}>×</button>
 
-                {/* Row 5 */}
                 <button onClick={() => handlePress('4')} className={btnClass}>4</button>
                 <button onClick={() => handlePress('5')} className={btnClass}>5</button>
                 <button onClick={() => handlePress('6')} className={btnClass}>6</button>
-                <button onClick={() => handlePress('+')} className={opClass}>+</button>
+                <button onClick={() => handlePress('-')} className={opClass}>-</button>
 
-                {/* Row 6 */}
                 <button onClick={() => handlePress('1')} className={btnClass}>1</button>
                 <button onClick={() => handlePress('2')} className={btnClass}>2</button>
-                <button onClick={() => handlePress('3')} className={sciClass}>3</button>
-                <button onClick={() => handlePress('sqrt')} className={sciClass}>√</button>
+                <button onClick={() => handlePress('3')} className={btnClass}>3</button>
+                <button onClick={() => handlePress('+')} className={opClass}>+</button>
 
-                {/* Row 7 */}
-                <button onClick={() => handlePress('0')} className="col-span-2 h-12 rounded-lg bg-zen-surface border border-zen-border text-zen-text font-bold hover:bg-zen-surface/80">0</button>
+                <button onClick={() => handlePress('0')} className="col-span-2 h-14 rounded-xl bg-zen-surface border border-zen-border text-zen-text font-bold text-lg hover:bg-zen-surface/80 shadow-sm">0</button>
                 <button onClick={() => handlePress('.')} className={btnClass}>.</button>
-                <button onClick={() => handlePress('=')} className="h-12 rounded-lg bg-zen-accent text-white font-bold shadow-glow hover:bg-zen-accentHover">=</button>
+                <button onClick={() => handlePress('=')} className="h-14 rounded-xl bg-zen-accent text-white font-bold text-xl shadow-glow hover:bg-zen-accentHover transition-all hover:scale-105 active:scale-95">=</button>
             </div>
         </div>
     )
