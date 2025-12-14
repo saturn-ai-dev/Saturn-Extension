@@ -5,6 +5,7 @@ interface SidebarPanelProps {
     isOpen: boolean;
     appId: string | null;
     onClose: () => void;
+    sidebarWidth: number;
 }
 
 const NotesWidget = () => {
@@ -205,7 +206,7 @@ const CalculatorWidget = () => {
     )
 }
 
-const SidebarPanel: React.FC<SidebarPanelProps> = ({ isOpen, appId, onClose }) => {
+const SidebarPanel: React.FC<SidebarPanelProps> = ({ isOpen, appId, onClose, sidebarWidth }) => {
     const [key, setKey] = useState(0);
     const handleReload = () => setKey(prev => prev + 1);
     if (!appId) return null;
@@ -238,7 +239,10 @@ const SidebarPanel: React.FC<SidebarPanelProps> = ({ isOpen, appId, onClose }) =
     }
 
     return (
-        <div className={`fixed inset-y-0 left-16 ${widthClass} bg-zen-surface/95 backdrop-blur-2xl border-r border-zen-border shadow-deep z-40 transform transition-transform duration-500 cubic-bezier(0.16, 1, 0.3, 1) flex flex-col ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div 
+            className={`fixed inset-y-0 ${widthClass} bg-zen-surface/95 backdrop-blur-2xl border-r border-zen-border shadow-deep z-40 transform transition-transform duration-500 cubic-bezier(0.16, 1, 0.3, 1) flex flex-col ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
+            style={{ left: `${sidebarWidth + 14}px` }}
+        >
             <div className="h-14 border-b border-zen-border flex items-center justify-between px-5 bg-zen-bg/50 flex-shrink-0 select-none">
                 <span className="font-bold text-xs uppercase tracking-[0.2em] text-zen-text flex items-center gap-2"><GripVertical className="w-4 h-4 text-zen-muted" />{title}</span>
                 <div className="flex items-center gap-1">

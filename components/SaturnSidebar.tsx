@@ -188,7 +188,7 @@ const SaturnSidebar: React.FC<SaturnSidebarProps> = ({
             </div>
 
             {/* Content Container */}
-            <div className="flex-1 flex flex-col gap-1 overflow-y-auto overflow-x-hidden no-scrollbar app-no-drag py-1 px-2">
+            <div className={`flex-1 flex flex-col gap-1 overflow-y-auto overflow-x-hidden no-scrollbar app-no-drag py-1 ${isExpanded ? 'px-2' : 'items-center'}`}>
                 
                 <IconButton onClick={onNewTab} title="New Chat" className="mb-1">
                     <Plus className="w-5 h-5" />
