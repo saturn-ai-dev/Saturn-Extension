@@ -708,12 +708,14 @@ export default function App({ mode = 'full' }: AppProps) {
                 onMoveTabToGroup={(tabId, groupId) => setArchivedTabs(prev => prev.map(t => t.id === tabId ? { ...t, groupId } : t))}
                 onDeleteArchivedTab={handleDeleteArchivedTab}
                 onRenameArchivedTab={handleRenameArchivedTab}
+                sidebarWidth={sidebarWidth}
             />
 
             <SidebarPanel
                 isOpen={!!activeSidebarApp}
                 appId={activeSidebarApp}
                 onClose={() => setActiveSidebarApp(null)}
+                sidebarWidth={sidebarWidth}
             />
 
             <div 

@@ -14,6 +14,7 @@ interface HistoryDrawerProps {
     onMoveTabToGroup: (tabId: string, groupId?: string) => void;
     onDeleteArchivedTab: (tabId: string) => void;
     onRenameArchivedTab?: (tabId: string, newTitle: string) => void;
+    sidebarWidth: number;
 }
 
 const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
@@ -27,7 +28,8 @@ const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
     onRenameGroup,
     onMoveTabToGroup,
     onDeleteArchivedTab, // Destructure the prop here
-    onRenameArchivedTab
+    onRenameArchivedTab,
+    sidebarWidth
 }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
@@ -116,10 +118,13 @@ const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
     }, [searchTerm, groups]);
 
     return (
-        <div className={`
-        fixed top-4 bottom-4 left-24 w-[500px] bg-zen-surface/95 backdrop-blur-2xl border border-zen-border/50 shadow-2xl z-40 rounded-3xl transform transition-all duration-300 ease-in-out flex flex-col
-        ${isOpen ? 'translate-x-0 opacity-100' : '-translate-x-10 opacity-0 pointer-events-none'}
-    `}>
+        <div 
+            className={`
+                fixed top-4 bottom-4 w-[500px] bg-zen-surface/95 backdrop-blur-2xl border border-zen-border/50 shadow-2xl z-40 rounded-3xl transform transition-all duration-300 ease-in-out flex flex-col
+                ${isOpen ? 'translate-x-0 opacity-100' : '-translate-x-10 opacity-0 pointer-events-none'}
+            `}
+            style={{ left: `${sidebarWidth + 24}px` }}
+        >
             {/* Header */}
             <div className="h-16 border-b border-zen-border flex items-center justify-between px-6 bg-zen-bg/50 shrink-0">
                 <span className="text-base font-bold tracking-widest text-zen-muted uppercase flex items-center gap-2">
