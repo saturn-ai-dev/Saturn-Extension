@@ -36,6 +36,7 @@ interface SettingsModalProps {
     onSetModel: (model: string) => void;
     onSetImageModel: (model: string) => void;
     onResetLayout: () => void;
+    onUpdateSidebarSetting: (key: keyof UserProfile, value: any) => void;
 
     // Data
     tabs: Tab[];
@@ -52,7 +53,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     currentUser, users, onSwitchUser, onAddUser, downloads, availableExtensions,
     onToggleExtension, onCreateExtension, onDeleteExtension,
     onAddCustomShortcut, onDeleteCustomShortcut, onSetModel, onSetImageModel,
-    onResetLayout,
+    onResetLayout, onUpdateSidebarSetting,
     tabs, setTabs, archivedTabs, setArchivedTabs, customInstructions, setCustomInstructions
 }) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -372,6 +373,79 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                                     className={`w-10 h-10 rounded-full border-2 transition-all shadow-lg ${t.color} ${t.border || 'border-transparent'} ${theme === t.id ? 'scale-110 border-white' : 'opacity-60 hover:opacity-100'}`}
                                                 />
                                             ))}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Sidebar Customization */}
+                                <div>
+                                    <h3 className="text-xs font-bold text-zen-muted uppercase tracking-widest mb-5 pl-1">Sidebar Customization</h3>
+                                    <div className="p-5 rounded-2xl bg-zen-surface border border-zen-border/50 shadow-sm space-y-6">
+                                        
+                                        {/* Position */}
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <div className="text-sm font-bold text-zen-text">Sidebar Position</div>
+                                                <div className="text-xs text-zen-muted">Choose which side the bar appears on</div>
+                                            </div>
+                                            <div className="flex bg-zen-bg p-1 rounded-xl border border-zen-border">
+                                                <button 
+                                                    onClick={() => onUpdateSidebarSetting('sidebarPosition', 'left')}
+                                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${currentUser.sidebarPosition !== 'right' ? 'bg-zen-accent text-white shadow-md' : 'text-zen-muted hover:text-zen-text'}`}
+                                                >
+                                                    Left
+                                                </button>
+                                                <button 
+                                                    onClick={() => onUpdateSidebarSetting('sidebarPosition', 'right')}
+                                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${currentUser.sidebarPosition === 'right' ? 'bg-zen-accent text-white shadow-md' : 'text-zen-muted hover:text-zen-text'}`}
+                                                >
+                                                    Right
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {/* Auto Hide */}
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <div className="text-sm font-bold text-zen-text">Auto-Collapse</div>
+                                                <div className="text-xs text-zen-muted">Collapse sidebar when not in use</div>
+                                            </div>
+                                            <button 
+                                                onClick={() => onUpdateSidebarSetting('sidebarAutoHide', !currentUser.sidebarAutoHide)}
+                                                className={`w-11 h-6 rounded-full p-0.5 transition-colors relative ${currentUser.sidebarAutoHide ? 'bg-zen-accent' : 'bg-zen-border'}`}
+                                            >
+                                                <div className={`w-5 h-5 bg-white rounded-full shadow-md transition-transform ${currentUser.sidebarAutoHide ? 'translate-x-5' : 'translate-x-0'}`} />
+                                            </button>
+                                        </div>
+
+                                        {/* Show Status */}
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <div className="text-sm font-bold text-zen-text">Show Profile Status</div>
+                                                <div className="text-xs text-zen-muted">Display user card at bottom</div>
+                                            </div>
+                                            <button 
+                                                onClick={() => onUpdateSidebarSetting('sidebarShowStatus', currentUser.sidebarShowStatus === false)}
+                                                className={`w-11 h-6 rounded-full p-0.5 transition-colors relative ${currentUser.sidebarShowStatus !== false ? 'bg-zen-accent' : 'bg-zen-border'}`}
+                                            >
+                                                <div className={`w-5 h-5 bg-white rounded-full shadow-md transition-transform ${currentUser.sidebarShowStatus !== false ? 'translate-x-5' : 'translate-x-0'}`} />
+                                            </button>
+                                        </div>
+
+                                        {/* Glass Intensity */}
+                                        <div className="space-y-3">
+                                            <div className="flex justify-between items-center">
+                                                <div className="text-sm font-bold text-zen-text">Glass Intensity</div>
+                                                <span className="text-xs font-mono text-zen-accent">{currentUser.sidebarGlassIntensity || 70}px</span>
+                                            </div>
+                                            <input 
+                                                type="range" 
+                                                min="0" 
+                                                max="100" 
+                                                value={currentUser.sidebarGlassIntensity || 70} 
+                                                onChange={(e) => onUpdateSidebarSetting('sidebarGlassIntensity', parseInt(e.target.value))}
+                                                className="w-full accent-zen-accent h-1.5 bg-zen-border rounded-lg appearance-none cursor-pointer"
+                                            />
                                         </div>
                                     </div>
                                 </div>
