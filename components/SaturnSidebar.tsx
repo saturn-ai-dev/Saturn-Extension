@@ -13,6 +13,10 @@ interface SaturnSidebarProps {
     customShortcuts: CustomShortcut[];
     width: number;
     onWidthChange: (width: number) => void;
+    position?: 'left' | 'right';
+    autoHide?: boolean;
+    showStatus?: boolean;
+    glassIntensity?: number;
 }
 
 // Custom Logos
@@ -56,7 +60,11 @@ const SaturnSidebar: React.FC<SaturnSidebarProps> = ({
     enabledApps,
     customShortcuts,
     width,
-    onWidthChange
+    onWidthChange,
+    position = 'left',
+    autoHide = false,
+    showStatus = true,
+    glassIntensity = 70
 }) => {
 
     const apps = [
@@ -74,6 +82,11 @@ const SaturnSidebar: React.FC<SaturnSidebarProps> = ({
 
     const [isResizing, setIsResizing] = useState(false);
     const [lastExpandedWidth, setLastExpandedWidth] = useState(240);
+    const [isHovered, setIsHovered] = useState(false);
+    
+    // Auto-hide logic: collapse when not hovered, but only if autoHide is enabled
+    // and we are not currently resizing
+    const isActuallyExpanded = (autoHide ? (isHovered || isHistoryOpen) : true) && width > 100;
     const isExpanded = width > 100;
 
     const handleToggle = () => {
@@ -88,7 +101,14 @@ const SaturnSidebar: React.FC<SaturnSidebarProps> = ({
     useEffect(() => {
         const handleMouseMove = (e: MouseEvent) => {
             if (!isResizing) return;
-            const newWidth = e.clientX - 12; // Account for left margin (3rem approx 12px)
+            
+            let newWidth;
+            if (position === 'left') {
+                newWidth = e.clientX - 12;
+            } else {
+                newWidth = window.innerWidth - e.clientX - 12;
+            }
+
             if (newWidth > 50 && newWidth < 500) {
                 onWidthChange(newWidth);
             }
@@ -109,7 +129,7 @@ const SaturnSidebar: React.FC<SaturnSidebarProps> = ({
             window.removeEventListener('mousemove', handleMouseMove);
             window.removeEventListener('mouseup', handleMouseUp);
         };
-    }, [isResizing, onWidthChange]);
+    }, [isResizing, onWidthChange, position]);
 
     // Simple icon button component for cleaner code
     const IconButton = ({
@@ -117,32 +137,46 @@ const SaturnSidebar: React.FC<SaturnSidebarProps> = ({
         isActive = false,
         title,
         children,
-        className = ""
+        className = "",
+        color = "text-zen-muted/70"
     }: {
         onClick: () => void;
         isActive?: boolean;
         title: string;
         children: React.ReactNode;
         className?: string;
+        color?: string;
     }) => (
         <button
             onClick={onClick}
             className={`
-                h-10 rounded-lg flex items-center transition-all duration-200 relative group shrink-0
-                ${isExpanded ? 'w-full px-3 gap-3 justify-start' : 'w-10 justify-center'}
+                h-10 rounded-xl flex items-center transition-all duration-300 relative group shrink-0
+                ${isActuallyExpanded ? 'w-full px-3 gap-3 justify-start' : 'w-10 justify-center'}
                 ${isActive
-                    ? 'bg-zen-text/10 text-zen-text'
-                    : 'text-zen-muted/70 hover:text-zen-text hover:bg-zen-text/5'
+                    ? 'bg-zen-accent/10 text-zen-accent shadow-[inset_0_0_0_1px_rgba(var(--zen-accent-rgb),0.1)]'
+                    : `hover:bg-zen-text/5 ${color} hover:text-zen-text`
                 }
                 ${className}
             `}
-            title={!isExpanded ? title : undefined}
+            title={!isActuallyExpanded ? title : undefined}
         >
-            <div className="shrink-0">{children}</div>
-            {isExpanded && <span className="text-sm font-medium whitespace-nowrap overflow-hidden text-ellipsis opacity-90">{title}</span>}
+            {/* Active Indicator Line */}
+            {isActive && (
+                <div className={`absolute ${position === 'left' ? 'left-0' : 'right-0'} w-1 h-5 bg-zen-accent rounded-full`} />
+            )}
             
-            {!isExpanded && (
-                <div className="absolute left-full ml-3 px-2.5 py-1.5 bg-zen-bg/95 backdrop-blur-sm border border-zen-border/50 rounded-lg text-xs font-medium opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50 text-zen-text shadow-xl">
+            <div className="flex items-center justify-center w-5 h-5 shrink-0 transition-transform duration-300 group-hover:scale-110">
+                {children}
+            </div>
+
+            {isActuallyExpanded && (
+                <span className={`text-sm font-medium whitespace-nowrap overflow-hidden text-ellipsis transition-all duration-300 ${isActive ? 'opacity-100 translate-x-0' : 'opacity-80 group-hover:opacity-100 group-hover:translate-x-0.5'}`}>
+                    {title}
+                </span>
+            )}
+            
+            {!isActuallyExpanded && (
+                <div className={`absolute ${position === 'left' ? 'left-full ml-3' : 'right-full mr-3'} px-3 py-2 bg-zen-bg/95 backdrop-blur-md border border-zen-border/50 rounded-xl text-[11px] font-semibold opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 ${position === 'left' ? 'translate-x-[-10px]' : 'translate-x-[10px]'} group-hover:translate-x-0 whitespace-nowrap z-[100] text-zen-text shadow-2xl ring-1 ring-black/5`}>
                     {title}
                 </div>
             )}
@@ -151,52 +185,77 @@ const SaturnSidebar: React.FC<SaturnSidebarProps> = ({
 
     return (
         <div
-            className="fixed left-3 top-3 bottom-3 bg-zen-bg/80 backdrop-blur-xl border border-zen-border/30 rounded-2xl flex flex-col py-3 z-50 transition-all duration-75 shadow-lg select-none group/sidebar"
-            style={{ width: `${width}px` }}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+            className={`fixed ${position === 'left' ? 'left-3' : 'right-3'} top-3 bottom-3 bg-zen-bg/70 border border-zen-border/40 rounded-[24px] flex flex-col py-4 z-50 transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) shadow-[0_8px_32px_rgba(0,0,0,0.12)] select-none group/sidebar hover:bg-zen-bg/80 ${isResizing ? 'transition-none' : ''}`}
+            style={{ 
+                width: isActuallyExpanded ? `${width}px` : '55px',
+                backdropFilter: `blur(${glassIntensity}px)`,
+                WebkitBackdropFilter: `blur(${glassIntensity}px)`
+            }}
         >
+             {/* Glass Overlay for Depth */}
+             <div className="absolute inset-0 rounded-[24px] bg-gradient-to-b from-white/5 to-transparent pointer-events-none" />
+
              {/* Drag Handle */}
              <div 
-                className="absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize hover:bg-zen-accent/20 border-r border-transparent group-hover/sidebar:border-zen-border/50 transition-colors z-50"
+                className={`absolute ${position === 'left' ? '-right-1' : '-left-1'} top-4 bottom-4 w-3 cursor-ew-resize group-hover/sidebar:opacity-100 opacity-0 transition-opacity z-50`}
                 onMouseDown={(e) => { e.preventDefault(); setIsResizing(true); }}
-            />
+            >
+                <div className={`absolute ${position === 'left' ? 'right-1' : 'left-1'} top-0 bottom-0 w-0.5 bg-zen-accent/30 rounded-full hover:bg-zen-accent transition-colors`} />
+            </div>
 
             {/* Toggle Button */}
-            <div className={`flex ${isExpanded ? 'justify-end px-3' : 'justify-center'} mb-2`}>
-                 <button onClick={handleToggle} className="text-zen-muted hover:text-zen-text p-1 rounded-md hover:bg-zen-surface transition-colors">
-                    {isExpanded ? <ChevronLeft className="w-4 h-4" /> : <Menu className="w-5 h-5" />}
+            <div className={`flex ${isActuallyExpanded ? (position === 'left' ? 'justify-end px-4' : 'justify-start px-4') : 'justify-center'} mb-3`}>
+                 <button 
+                    onClick={handleToggle} 
+                    className="text-zen-muted hover:text-zen-accent p-1.5 rounded-xl hover:bg-zen-accent/10 transition-all duration-300 hover:rotate-180"
+                >
+                    {isActuallyExpanded ? (position === 'left' ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />) : <Menu className="w-5 h-5" />}
                  </button>
             </div>
 
-            {/* Logo / New Chat */}
+            {/* Logo Section */}
             <div
-                className={`mb-4 cursor-pointer flex items-center gap-3 app-no-drag group px-3 ${isExpanded ? 'justify-start' : 'justify-center'}`}
+                className={`mb-6 cursor-pointer flex items-center gap-3 app-no-drag group px-4 ${isActuallyExpanded ? 'justify-start' : 'justify-center'}`}
                 onClick={onNewTab}
                 title="New Chat"
             >
-                <div className="relative shrink-0">
-                    <svg viewBox="0 0 100 100" className="w-8 h-8 text-zen-accent group-hover:scale-110 transition-transform duration-200">
-                        <circle cx="50" cy="50" r="18" fill="currentColor" />
-                        <ellipse cx="50" cy="50" rx="38" ry="9" fill="none" stroke="currentColor" strokeWidth="6" transform="rotate(-15 50 50)" />
+                <div className="relative shrink-0 flex items-center justify-center">
+                    <div className="absolute inset-0 bg-zen-accent/20 blur-lg rounded-full group-hover:bg-zen-accent/30 transition-colors" />
+                    <svg viewBox="0 0 100 100" className="w-9 h-9 text-zen-accent group-hover:scale-110 transition-transform duration-500 ease-out relative z-10">
+                        <defs>
+                            <linearGradient id="saturn-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stopColor="currentColor" />
+                                <stop offset="100%" stopColor="currentColor" stopOpacity="0.8" />
+                            </linearGradient>
+                        </defs>
+                        <circle cx="50" cy="50" r="18" fill="url(#saturn-grad)" />
+                        <ellipse cx="50" cy="50" rx="38" ry="9" fill="none" stroke="currentColor" strokeWidth="6" transform="rotate(-15 50 50)" className="opacity-80" />
                     </svg>
                 </div>
-                {isExpanded && (
-                    <div className="flex flex-col overflow-hidden">
-                        <span className="font-bold text-base text-zen-text leading-tight tracking-tight">Saturn</span>
-                        <span className="text-[10px] text-zen-muted font-bold tracking-widest uppercase">Extension</span>
+                {isActuallyExpanded && (
+                    <div className="flex flex-col overflow-hidden animate-in fade-in slide-in-from-left-2 duration-500">
+                        <span className="font-bold text-[17px] text-zen-text leading-tight tracking-tight">Saturn</span>
+                        <span className="text-[9px] text-zen-accent font-black tracking-[0.2em] uppercase opacity-80">PRO</span>
                     </div>
                 )}
             </div>
 
             {/* Content Container */}
-            <div className={`flex-1 flex flex-col gap-1 overflow-y-auto overflow-x-hidden no-scrollbar app-no-drag py-1 ${isExpanded ? 'px-2' : 'items-center'}`}>
+            <div className={`flex-1 flex flex-col gap-1.5 overflow-y-auto overflow-x-hidden no-scrollbar app-no-drag py-2 ${isActuallyExpanded ? 'px-3' : 'items-center'}`}>
                 
-                <IconButton onClick={onNewTab} title="New Chat" className="mb-1">
+                <IconButton onClick={onNewTab} title="New Chat" className="mb-2 bg-zen-accent/5" color="text-zen-accent">
                     <Plus className="w-5 h-5" />
                 </IconButton>
 
-                {/* Divider */}
+                {/* Section Divider with Label */}
                 {(displayedApps.length > 0 || customShortcuts.length > 0) && (
-                    <div className="w-full h-px bg-zen-border/30 my-2 shrink-0" />
+                    <div className="w-full flex items-center gap-2 my-3 px-1">
+                        <div className="h-px flex-1 bg-zen-border/30" />
+                        {isActuallyExpanded && <span className="text-[10px] font-bold text-zen-muted/40 uppercase tracking-widest">Tools</span>}
+                        <div className="h-px flex-1 bg-zen-border/30" />
+                    </div>
                 )}
 
                 {displayedApps.map(app => (
@@ -222,7 +281,9 @@ const SaturnSidebar: React.FC<SaturnSidebarProps> = ({
             </div>
 
             {/* Bottom Actions */}
-            <div className="flex flex-col gap-1 mt-auto pt-2 app-no-drag px-2">
+            <div className={`flex flex-col gap-1.5 mt-auto pt-4 app-no-drag ${isActuallyExpanded ? 'px-3' : 'px-2 items-center'}`}>
+                <div className="h-px w-full bg-zen-border/30 mb-2" />
+                
                 <IconButton
                     onClick={onToggleHistory}
                     isActive={isHistoryOpen}
@@ -235,8 +296,24 @@ const SaturnSidebar: React.FC<SaturnSidebarProps> = ({
                     onClick={onOpenSettings}
                     title="Settings"
                 >
-                    <Settings className="w-[18px] h-[18px] transition-transform duration-200 group-hover:rotate-45" />
+                    <Settings className="w-[18px] h-[18px] transition-transform duration-500 group-hover:rotate-90" />
                 </IconButton>
+
+                {/* Profile / Status Mini-Indicator */}
+                {isActuallyExpanded && showStatus && (
+                    <div className="mt-4 p-2 bg-zen-text/5 rounded-2xl flex items-center gap-3 border border-zen-border/20 animate-in fade-in zoom-in-95 duration-300">
+                        <div className="w-8 h-8 rounded-xl bg-zen-accent/20 flex items-center justify-center text-zen-accent font-bold text-xs shadow-inner">
+                            S
+                        </div>
+                        <div className="flex flex-col overflow-hidden">
+                            <span className="text-[11px] font-bold text-zen-text truncate">Saturn User</span>
+                            <div className="flex items-center gap-1">
+                                <div className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
+                                <span className="text-[9px] text-zen-muted font-medium">Synced</span>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

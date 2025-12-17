@@ -19,7 +19,11 @@ const DEFAULT_USER: UserProfile = {
     enabledSidebarApps: ['notes', 'calculator', 'spotify', 'whatsapp', 'youtube', 'reddit', 'x'],
     customShortcuts: [],
     preferredModel: 'gemini-flash-latest',
-    preferredImageModel: 'gemini-2.5-flash-image'
+    preferredImageModel: 'gemini-2.5-flash-image',
+    sidebarPosition: 'left',
+    sidebarAutoHide: false,
+    sidebarShowStatus: true,
+    sidebarGlassIntensity: 70
 };
 
 const DEFAULT_BROWSER_STATE: BrowserState = {
@@ -351,6 +355,12 @@ export default function App({ mode = 'full' }: AppProps) {
 
     const handleResetLayout = () => {
         setSidebarWidth(50);
+    };
+
+    const handleUpdateSidebarSetting = (key: keyof UserProfile, value: any) => {
+        const updatedUser = { ...currentUser, [key]: value };
+        setCurrentUser(updatedUser);
+        setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
     };
 
     const handleCreateExtension = (ext: Extension) => {
@@ -691,6 +701,10 @@ export default function App({ mode = 'full' }: AppProps) {
                 customShortcuts={currentUser.customShortcuts || []}
                 width={sidebarWidth}
                 onWidthChange={setSidebarWidth}
+                position={currentUser.sidebarPosition || 'left'}
+                autoHide={currentUser.sidebarAutoHide || false}
+                showStatus={currentUser.sidebarShowStatus !== false}
+                glassIntensity={currentUser.sidebarGlassIntensity || 70}
             />
 
             <HistoryDrawer
@@ -709,6 +723,7 @@ export default function App({ mode = 'full' }: AppProps) {
                 onDeleteArchivedTab={handleDeleteArchivedTab}
                 onRenameArchivedTab={handleRenameArchivedTab}
                 sidebarWidth={sidebarWidth}
+                position={currentUser.sidebarPosition || 'left'}
             />
 
             <SidebarPanel
@@ -716,11 +731,15 @@ export default function App({ mode = 'full' }: AppProps) {
                 appId={activeSidebarApp}
                 onClose={() => setActiveSidebarApp(null)}
                 sidebarWidth={sidebarWidth}
+                position={currentUser.sidebarPosition || 'left'}
             />
 
             <div 
-                className="flex-1 flex flex-col min-w-0 z-10 relative h-full transition-all duration-500"
-                style={{ paddingLeft: `${sidebarWidth + 24}px` }}
+                className={`flex-1 flex flex-col min-w-0 z-10 relative h-full transition-all duration-500`}
+                style={{ 
+                    paddingLeft: currentUser.sidebarPosition === 'right' ? '24px' : `${sidebarWidth + 24}px`,
+                    paddingRight: currentUser.sidebarPosition === 'right' ? `${sidebarWidth + 24}px` : '24px'
+                }}
             >
                 <SettingsModal
                     isOpen={isSettingsOpen}
@@ -749,6 +768,7 @@ export default function App({ mode = 'full' }: AppProps) {
                     onSetModel={handleSetModel}
                     onSetImageModel={handleSetImageModel}
                     onResetLayout={handleResetLayout}
+                    onUpdateSidebarSetting={handleUpdateSidebarSetting}
                     tabs={tabs}
                     setTabs={setTabs}
                     archivedTabs={archivedTabs}

@@ -106,6 +106,10 @@ export interface UserProfile {
   customShortcuts: CustomShortcut[];
   preferredModel?: string;
   preferredImageModel?: string;
+  sidebarPosition?: 'left' | 'right';
+  sidebarAutoHide?: boolean;
+  sidebarShowStatus?: boolean;
+  sidebarGlassIntensity?: number;
 }
 
 export interface ChatState {

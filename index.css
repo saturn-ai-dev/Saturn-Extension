@@ -311,3 +311,35 @@ textarea,
 .interactive-element:active {
   transform: scale(0.95);
 }
+
+@keyframes slideInFromLeft {
+  from { transform: translateX(-20px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slideInFromRight {
+  from { transform: translateX(20px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+.animate-in {
+  animation-duration: 500ms;
+  animation-fill-mode: forwards;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.fade-in {
+  animation-name: fadeIn;
+}
+
+.slide-in-from-left-2 {
+  animation-name: slideInFromLeft;
+}
+
+.slide-in-from-right-2 {
+  animation-name: slideInFromRight;
+}
+
+.zoom-in-95 {
+  animation-name: scaleIn;
+}

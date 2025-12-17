@@ -15,6 +15,7 @@ interface HistoryDrawerProps {
     onDeleteArchivedTab: (tabId: string) => void;
     onRenameArchivedTab?: (tabId: string, newTitle: string) => void;
     sidebarWidth: number;
+    position?: 'left' | 'right';
 }
 
 const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
@@ -29,7 +30,8 @@ const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
     onMoveTabToGroup,
     onDeleteArchivedTab, // Destructure the prop here
     onRenameArchivedTab,
-    sidebarWidth
+    sidebarWidth,
+    position = 'left'
 }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
@@ -121,9 +123,12 @@ const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
         <div 
             className={`
                 fixed top-4 bottom-4 w-[500px] bg-zen-surface/95 backdrop-blur-2xl border border-zen-border/50 shadow-2xl z-40 rounded-3xl transform transition-all duration-300 ease-in-out flex flex-col
-                ${isOpen ? 'translate-x-0 opacity-100' : '-translate-x-10 opacity-0 pointer-events-none'}
+                ${isOpen ? 'translate-x-0 opacity-100' : (position === 'left' ? '-translate-x-10' : 'translate-x-10') + ' opacity-0 pointer-events-none'}
             `}
-            style={{ left: `${sidebarWidth + 24}px` }}
+            style={{ 
+                left: position === 'left' ? `${sidebarWidth + 24}px` : 'auto',
+                right: position === 'right' ? `${sidebarWidth + 24}px` : 'auto'
+            }}
         >
             {/* Header */}
             <div className="h-16 border-b border-zen-border flex items-center justify-between px-6 bg-zen-bg/50 shrink-0">
