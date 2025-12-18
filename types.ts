@@ -110,6 +110,7 @@ export interface UserProfile {
   sidebarAutoHide?: boolean;
   sidebarShowStatus?: boolean;
   sidebarGlassIntensity?: number;
+  autoRenameChats?: boolean;
 }
 
 export interface ChatState {

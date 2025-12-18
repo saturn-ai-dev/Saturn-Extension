@@ -296,7 +296,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                         </div>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
                                             {[
-                                                { id: 'gemini-flash-latest', name: 'Gemini Flash', desc: 'Latest Fast Model' },
+                                                { id: 'gemini-flash-latest', name: 'Gemini 2.5 Flash', desc: 'Latest Fast Model' },
+                                                { id: 'gemini-3-flash-preview', name: 'Gemini 3 Flash', desc: 'Next-Gen High Speed' },
                                                 { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', desc: 'Advanced Reasoning' },
                                                 { id: 'gemini-3-pro-preview', name: 'Gemini 3.0 Pro', desc: 'Next-Gen Preview' },
                                             ].map(model => (
@@ -319,6 +320,20 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                             </div>
                                             <button onClick={() => { onResetLayout(); }} className="px-3 py-1.5 bg-zen-surface hover:bg-zen-bg border border-zen-border rounded-lg text-xs font-bold transition-colors text-zen-text">
                                                 Reset
+                                            </button>
+                                        </div>
+
+                                        {/* Auto Rename Setting */}
+                                        <div className="flex items-center justify-between p-4 rounded-xl bg-zen-bg/30 border border-zen-border/50 mb-4">
+                                            <div>
+                                                <div className="text-sm font-bold text-zen-text">Auto-rename Chats</div>
+                                                <div className="text-xs text-zen-muted">Automatically name new threads using Gemini</div>
+                                            </div>
+                                            <button 
+                                                onClick={() => onUpdateSidebarSetting('autoRenameChats', !currentUser.autoRenameChats)}
+                                                className={`w-11 h-6 rounded-full p-0.5 transition-colors relative ${currentUser.autoRenameChats !== false ? 'bg-zen-accent' : 'bg-zen-border'}`}
+                                            >
+                                                <div className={`w-5 h-5 bg-white rounded-full shadow-md transition-transform ${currentUser.autoRenameChats !== false ? 'translate-x-5' : 'translate-x-0'}`} />
                                             </button>
                                         </div>
 

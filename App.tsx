@@ -7,7 +7,7 @@ import MessageBubble from './components/MessageBubble';
 import InputArea from './components/InputArea';
 import SettingsModal from './components/SettingsModal';
 import { Tab, Message, Role, SearchMode, Attachment, Theme, Bookmark, DownloadItem, UserProfile, Extension, BrowserState, CustomShortcut, HistoryItem, ThreadGroup } from './types';
-import { createNewTab, streamGeminiResponse, generateImage, generateVideo } from './services/geminiService';
+import { createNewTab, streamGeminiResponse, generateImage, generateVideo, generateChatTitle } from './services/geminiService';
 import { X } from 'lucide-react';
 
 const DEFAULT_USER: UserProfile = {
@@ -23,7 +23,8 @@ const DEFAULT_USER: UserProfile = {
     sidebarPosition: 'left',
     sidebarAutoHide: false,
     sidebarShowStatus: true,
-    sidebarGlassIntensity: 70
+    sidebarGlassIntensity: 70,
+    autoRenameChats: true
 };
 
 const DEFAULT_BROWSER_STATE: BrowserState = {
@@ -68,6 +69,7 @@ export default function App({ mode = 'full' }: AppProps) {
             let user = parsedUsers.find((u: UserProfile) => u.id === savedId) || parsedUsers[0];
             if (!user.enabledExtensions) user.enabledExtensions = [];
             if (!user.customShortcuts) user.customShortcuts = [];
+            if (user.autoRenameChats === undefined) user.autoRenameChats = true;
             return user;
         } catch { return DEFAULT_USER; }
     });
@@ -278,6 +280,7 @@ export default function App({ mode = 'full' }: AppProps) {
         if (user) {
             if (!user.enabledSidebarApps) user.enabledSidebarApps = ['notes', 'calculator', 'spotify', 'whatsapp', 'youtube', 'reddit', 'x'];
             if (!user.customShortcuts) user.customShortcuts = [];
+            if (user.autoRenameChats === undefined) user.autoRenameChats = true;
             setCurrentUser(user);
         }
     };
@@ -290,7 +293,13 @@ export default function App({ mode = 'full' }: AppProps) {
             avatarColor: AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)],
             enabledExtensions: [],
             enabledSidebarApps: ['notes', 'calculator', 'spotify', 'whatsapp', 'youtube', 'reddit', 'x'],
-            customShortcuts: []
+            customShortcuts: [],
+            autoRenameChats: true,
+            preferredModel: 'gemini-flash-latest',
+            sidebarPosition: 'left',
+            sidebarAutoHide: false,
+            sidebarShowStatus: true,
+            sidebarGlassIntensity: 70
         };
         setUsers(prev => [...prev, newUser]);
         setCurrentUser(newUser);
@@ -551,6 +560,7 @@ export default function App({ mode = 'full' }: AppProps) {
         setTabs(prev => prev.map(tab => {
             if (tab.id === currentTabId) {
                 const displayTitle = text ? (text.slice(0, 30) + (text.length > 30 ? '...' : '')) : 'Media Generation';
+                // Set temporary title immediately for feedback
                 const title = tab.messages.length === 0 ? displayTitle : tab.title;
                 return { ...tab, title, messages: [...tab.messages, userMsg] };
             }
@@ -638,15 +648,13 @@ export default function App({ mode = 'full' }: AppProps) {
         if (currentUser.autoRenameChats === false) return;
 
         // Find tabs that need renaming:
-        // 1. Title is default 'New Thread'
-        // 2. Have at least 1 message (User) or more
-        // 3. Not currently streaming
-        // 4. Have NOT attempted rename yet
+        // 1. Have at least 1 message (User)
+        // 2. Have NOT attempted rename yet
+        // 3. title is default OR was just set as a temporary snippet
         const tabsToRename = tabs.filter(t => 
-            t.title === 'New Thread' && 
             t.messages.length > 0 && 
-            !t.messages[t.messages.length - 1].isStreaming &&
-            !t.renameAttempted
+            !t.renameAttempted &&
+            (t.title === 'New Thread' || t.title.length <= 33) // Snip length is 30 + '...'
         );
         
         if (tabsToRename.length === 0) return;
@@ -662,8 +670,9 @@ export default function App({ mode = 'full' }: AppProps) {
         // Trigger rename for each
         tabsToRename.forEach(tab => {
             console.log("Initiating auto-rename for tab:", tab.id);
+            // We use the first message content for naming
             generateChatTitle(tab.messages).then(newTitle => {
-                if (newTitle && newTitle !== 'New Chat') {
+                if (newTitle && newTitle !== 'New Chat' && newTitle !== 'New Thread') {
                      setTabs(currentTabs => currentTabs.map(t => t.id === tab.id ? { ...t, title: newTitle } : t));
                 }
             });

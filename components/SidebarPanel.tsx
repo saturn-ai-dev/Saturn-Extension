@@ -233,7 +233,7 @@ const SidebarPanel: React.FC<SidebarPanelProps> = ({ isOpen, appId, onClose, sid
             widthClass = 'w-[480px]';
             const hostname = window.location.hostname === 'localhost' ? 'localhost' : window.location.hostname;
             content = (
-                <iframe key={`twitch-${key}`} src={`https://player.twitch.tv/?channel=monstercat&parent=${hostname}&muted=false`} height="100%" width="100%" allowFullScreen className="bg-black"></iframe>
+                <iframe key={`twitch-${key}`} src={`https://player.twitch.tv/?channel=monstercat&parent=${hostname}&parent=localhost&muted=false`} height="100%" width="100%" allowFullScreen className="bg-black"></iframe>
             );
             break;
         default: return null;
