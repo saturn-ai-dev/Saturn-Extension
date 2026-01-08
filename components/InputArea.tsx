@@ -10,10 +10,23 @@ interface InputAreaProps {
   mode: SearchMode;
   setMode: (mode: SearchMode) => void;
   onGetContext?: () => void;
+  draft?: { text: string, timestamp: number };
 }
 
-const InputArea: React.FC<InputAreaProps> = ({ onSend, disabled, mode, setMode, onGetContext }) => {
+const InputArea: React.FC<InputAreaProps> = ({ onSend, disabled, mode, setMode, onGetContext, draft }) => {
   const [input, setInput] = useState('');
+  
+  useEffect(() => {
+    if (draft) {
+      setInput(draft.text);
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+        // Optional: Move cursor to end
+        textareaRef.current.setSelectionRange(draft.text.length, draft.text.length);
+      }
+    }
+  }, [draft]);
+
   const [isFocused, setIsFocused] = useState(false);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [showPreview, setShowPreview] = useState(false);

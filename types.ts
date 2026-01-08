@@ -106,6 +106,8 @@ export interface UserProfile {
   customShortcuts: CustomShortcut[];
   preferredModel?: string;
   preferredImageModel?: string;
+  openaiApiKey?: string;
+  preferredOpenAIModel?: string;
   sidebarPosition?: 'left' | 'right';
   sidebarAutoHide?: boolean;
   sidebarShowStatus?: boolean;

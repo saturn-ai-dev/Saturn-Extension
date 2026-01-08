@@ -98,6 +98,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
     // API Key State
     const [apiKey, setApiKey] = useState(() => localStorage.getItem('gemini_api_key') || '');
+    const [openaiKey, setOpenaiKey] = useState(() => localStorage.getItem('openai_api_key') || '');
 
     // State for creating extension
     const [isCreatingExt, setIsCreatingExt] = useState(false);
@@ -121,6 +122,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     const handleSaveKey = (val: string) => {
         setApiKey(val);
         localStorage.setItem('gemini_api_key', val);
+    };
+
+    const handleSaveOpenAIKey = (val: string) => {
+        setOpenaiKey(val);
+        localStorage.setItem('openai_api_key', val);
+        onUpdateSidebarSetting('openaiApiKey', val);
     };
 
     const handleBackdropUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -261,25 +268,46 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                 {/* API Key Section */}
                                 <div>
                                     <h3 className="text-xs font-bold text-zen-muted uppercase tracking-widest mb-5 pl-1">Connection</h3>
-                                    <div className="p-5 rounded-2xl bg-zen-surface border border-zen-border/50 shadow-sm">
-                                        <div className="flex items-center gap-4 mb-4">
-                                            <div className="p-3 rounded-xl bg-yellow-500/10 text-yellow-500"><Key className="w-5 h-5" /></div>
-                                            <div className="flex-1">
-                                                <div className="text-sm font-bold text-zen-text">Gemini API Key</div>
-                                                <div className="text-xs text-zen-muted">Required for AI features</div>
+                                    <div className="space-y-4">
+                                        <div className="p-5 rounded-2xl bg-zen-surface border border-zen-border/50 shadow-sm">
+                                            <div className="flex items-center gap-4 mb-4">
+                                                <div className="p-3 rounded-xl bg-yellow-500/10 text-yellow-500"><Key className="w-5 h-5" /></div>
+                                                <div className="flex-1">
+                                                    <div className="text-sm font-bold text-zen-text">Gemini API Key</div>
+                                                    <div className="text-xs text-zen-muted">Required for Gemini features</div>
+                                                </div>
+                                                <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-xs font-bold text-zen-accent hover:underline flex items-center gap-1">
+                                                    Get Key <ExternalLink className="w-3 h-3" />
+                                                </a>
                                             </div>
-                                            <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-xs font-bold text-zen-accent hover:underline flex items-center gap-1">
-                                                Get Key <ExternalLink className="w-3 h-3" />
-                                            </a>
+                                            <input
+                                                type="password"
+                                                value={apiKey}
+                                                onChange={(e) => handleSaveKey(e.target.value)}
+                                                placeholder="Paste your Gemini API key here..."
+                                                className="w-full bg-zen-bg border border-zen-border rounded-xl px-4 py-3 outline-none focus:border-zen-accent text-sm font-mono text-zen-text placeholder-zen-muted/50"
+                                            />
                                         </div>
-                                        <input
-                                            type="password"
-                                            value={apiKey}
-                                            onChange={(e) => handleSaveKey(e.target.value)}
-                                            placeholder="Paste your API key here..."
-                                            className="w-full bg-zen-bg border border-zen-border rounded-xl px-4 py-3 outline-none focus:border-zen-accent text-sm font-mono text-zen-text placeholder-zen-muted/50"
-                                        />
-                                        <p className="text-[10px] text-zen-muted mt-2 pl-1">Your key is stored locally on your device.</p>
+
+                                        <div className="p-5 rounded-2xl bg-zen-surface border border-zen-border/50 shadow-sm">
+                                            <div className="flex items-center gap-4 mb-4">
+                                                <div className="p-3 rounded-xl bg-green-500/10 text-green-500"><Key className="w-5 h-5" /></div>
+                                                <div className="flex-1">
+                                                    <div className="text-sm font-bold text-zen-text">OpenAI API Key</div>
+                                                    <div className="text-xs text-zen-muted">Required for OpenAI features</div>
+                                                </div>
+                                                <a href="https://platform.openai.com/api-keys" target="_blank" rel="noreferrer" className="text-xs font-bold text-zen-accent hover:underline flex items-center gap-1">
+                                                    Get Key <ExternalLink className="w-3 h-3" />
+                                                </a>
+                                            </div>
+                                            <input
+                                                type="password"
+                                                value={openaiKey}
+                                                onChange={(e) => handleSaveOpenAIKey(e.target.value)}
+                                                placeholder="Paste your OpenAI API key here..."
+                                                className="w-full bg-zen-bg border border-zen-border rounded-xl px-4 py-3 outline-none focus:border-zen-accent text-sm font-mono text-zen-text placeholder-zen-muted/50"
+                                            />
+                                        </div>
                                     </div>
                                 </div>
 
@@ -294,6 +322,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                                 <div className="text-xs text-zen-muted">Select the brain power for Saturn</div>
                                             </div>
                                         </div>
+                                        
+                                        <div className="mb-2 text-[10px] font-bold text-zen-muted uppercase tracking-wider">Gemini Models</div>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
                                             {[
                                                 { id: 'gemini-flash-latest', name: 'Gemini 2.5 Flash', desc: 'Latest Fast Model' },
@@ -305,6 +335,24 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                                     key={model.id}
                                                     onClick={() => onSetModel(model.id)}
                                                     className={`p-3 rounded-xl border text-left transition-all ${currentUser.preferredModel === model.id || (!currentUser.preferredModel && model.id === 'gemini-flash-latest') ? 'bg-zen-bg border-zen-accent shadow-md' : 'bg-zen-bg/50 border-zen-border hover:bg-zen-bg'}`}
+                                                >
+                                                    <div className="text-sm font-bold text-zen-text">{model.name}</div>
+                                                    <div className="text-xs text-zen-muted">{model.desc}</div>
+                                                </button>
+                                            ))}
+                                        </div>
+
+                                        <div className="mb-2 text-[10px] font-bold text-zen-muted uppercase tracking-wider">OpenAI Models</div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+                                            {[
+                                                { id: 'gpt-5.2', name: 'GPT-5.2', desc: 'Latest Flagship' },
+                                                { id: 'gpt-5-mini', name: 'GPT-5 Mini', desc: 'Fast & Efficient' },
+                                                { id: 'gpt-4o-2024-11-20', name: 'GPT-4o', desc: 'Legacy Reliable' },
+                                            ].map(model => (
+                                                <button
+                                                    key={model.id}
+                                                    onClick={() => onSetModel(model.id)}
+                                                    className={`p-3 rounded-xl border text-left transition-all ${currentUser.preferredModel === model.id ? 'bg-zen-bg border-green-500 shadow-md' : 'bg-zen-bg/50 border-zen-border hover:bg-zen-bg'}`}
                                                 >
                                                     <div className="text-sm font-bold text-zen-text">{model.name}</div>
                                                     <div className="text-xs text-zen-muted">{model.desc}</div>
@@ -337,6 +385,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                             </button>
                                         </div>
 
+                                        {/* Image Generation */}
                                         <div className="flex items-center gap-4 mb-4 pt-4 border-t border-zen-border/50">
                                             <div className="p-3 rounded-xl bg-pink-500/10 text-pink-400"><ImageIcon className="w-5 h-5" /></div>
                                             <div>
@@ -344,21 +393,32 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                                 <div className="text-xs text-zen-muted">Select the creative engine</div>
                                             </div>
                                         </div>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                            {[
-                                                { id: 'gemini-2.5-flash-image', name: 'Gemini 2.5 Flash Image', desc: 'Fast Generation' },
-                                                { id: 'gemini-3-pro-image-preview', name: 'Gemini 3.0 Image', desc: 'High Fidelity Preview' },
-                                            ].map(model => (
-                                                <button
-                                                    key={model.id}
-                                                    onClick={() => onSetImageModel(model.id)}
-                                                    className={`p-3 rounded-xl border text-left transition-all ${currentUser.preferredImageModel === model.id || (!currentUser.preferredImageModel && model.id === 'gemini-2.5-flash-image') ? 'bg-zen-bg border-zen-accent shadow-md' : 'bg-zen-bg/50 border-zen-border hover:bg-zen-bg'}`}
-                                                >
-                                                    <div className="text-sm font-bold text-zen-text">{model.name}</div>
-                                                    <div className="text-xs text-zen-muted">{model.desc}</div>
-                                                </button>
-                                            ))}
-                                        </div>
+                                        
+                                        {currentUser.preferredModel?.startsWith('gpt') ? (
+                                            <div className="p-4 rounded-xl bg-green-500/10 border border-green-500/30 mb-2">
+                                                <div className="text-sm font-bold text-green-400">OpenAI Mode Active</div>
+                                                <div className="text-xs text-green-400/80">
+                                                    Image Model: chatgpt-image-latest<br/>
+                                                    Video Model: sora-2-2025-10-06
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                {[
+                                                    { id: 'gemini-2.5-flash-image', name: 'Gemini 2.5 Flash Image', desc: 'Fast Generation' },
+                                                    { id: 'gemini-3-pro-image-preview', name: 'Gemini 3.0 Image', desc: 'High Fidelity Preview' },
+                                                ].map(model => (
+                                                    <button
+                                                        key={model.id}
+                                                        onClick={() => onSetImageModel(model.id)}
+                                                        className={`p-3 rounded-xl border text-left transition-all ${currentUser.preferredImageModel === model.id || (!currentUser.preferredImageModel && model.id === 'gemini-2.5-flash-image') ? 'bg-zen-bg border-zen-accent shadow-md' : 'bg-zen-bg/50 border-zen-border hover:bg-zen-bg'}`}
+                                                    >
+                                                        <div className="text-sm font-bold text-zen-text">{model.name}</div>
+                                                        <div className="text-xs text-zen-muted">{model.desc}</div>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 
