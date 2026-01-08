@@ -5,7 +5,7 @@ import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import { Message, Role, DownloadItem } from '../types';
-import { User, Globe, ExternalLink, Sparkles, Volume2, Download, FileText, Play, X, Youtube, FileType, Copy, Check, Music, Video, Terminal, RotateCcw } from 'lucide-react';
+import { User, Globe, ExternalLink, Sparkles, Volume2, Download, FileText, Play, X, Youtube, FileType, Copy, Check, Music, Video, Terminal, RotateCcw, Pencil } from 'lucide-react';
 // @ts-ignore
 import { jsPDF } from 'jspdf';
 
@@ -13,6 +13,7 @@ interface MessageBubbleProps {
   message: Message;
   onDownload?: (item: DownloadItem) => void;
   onNavigate?: (url: string) => void;
+  onEdit?: (text: string) => void;
 }
 
 const getYoutubeId = (url: string | undefined) => {
@@ -264,7 +265,7 @@ interface GeneratedFile {
     data: string;
 }
 
-const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onDownload, onNavigate }) => {
+const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onDownload, onNavigate, onEdit }) => {
   const isUser = message.role === Role.USER;
   const [isCopied, setIsCopied] = useState(false);
 
@@ -456,7 +457,19 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onDownload, onNa
                 ${isUser ? 'bg-zen-surface/80 backdrop-blur-md text-zen-text rounded-tr-sm border-zen-border hover:shadow-glow-lg' : 'text-zen-text rounded-tl-sm border-transparent'}
             `}>
                 {isUser ? (
-                <p className="whitespace-pre-wrap font-medium">{cleanContent}</p>
+                <>
+                    <p className="whitespace-pre-wrap font-medium select-text cursor-text">{cleanContent}</p>
+                    <div className="flex gap-2 mt-2 pt-2 border-t border-zen-border/30 opacity-0 group-hover:opacity-100 transition-opacity justify-end">
+                        <button onClick={() => onEdit?.(cleanContent)} className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-zen-muted hover:text-zen-text hover:bg-zen-surface transition-colors text-xs font-bold" title="Edit Prompt">
+                            <Pencil className="w-3.5 h-3.5" />
+                            <span>Edit</span>
+                        </button>
+                        <button onClick={handleCopyText} className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-zen-muted hover:text-zen-text hover:bg-zen-surface transition-colors text-xs font-bold" title="Copy Text">
+                            <Copy className="w-3.5 h-3.5" />
+                            <span>{isCopied ? 'Copied' : 'Copy'}</span>
+                        </button>
+                    </div>
+                </>
                 ) : (
                 <div className={`markdown-content w-full ${message.isStreaming ? 'opacity-90' : 'opacity-100'}`}>
                     {cleanContent ? (

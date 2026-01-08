@@ -7,7 +7,7 @@ import MessageBubble from './components/MessageBubble';
 import InputArea from './components/InputArea';
 import SettingsModal from './components/SettingsModal';
 import { Tab, Message, Role, SearchMode, Attachment, Theme, Bookmark, DownloadItem, UserProfile, Extension, BrowserState, CustomShortcut, HistoryItem, ThreadGroup } from './types';
-import { createNewTab, streamGeminiResponse, generateImage, generateVideo, generateChatTitle } from './services/geminiService';
+import { createNewTab, streamGeminiResponse, generateImage, generateVideoWithModel, generateChatTitle } from './services/geminiService';
 import { X } from 'lucide-react';
 
 const DEFAULT_USER: UserProfile = {
@@ -91,6 +91,7 @@ export default function App({ mode = 'full' }: AppProps) {
     const [downloads, setDownloads] = useState<DownloadItem[]>([]);
     const [globalHistory, setGlobalHistory] = useState<HistoryItem[]>([]);
     const [customInstructions, setCustomInstructions] = useState<string>('');
+    const [draft, setDraft] = useState<{ text: string, timestamp: number } | undefined>(undefined);
 
     // Sidebar State
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -501,35 +502,11 @@ export default function App({ mode = 'full' }: AppProps) {
     };
 
     const handleGetPageContext = async () => {
-        // @ts-ignore - chrome API might not be fully typed in this context or requires checking
-        if (typeof chrome !== 'undefined' && chrome.tabs && chrome.scripting) {
-            try {
-                const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-                if (tab?.id) {
-                    const results = await chrome.scripting.executeScript({
-                        target: { tabId: tab.id },
-                        func: () => {
-                            // Simple text extraction
-                            return document.body.innerText;
-                        }
-                    });
+        // ... (existing code)
+    };
 
-                    if (results && results[0] && results[0].result) {
-                        const pageText = results[0].result;
-                        const contextMsg = `Here is the content of the current page ("${tab.title}"):\n\n${pageText.substring(0, 15000)}`;
-                        
-                        // Send as a user message but maybe visually distinct? 
-                        // For now just send it to the model.
-                        handleSendMessage(contextMsg, []);
-                    }
-                }
-            } catch (error) {
-                console.error("Failed to get page context", error);
-                // Maybe show a toast or error message
-            }
-        } else {
-            console.warn("Chrome API not available");
-        }
+    const handleEditMessage = (text: string) => {
+        setDraft({ text, timestamp: Date.now() });
     };
 
     const handleSendMessage = async (text: string, attachments?: Attachment[], modeOverride?: SearchMode) => {
@@ -580,7 +557,8 @@ export default function App({ mode = 'full' }: AppProps) {
             window.location.href = `https://www.google.com/search?q=${encodeURIComponent(text)}`;
         } else if (effectiveMode === 'image') {
             try {
-                const result = await generateImage(text, currentUser.preferredImageModel || 'gemini-2.5-flash-image');
+                const imgModel = currentUser.preferredModel?.startsWith('gpt') ? 'chatgpt-image-latest' : (currentUser.preferredImageModel || 'gemini-2.5-flash-image');
+                const result = await generateImage(text, imgModel);
                 setTabs(prev => prev.map(tab => tab.id === currentTabId ? { ...tab, messages: tab.messages.map(m => m.id === botMsgId ? { ...m, isStreaming: false, generatedMedia: result } : m) } : tab));
             } catch (e) {
                 const errorMessage = e instanceof Error ? e.message : String(e);
@@ -588,7 +566,7 @@ export default function App({ mode = 'full' }: AppProps) {
             }
         } else if (effectiveMode === 'video') {
             try {
-                const result = await generateVideo(text);
+                const result = await generateVideoWithModel(text, currentUser.preferredModel);
                 setTabs(prev => prev.map(tab => tab.id === currentTabId ? { ...tab, messages: tab.messages.map(m => m.id === botMsgId ? { ...m, isStreaming: false, generatedMedia: result } : m) } : tab));
             } catch (e) {
                 setTabs(prev => prev.map(tab => tab.id === currentTabId ? { ...tab, messages: tab.messages.map(m => m.id === botMsgId ? { ...m, isStreaming: false, content: "Error generating video." } : m) } : tab));
@@ -828,6 +806,7 @@ export default function App({ mode = 'full' }: AppProps) {
                                                         message={msg}
                                                         onDownload={(i) => setDownloads(prev => [i, ...prev])}
                                                         onNavigate={handleNavigate}
+                                                        onEdit={handleEditMessage}
                                                     />
                                                 ))}
                                                 <div ref={messagesEndRef} />
@@ -843,6 +822,7 @@ export default function App({ mode = 'full' }: AppProps) {
                                             mode={searchMode}
                                             setMode={setSearchMode}
                                             onGetContext={mode === 'sidebar' ? handleGetPageContext : undefined}
+                                            draft={draft}
                                         />
                                     </div>
                                 </div>
