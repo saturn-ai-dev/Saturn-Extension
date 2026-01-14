@@ -31,9 +31,11 @@ const InputArea: React.FC<InputAreaProps> = ({ onSend, disabled, mode, setMode, 
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [showPreview, setShowPreview] = useState(false);
   const [showModeDropdown, setShowModeDropdown] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const inputAreaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (textareaRef.current && !showPreview) {
@@ -101,6 +103,74 @@ const InputArea: React.FC<InputAreaProps> = ({ onSend, disabled, mode, setMode, 
     setAttachments(prev => prev.filter((_, i) => i !== index));
   };
 
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isDragging) setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Only set dragging to false if we're leaving the input area entirely
+    if (inputAreaRef.current && !inputAreaRef.current.contains(e.relatedTarget as Node)) {
+      setIsDragging(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length > 0) {
+      files.forEach(file => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const result = reader.result as string;
+          const base64 = result.split(',')[1];
+          setAttachments(prev => [...prev, {
+            file,
+            preview: result,
+            base64,
+            mimeType: file.type || 'application/octet-stream',
+            name: file.name
+          }]);
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+  };
+
+  const handlePaste = async (e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.type.startsWith('image/')) {
+        e.preventDefault();
+        const file = item.getAsFile();
+        if (file) {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            const result = reader.result as string;
+            const base64 = result.split(',')[1];
+            setAttachments(prev => [...prev, {
+              file,
+              preview: result,
+              base64,
+              mimeType: file.type,
+              name: `pasted-image-${Date.now()}.${file.type.split('/')[1]}`
+            }]);
+          };
+          reader.readAsDataURL(file);
+        }
+      }
+    }
+  };
+
   const modes: { id: SearchMode; label: string; icon: React.ReactNode; desc: string }[] = [
     { id: 'fast', label: 'Fast', icon: <Zap className="w-4 h-4 text-yellow-400" />, desc: 'Quick answers' },
     { id: 'normal', label: 'Web', icon: <Globe className="w-4 h-4 text-blue-400" />, desc: 'Search the web' },
@@ -138,12 +208,20 @@ const InputArea: React.FC<InputAreaProps> = ({ onSend, disabled, mode, setMode, 
     <div className="w-full mx-auto relative z-50">
       <div className="relative group transition-all duration-500 ease-out">
 
-        <div className={`absolute -inset-0.5 bg-gradient-to-r from-zen-accent via-purple-500 to-zen-accent rounded-[28px] opacity-0 transition-opacity duration-500 blur-xl ${isFocused ? 'opacity-20' : 'group-hover:opacity-10'}`} />
+        <div className={`absolute -inset-0.5 bg-gradient-to-r from-zen-accent via-purple-500 to-zen-accent rounded-[28px] opacity-0 transition-opacity duration-500 blur-xl ${isFocused || isDragging ? 'opacity-20' : 'group-hover:opacity-10'}`} />
 
-        <div className={`
+        <div
+          ref={inputAreaRef}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          onPaste={handlePaste}
+          className={`
             relative bg-zen-surface/95 backdrop-blur-2xl rounded-[28px] border border-zen-border flex flex-col transition-all duration-300
-            ${isFocused ? 'border-zen-text/30 shadow-glow-lg translate-y-[-2px]' : 'shadow-deep hover:border-zen-border/80'}
-        `}>
+            ${isFocused || isDragging ? 'border-zen-text/30 shadow-glow-lg translate-y-[-2px]' : 'shadow-deep hover:border-zen-border/80'}
+            ${isDragging ? 'border-zen-accent border-dashed' : ''}
+          `}
+        >
 
           {attachments.length > 0 && (
             <div className="mx-4 mt-4 mb-1">
@@ -212,6 +290,7 @@ const InputArea: React.FC<InputAreaProps> = ({ onSend, disabled, mode, setMode, 
                   onFocus={() => setIsFocused(true)}
                   onBlur={() => setIsFocused(false)}
                   onKeyDown={handleKeyDown}
+                  onPaste={handlePaste}
                   placeholder={getPlaceholder()}
                   disabled={disabled}
                   rows={1}
