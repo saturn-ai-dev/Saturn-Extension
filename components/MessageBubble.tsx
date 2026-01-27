@@ -10,6 +10,7 @@ import { Message, Role, DownloadItem } from '../types';
 import { User, Globe, ExternalLink, Sparkles, Volume2, Download, FileText, Play, X, Youtube, FileType, Copy, Check, Music, Video, Terminal, RotateCcw, Eye, EyeOff } from 'lucide-react';
 // @ts-ignore
 import { jsPDF } from 'jspdf';
+import CodeArtifact from './CodeArtifact'; // [NEW]
 
 interface MessageBubbleProps {
     message: Message;
@@ -163,123 +164,19 @@ const PreRenderer = ({ children }: any) => {
 };
 
 const CodeRenderer = ({ node, inline, className, children, ...props }: any) => {
-    const [copied, setCopied] = useState(false);
-    const [output, setOutput] = useState<string | null>(null);
-    const [isExecuting, setIsExecuting] = useState(false);
-    const codeRef = React.useRef<HTMLElement>(null);
-
-    React.useEffect(() => {
-        if (codeRef.current && !inline) {
-            // @ts-ignore
-            if (window.Prism) window.Prism.highlightElement(codeRef.current);
-        }
-    }, [children, inline, className]);
-
     const match = /language-(\w+)/.exec(className || '');
     const language = match ? match[1].toLowerCase() : '';
-    // Allow execution for JavaScript/JSX
-    const canExecute = ['javascript', 'js', 'jsx'].includes(language);
-
-    const handleCopy = () => {
-        navigator.clipboard.writeText(String(children).replace(/\n$/, ''));
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-    };
-
-    const handleExecute = async () => {
-        if (!canExecute) return;
-        setIsExecuting(true);
-
-        // Create invisible iframe for sandbox if not exists
-        let iframe = document.getElementById('saturn-sandbox') as HTMLIFrameElement;
-        if (!iframe) {
-            iframe = document.createElement('iframe');
-            iframe.id = 'saturn-sandbox';
-            iframe.src = 'sandbox.html';
-            iframe.style.display = 'none';
-            document.body.appendChild(iframe);
-            // Wait for load
-            await new Promise(resolve => iframe.onload = resolve);
-        }
-
-        const code = String(children);
-        const msgId = Date.now().toString();
-
-        const handleMessage = (event: MessageEvent) => {
-            if (event.data.id === msgId) {
-                setOutput(event.data.output);
-                setIsExecuting(false);
-                window.removeEventListener('message', handleMessage);
-            }
-        };
-
-        window.addEventListener('message', handleMessage);
-        iframe.contentWindow?.postMessage({ code, id: msgId }, '*');
-    };
 
     if (inline) {
-        return <code className="bg-zen-surface px-1.5 py-0.5 rounded-md text-zen-accent font-mono text-sm" {...props}>{children}</code>;
+        return <code className="bg-zen-surface px-1.5 py-0.5 rounded-md text-zen-accent font-mono text-sm border border-zen-border/50" {...props}>{children}</code>;
     }
 
     return (
-        <div className="relative group font-sans my-6 rounded-xl overflow-hidden border border-white/10 shadow-2xl bg-[#0d1117]/80 backdrop-blur-md transition-all duration-300 hover:border-zen-accent/30 hover:shadow-[0_0_30px_-10px_rgba(var(--accent-color),0.3)]">
-            {/* Code Header */}
-            <div className="flex items-center justify-between px-4 py-3 bg-white/5 border-b border-white/5 text-xs text-gray-400 select-none backdrop-blur-xl">
-                <div className="flex items-center gap-3">
-                    <div className="flex gap-1.5">
-                        <div className="w-3 h-3 rounded-full bg-[#ff5f56] shadow-inner" />
-                        <div className="w-3 h-3 rounded-full bg-[#ffbd2e] shadow-inner" />
-                        <div className="w-3 h-3 rounded-full bg-[#27c93f] shadow-inner" />
-                    </div>
-                    <span className="uppercase font-bold tracking-widest opacity-60 ml-3 text-[10px]">{language || 'TEXT'}</span>
-                </div>
-                <div className="flex items-center gap-3">
-                    {canExecute && (
-                        <button
-                            onClick={handleExecute}
-                            disabled={isExecuting}
-                            className={`flex items-center gap-1.5 transition-all px-2 py-1 rounded-md ${isExecuting ? 'text-zen-accent bg-zen-accent/10' : 'hover:bg-white/10 text-zen-accent/80 hover:text-zen-accent'}`}
-                        >
-                            <Play className="w-3 h-3 fill-current" />
-                            <span className="font-bold text-[10px]">{isExecuting ? 'RUNNING...' : 'RUN'}</span>
-                        </button>
-                    )}
-                    <button onClick={handleCopy} className="flex items-center gap-1.5 hover:bg-white/10 px-2 py-1 rounded-md transition-all text-gray-400 hover:text-white">
-                        {copied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
-                        <span className="text-[10px] font-bold">{copied ? 'COPIED' : 'COPY'}</span>
-                    </button>
-                </div>
-            </div>
-            {/* Code Body */}
-            <div className="p-0 overflow-x-auto custom-scrollbar font-mono text-sm bg-transparent max-w-full">
-                <code ref={codeRef} className={`block p-5 ${className || 'language-text'} !bg-transparent !text-sm !leading-relaxed`} {...props}>
-                    {children}
-                </code>
-            </div>
-
-            {/* Execution Output */}
-            {output !== null && (
-                <div className="border-t border-white/10 bg-[#0d1117] font-sans">
-                    <div className="flex items-center justify-between px-4 py-2 bg-[#161b22]/50 border-b border-white/5">
-                        <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                            <Terminal className="w-3.5 h-3.5" />
-                            Console Output
-                        </div>
-                        <button
-                            onClick={() => setOutput(null)}
-                            className="text-[10px] font-bold text-zen-muted hover:text-zen-text bg-zen-surface hover:bg-zen-surface/80 px-2 py-1 rounded border border-zen-border flex items-center gap-1 transition-colors"
-                            title="Clear Output"
-                        >
-                            <RotateCcw className="w-3 h-3" />
-                            CLEAR
-                        </button>
-                    </div>
-                    <div className="p-4 font-mono text-xs text-gray-300 whitespace-pre-wrap max-h-[300px] overflow-y-auto custom-scrollbar bg-black/20 border-l-2 border-zen-accent/50 ml-0">
-                        {output}
-                    </div>
-                </div>
-            )}
-        </div>
+        <CodeArtifact
+            code={String(children).replace(/\n$/, '')}
+            language={language}
+            filename={`snippet.${language === 'javascript' ? 'js' : language}`}
+        />
     );
 };
 

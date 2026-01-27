@@ -5,7 +5,8 @@ import SidebarPanel from './components/SidebarPanel';
 import MessageBubble from './components/MessageBubble';
 import OmniBar from './components/OmniBar';
 import SettingsModal from './components/SettingsModal';
-import { Tab, Message, Role, SearchMode, Attachment, Theme, DownloadItem, UserProfile, Extension, BrowserState, CustomShortcut, HistoryItem } from './types';
+import BookmarksBar from './components/BookmarksBar'; // [NEW]
+import { Tab, Message, Role, SearchMode, Attachment, Theme, DownloadItem, UserProfile, Extension, BrowserState, CustomShortcut, HistoryItem, Bookmark } from './types';
 import { createNewTab, streamGeminiResponse, generateImage, generateVideo } from './services/geminiService';
 import { X } from 'lucide-react';
 
@@ -78,6 +79,7 @@ export default function App() {
     const [archivedTabs, setArchivedTabs] = useState<Tab[]>([]);
     const [downloads, setDownloads] = useState<DownloadItem[]>([]);
     const [globalHistory, setGlobalHistory] = useState<HistoryItem[]>([]);
+    const [bookmarks, setBookmarks] = useState<Bookmark[]>([]); // [NEW]
     const [customInstructions, setCustomInstructions] = useState<string>('');
 
     // Sidebar State
@@ -114,6 +116,7 @@ export default function App() {
                 setArchivedTabs([...validPreviousTabs, ...previousArchives]);
                 setDownloads(data.downloads || []);
                 setGlobalHistory(data.globalHistory || []);
+                setBookmarks(data.bookmarks || []); // [NEW]
                 setCustomBackdrop(data.customBackdrop || null);
                 setCustomInstructions(data.customInstructions || '');
                 setIsIncognito(data.isIncognito || false);
@@ -124,6 +127,7 @@ export default function App() {
                 setArchivedTabs([]);
                 setDownloads([]);
                 setGlobalHistory([]);
+                setBookmarks([]); // [NEW]
                 setCustomBackdrop(null);
                 setCustomInstructions('');
                 setIsIncognito(false);
@@ -150,11 +154,11 @@ export default function App() {
 
         // In incognito mode, don't persist conversation history (tabs/archivedTabs/globalHistory)
         const dataToSave = isIncognito
-            ? { downloads, customBackdrop, customInstructions, isIncognito }
-            : { tabs, activeTabId, archivedTabs, downloads, customBackdrop, globalHistory, customInstructions, isIncognito };
+            ? { downloads, customBackdrop, customInstructions, isIncognito, bookmarks }
+            : { tabs, activeTabId, archivedTabs, downloads, customBackdrop, globalHistory, customInstructions, isIncognito, bookmarks };
 
         localStorage.setItem(storageKey, JSON.stringify(dataToSave));
-    }, [tabs, archivedTabs, activeTabId, downloads, customBackdrop, globalHistory, customInstructions, isIncognito]);
+    }, [tabs, archivedTabs, activeTabId, downloads, customBackdrop, globalHistory, customInstructions, isIncognito, bookmarks]);
 
     useEffect(() => {
         localStorage.setItem('deepsearch_users', JSON.stringify(users));
@@ -394,6 +398,13 @@ export default function App() {
     const handleNavigate = (url: string) => {
         const currentTabId = activeTabId;
         let finalUrl = url.trim();
+        // Check for 'query://' prefix locally first
+        if (finalUrl.startsWith('query://')) {
+            const query = finalUrl.replace('query://', '');
+            handleSendMessage(query);
+            return;
+        }
+
         if (!/^https?:\/\//i.test(finalUrl)) finalUrl = 'https://' + finalUrl;
 
         let forceRedirect = false;
@@ -652,6 +663,20 @@ export default function App() {
                     </div>
                 ) : (
                     <div className="flex-1 flex flex-col relative overflow-hidden min-h-0">
+                        {/* Bookmarks Bar [NEW] */}
+                        {(bookmarks.length > 0 || !activeTab?.messages.length) && (
+                            <div className="w-full bg-zen-surface/30 border-b border-zen-border/30">
+                                <BookmarksBar
+                                    bookmarks={bookmarks}
+                                    onSelectBookmark={(b) => handleNavigate(b.query)}
+                                    onRemoveBookmark={(id, e) => {
+                                        e.stopPropagation();
+                                        setBookmarks(prev => prev.filter(b => b.id !== id));
+                                    }}
+                                />
+                            </div>
+                        )}
+
                         {/* Messages Container */}
                         <div className="flex-1 w-full h-full overflow-y-auto pb-48 md:pb-32 px-4 md:px-8 pt-4 scrollbar-thumb-zen-accent scrollbar-track-transparent">
                             <div className="max-w-4xl mx-auto w-full pt-12 min-h-full flex flex-col">
@@ -694,6 +719,9 @@ export default function App() {
                             </div>
                         </div>
 
+
+
+
                         {/* Floating OmniBar */}
                         <div className="absolute bottom-24 md:bottom-6 left-0 right-0 z-30 flex justify-center pointer-events-none">
                             <div className="w-full max-w-4xl pointer-events-auto">
@@ -708,6 +736,6 @@ export default function App() {
                     </div>
                 )}
             </div>
-        </div>
+        </div >
     );
 }

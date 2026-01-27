@@ -12,6 +12,13 @@ export interface Source {
   uri: string;
 }
 
+export interface Bookmark {
+  id: string;
+  title: string;
+  query: string;
+  createdAt: number;
+}
+
 export interface Attachment {
   file: File;
   preview: string;
