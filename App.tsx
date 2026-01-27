@@ -601,7 +601,7 @@ export default function App({ mode = 'full' }: AppProps) {
     // --- Star Field Memo ---
     const starField = useMemo(() => {
         if (currentTheme !== 'blackbox' && currentTheme !== 'galaxy') return null;
-        const stars = Array.from({ length: currentTheme === 'galaxy' ? 20 : 50 }).map((_, i) => (
+        const stars = Array.from({ length: currentTheme === 'galaxy' ? 100 : 50 }).map((_, i) => (
             <div key={`star-${i}`} className="star" style={{
                 top: `${Math.random() * 100}%`,
                 left: `${Math.random() * 100}%`,
@@ -629,12 +629,12 @@ export default function App({ mode = 'full' }: AppProps) {
         // 1. Have at least 1 message (User)
         // 2. Have NOT attempted rename yet
         // 3. title is default OR was just set as a temporary snippet
-        const tabsToRename = tabs.filter(t => 
-            t.messages.length > 0 && 
+        const tabsToRename = tabs.filter(t =>
+            t.messages.length > 0 &&
             !t.renameAttempted &&
             (t.title === 'New Thread' || t.title.length <= 33) // Snip length is 30 + '...'
         );
-        
+
         if (tabsToRename.length === 0) return;
 
         // Mark them as attempted immediately to prevent loops
@@ -651,7 +651,7 @@ export default function App({ mode = 'full' }: AppProps) {
             // We use the first message content for naming
             generateChatTitle(tab.messages).then(newTitle => {
                 if (newTitle && newTitle !== 'New Chat' && newTitle !== 'New Thread') {
-                     setTabs(currentTabs => currentTabs.map(t => t.id === tab.id ? { ...t, title: newTitle } : t));
+                    setTabs(currentTabs => currentTabs.map(t => t.id === tab.id ? { ...t, title: newTitle } : t));
                 }
             });
         });
@@ -721,9 +721,9 @@ export default function App({ mode = 'full' }: AppProps) {
                 position={currentUser.sidebarPosition || 'left'}
             />
 
-            <div 
+            <div
                 className={`flex-1 flex flex-col min-w-0 z-10 relative h-full transition-all duration-500`}
-                style={{ 
+                style={{
                     paddingLeft: currentUser.sidebarPosition === 'right' ? '24px' : `${sidebarWidth + 24}px`,
                     paddingRight: currentUser.sidebarPosition === 'right' ? `${sidebarWidth + 24}px` : '24px'
                 }}
