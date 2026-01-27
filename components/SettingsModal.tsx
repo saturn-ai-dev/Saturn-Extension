@@ -85,6 +85,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
     // API Key State
     const [apiKey, setApiKey] = useState(() => localStorage.getItem('gemini_api_key') || '');
+    const [openaiKey, setOpenaiKey] = useState(() => localStorage.getItem('openai_api_key') || '');
 
     // State for creating extension
     const [isCreatingExt, setIsCreatingExt] = useState(false);
@@ -108,6 +109,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     const handleSaveKey = (val: string) => {
         setApiKey(val);
         localStorage.setItem('gemini_api_key', val);
+    };
+
+    const handleSaveOpenaiKey = (val: string) => {
+        setOpenaiKey(val);
+        localStorage.setItem('openai_api_key', val);
     };
 
     const handleBackdropUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -267,6 +273,26 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                         />
                                         <p className="text-[10px] text-zen-muted mt-2 pl-1">Your key is stored locally on your device.</p>
                                     </div>
+
+                                    <div className="p-5 rounded-2xl bg-zen-surface border border-zen-border/50 shadow-sm mt-4">
+                                        <div className="flex items-center gap-4 mb-4">
+                                            <div className="p-3 rounded-xl bg-green-500/10 text-green-500"><Key className="w-5 h-5" /></div>
+                                            <div className="flex-1">
+                                                <div className="text-sm font-bold text-zen-text">OpenAI API Key</div>
+                                                <div className="text-xs text-zen-muted">Required for GPT & DALL-E models</div>
+                                            </div>
+                                            <a href="https://platform.openai.com/api-keys" target="_blank" rel="noreferrer" className="text-xs font-bold text-zen-accent hover:underline flex items-center gap-1">
+                                                Get Key <ExternalLink className="w-3 h-3" />
+                                            </a>
+                                        </div>
+                                        <input
+                                            type="password"
+                                            value={openaiKey}
+                                            onChange={(e) => handleSaveOpenaiKey(e.target.value)}
+                                            placeholder="sk-..."
+                                            className="w-full bg-zen-bg border border-zen-border rounded-xl px-4 py-3 outline-none focus:border-zen-accent text-sm font-mono text-zen-text placeholder-zen-muted/50"
+                                        />
+                                    </div>
                                 </div>
 
                                 {/* Model Section */}
@@ -285,6 +311,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                                 { id: 'gemini-flash-latest', name: 'Gemini Flash', desc: 'Latest Fast Model' },
                                                 { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', desc: 'Advanced Reasoning' },
                                                 { id: 'gemini-3-pro-preview', name: 'Gemini 3.0 Pro', desc: 'Next-Gen Preview' },
+                                                { id: 'gpt-4o', name: 'GPT-4o', desc: 'OpenAI Omni' },
+                                                { id: 'o1-preview', name: 'OpenAI o1', desc: 'Advanced Reasoning' },
                                             ].map(model => (
                                                 <button
                                                     key={model.id}
@@ -308,6 +336,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                             {[
                                                 { id: 'gemini-2.5-flash-image', name: 'Gemini 2.5 Flash Image', desc: 'Fast Generation' },
                                                 { id: 'gemini-3-pro-image-preview', name: 'Gemini 3.0 Image', desc: 'High Fidelity Preview' },
+                                                { id: 'dall-e-3', name: 'DALL-E 3', desc: 'OpenAI Image Gen' },
                                             ].map(model => (
                                                 <button
                                                     key={model.id}

@@ -98,6 +98,8 @@ export interface UserProfile {
   customShortcuts: CustomShortcut[];
   preferredModel?: string;
   preferredImageModel?: string;
+  openaiApiKey?: string;
+  preferredOpenAIModel?: string;
 }
 
 export interface ChatState {
