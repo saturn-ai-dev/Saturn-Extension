@@ -424,6 +424,57 @@ const getCommonSystemInstruction = (mode: SearchMode, activeExtensions: Extensio
     return instruction;
 };
 
+
+// Helper to perform a search using native browser fetch (DuckDuckGo) to ground OpenAI
+const getSearchContext = async (query: string): Promise<{ text: string, sources: Source[] }> => {
+    try {
+        const response = await fetch(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
+        });
+        const html = await response.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+
+        const sources: Source[] = [];
+        let text = "";
+
+        const results = doc.querySelectorAll('.result');
+        results.forEach((result, i) => {
+            if (i > 5) return;
+            const titleEl = result.querySelector('.result__a');
+            const snippetEl = result.querySelector('.result__snippet');
+
+            if (titleEl) {
+                let url = titleEl.getAttribute('href');
+                if (url) {
+                    try {
+                        const urlObj = new URL(url, 'https://duckduckgo.com');
+                        const uddg = urlObj.searchParams.get('uddg');
+                        if (uddg) url = decodeURIComponent(uddg);
+                    } catch { }
+                }
+
+                const title = titleEl.textContent?.trim() || "Source";
+                const snippet = snippetEl?.textContent?.trim() || "";
+
+                if (url && url.startsWith('http')) {
+                    sources.push({ title, uri: url });
+                    text += `Source: ${title} (${url})\nSummary: ${snippet}\n\n`;
+                }
+            }
+        });
+
+        // Deduplicate sources
+        const uniqueSources = Array.from(new Map(sources.map(item => [item.uri, item])).values());
+        return { text, sources: uniqueSources };
+    } catch (e) {
+        console.error("Search context failed", e);
+        return { text: "", sources: [] };
+    }
+};
+
 const streamOpenAIResponse = async (
     history: Message[],
     mode: SearchMode,
@@ -436,7 +487,31 @@ const streamOpenAIResponse = async (
 ) => {
     try {
         const openai = getOpenAI();
-        const systemMsg = getCommonSystemInstruction(mode, activeExtensions, customInstructions);
+        let systemMsg = getCommonSystemInstruction(mode, activeExtensions, customInstructions);
+        let externalSources: Source[] = [];
+
+        // --- PERFORM SEARCH (Grounding) if applicable ---
+        // If mode is normal/pro (search enabled) and not direct, we try to fetch context
+        if (mode !== 'direct' && mode !== 'simple' && mode !== 'image' && mode !== 'video') {
+            const lastUserMsg = history[history.length - 1];
+            if (lastUserMsg && lastUserMsg.role === Role.USER) {
+
+                try {
+                    // Only search if there's a real query
+                    if (lastUserMsg.content && lastUserMsg.content.length > 2) {
+                        const { text: context, sources } = await getSearchContext(lastUserMsg.content);
+                        if (context) {
+                            systemMsg += `\n\n[WEB SEARCH CONTEXT]\nThe following information was retrieved from a web search to help you answer the user's request. Use it to verify facts and provide up-to-date information.\n\n${context}\n\n[END CONTEXT]`;
+                            externalSources = sources;
+                            // Send sources immediately to UI if possible, or wait for first chunk
+                            // We'll send them with the first chunk
+                        }
+                    }
+                } catch (e) {
+                    console.log("Skipping search context due to error in fetch");
+                }
+            }
+        }
 
         const messages: any[] = [
             { role: 'system', content: systemMsg },
@@ -475,18 +550,27 @@ const streamOpenAIResponse = async (
             model: modelName,
             messages: messages,
             stream: true,
-            // Add tools if supported (search, code_interpreter not native in API without Assistants API, 
-            // but we can add function calling definitions if needed. 
-            // For now, standard chat without tools unless we mock them.)
-            // Note: 'direct' mode implies no tools needed or minimal.
         });
 
+        let sentSources = false;
         for await (const chunk of stream) {
             const content = chunk.choices[0]?.delta?.content || "";
             if (content) {
-                onChunk(content, []); // OpenAI standard chat doesn't return sources usually unless using specific plugins/extensions
+                // Attach sources to the first real chunk if we have them
+                if (!sentSources && externalSources.length > 0) {
+                    onChunk(content, externalSources);
+                    sentSources = true;
+                } else {
+                    onChunk(content, undefined);
+                }
             }
         }
+        // Ensure sources are sent if content was empty for some reason but we have sources? 
+        // Ensure sources are sent if content was empty for some reason but we have sources? 
+        if (!sentSources && externalSources.length > 0) {
+            onChunk("", externalSources);
+        }
+
         onFinish();
 
     } catch (e) {
