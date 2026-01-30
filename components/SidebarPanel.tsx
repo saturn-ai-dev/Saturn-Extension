@@ -54,6 +54,37 @@ const CalculatorWidget = () => {
     const [expression, setExpression] = useState('');
     const [history, setHistory] = useState<string[]>([]);
 
+    const normalizeParens = (expr: string) => {
+        let balance = 0;
+        let out = '';
+        for (const ch of expr) {
+            if (ch === '(') {
+                balance += 1;
+                out += ch;
+            } else if (ch === ')') {
+                if (balance > 0) {
+                    balance -= 1;
+                    out += ch;
+                }
+            } else {
+                out += ch;
+            }
+        }
+        if (balance > 0) out += ')'.repeat(balance);
+        return out;
+    };
+
+    const normalizeExpression = (raw: string) => {
+        let expr = raw.replace(/[+\-×÷^]+$/g, '');
+        expr = normalizeParens(expr);
+        expr = expr.replace(/×/g, '*')
+            .replace(/÷/g, '/')
+            .replace(/\^/g, '**')
+            .replace(/π/g, Math.PI.toString())
+            .replace(/\be\b/g, Math.E.toString());
+        return expr;
+    };
+
     const handlePress = async (val: string) => {
         if (val === 'C') {
             setDisplay('0');
@@ -62,14 +93,15 @@ const CalculatorWidget = () => {
         else if (val === '=') {
             try {
                 // Safe calculation without eval
-                let expr = (expression + (display !== '0' ? display : ''));
-
-                // Basic replacements
-                expr = expr.replace(/×/g, '*')
-                    .replace(/÷/g, '/')
-                    .replace(/\^/g, '**')
-                    .replace(/π/g, Math.PI.toString())
-                    .replace(/e/g, Math.E.toString());
+                const needsDisplay = display !== '0' || /\($/.test(expression);
+                const rawExpr = expression + (needsDisplay ? display : '');
+                const historyExpr = normalizeParens(rawExpr.replace(/[+\-×÷^]+$/g, ''));
+                const expr = normalizeExpression(rawExpr);
+                if (!expr) {
+                    setDisplay('0');
+                    setExpression('');
+                    return;
+                }
 
                 let iframe = document.getElementById('saturn-sandbox') as HTMLIFrameElement;
                 if (!iframe) {
@@ -100,7 +132,7 @@ const CalculatorWidget = () => {
                                 const resNum = parseFloat(resStr);
                                 const result = Number.isInteger(resNum) ? String(resNum) : resNum.toFixed(8).replace(/\.?0+$/, '');
                                 setDisplay(result);
-                                setHistory(prev => [`${expression}${display} = ${result}`, ...prev].slice(0, 5));
+                                setHistory(prev => [`${historyExpr} = ${result}`, ...prev].slice(0, 5));
                             } else {
                                 setDisplay('Error');
                             }
@@ -127,7 +159,8 @@ const CalculatorWidget = () => {
             if (display === '0') {
                 setExpression(expression + val);
             } else {
-                setExpression(expression + display + val);
+                const next = val === '(' ? `${display}*${val}` : `${display}${val}`;
+                setExpression(expression + next);
                 setDisplay('0');
             }
         }
@@ -141,6 +174,11 @@ const CalculatorWidget = () => {
         }
         else if (val === 'π') {
             setDisplay(String(Math.PI));
+        }
+        else if (val === '.') {
+            if (!display.includes('.')) {
+                setDisplay(display === '0' ? '0.' : display + val);
+            }
         }
         else {
             setDisplay(display === '0' ? val : display + val);

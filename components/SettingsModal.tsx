@@ -466,13 +466,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                             <div className="flex bg-zen-bg p-1 rounded-xl border border-zen-border">
                                                 <button 
                                                     onClick={() => onUpdateSidebarSetting('sidebarPosition', 'left')}
-                                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${currentUser.sidebarPosition !== 'right' ? 'bg-zen-accent text-white shadow-md' : 'text-zen-muted hover:text-zen-text'}`}
+                                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${currentUser.sidebarPosition !== 'right' ? `bg-zen-accent shadow-md ${getActiveTextColor()}` : 'text-zen-muted hover:text-zen-text'}`}
                                                 >
                                                     Left
                                                 </button>
                                                 <button 
                                                     onClick={() => onUpdateSidebarSetting('sidebarPosition', 'right')}
-                                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${currentUser.sidebarPosition === 'right' ? 'bg-zen-accent text-white shadow-md' : 'text-zen-muted hover:text-zen-text'}`}
+                                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${currentUser.sidebarPosition === 'right' ? `bg-zen-accent shadow-md ${getActiveTextColor()}` : 'text-zen-muted hover:text-zen-text'}`}
                                                 >
                                                     Right
                                                 </button>
