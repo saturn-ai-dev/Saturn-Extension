@@ -72,7 +72,7 @@ export const generateImage = async (prompt: string, modelName?: string): Promise
         // The calling code (App.tsx) might pass the user's preference. 
         // We will try to use the passed model, or fallback to 'dall-e-3' if 'chatgpt-image-latest' fails validation?
         // We'll trust the string.
-        
+
         // If the passed model is a text model (like gpt-5.2), switch to the image model
         let imageModel = selectedModel;
         if (imageModel.startsWith('gpt-')) {
@@ -130,7 +130,7 @@ export const generateImage = async (prompt: string, modelName?: string): Promise
             }
             throw new Error("No image data found in response.");
         }
-        
+
         // Fallback (Imagen or older)
         const response = await ai.models.generateImages({
             model: selectedModel,
@@ -153,7 +153,7 @@ export const generateVideo = async (prompt: string): Promise<GeneratedMedia> => 
     // We'll check if OpenAI key is present AND if we can maybe infer preference? 
     // Ideally, App.tsx should pass the model. But to avoid breaking signature too much, 
     // I will just implement the parameter.
-    
+
     // Actually, let's update the signature to accept optional model, App.tsx passes nothing so it's undefined.
     // If undefined, we default to Veo (Gemini).
     // But wait, the user said "When openAI is selected as a model... video is sora...".
@@ -162,7 +162,7 @@ export const generateVideo = async (prompt: string): Promise<GeneratedMedia> => 
     // I'll stick to Veo default here, but I will modify the function to accept `modelName`.
     // I need to update App.tsx call site later if I want strict adherence, but for now 
     // I will just implement the parameter.
-    
+
     return generateGeminiVideo(prompt);
 };
 
@@ -177,7 +177,7 @@ export const generateVideoWithModel = async (prompt: string, modelName?: string)
 const generateOpenAIVideo = async (prompt: string, model: string): Promise<GeneratedMedia> => {
     try {
         const key = getOpenAIApiKey();
-        
+
         // 1. Create Video Job
         const response = await fetch('https://api.openai.com/v1/videos', {
             method: 'POST',
@@ -197,7 +197,7 @@ const generateOpenAIVideo = async (prompt: string, model: string): Promise<Gener
         }
 
         let data = await response.json();
-        
+
         // If it returns URL immediately (unlikely for Sora but possible for some snapshots)
         if (data.url || (data.data && data.data[0]?.url)) {
             return {
@@ -228,7 +228,7 @@ const generateOpenAIVideo = async (prompt: string, model: string): Promise<Gener
                 data = await pollResponse.json();
                 status = data.status;
                 console.log(`Job ${jobId} status: ${status}`);
-                
+
                 if (status === 'failed') {
                     throw new Error(`Video generation failed: ${data.error?.message || 'Unknown error'}`);
                 }
@@ -247,11 +247,11 @@ const generateOpenAIVideo = async (prompt: string, model: string): Promise<Gener
 
         if (!contentResponse.ok) {
             // Fallback to extraction logic if /content is not directly serving the file
-            const finalUrl = data.url || 
-                             (data.data && data.data[0]?.url) || 
-                             (data.video && data.video.url) ||
-                             (data.output && data.output[0]);
-            
+            const finalUrl = data.url ||
+                (data.data && data.data[0]?.url) ||
+                (data.video && data.video.url) ||
+                (data.output && data.output[0]);
+
             if (finalUrl) {
                 return { type: 'video', uri: finalUrl, mimeType: 'video/mp4' };
             }
@@ -325,13 +325,24 @@ export const generateChatTitle = async (history: Message[]): Promise<string> => 
         const firstMessage = history[0];
         if (!firstMessage) return "New Chat";
         const ai = getGeminiAI();
-        const prompt = `Generate a 3-6 word title for: "${firstMessage.content.slice(0, 500)}"`;
+        const prompt = `Your sole task is to generate a short, specific title (3-6 words) for this user message:
+"${firstMessage.content.slice(0, 500)}"
+Return ONLY the title text. Do not suggest options. Do not include conversational filler like "Here is a title". Do not use quotes or markdown.`;
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash-lite',
             contents: [{ role: 'user', parts: [{ text: prompt }] }],
             config: { tools: [], responseModalities: ['TEXT'] }
         });
-        return response.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "New Chat";
+        const text = response.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+        if (!text) return "New Chat";
+
+        // Post-processing cleanup to remove common conversational debris
+        return text
+            .replace(/^Here (is|are).+?:/i, '') // Remove "Here is..."
+            .replace(/^Title:/i, '')            // Remove "Title:"
+            .replace(/["*]/g, '')               // Remove quotes and asterisks
+            .split('\n')[0]                     // Take only the first line if multiple are returned
+            .trim();
     } catch (e) {
         return "New Chat";
     }
@@ -383,7 +394,7 @@ export const streamGeminiResponse = async (
     onError: (error: Error) => void
 ) => {
     const isOpenAI = modelName.startsWith('gpt') || modelName.includes('o1') || modelName.includes('o3'); // crude check, but effective given the set
-    
+
     if (isOpenAI) {
         return streamOpenAIResponse(history, mode, activeExtensions, modelName, customInstructions, onChunk, onFinish, onError);
     } else {
@@ -395,7 +406,7 @@ const getCommonSystemInstruction = (mode: SearchMode, activeExtensions: Extensio
     let instruction = mode === 'direct'
         ? "Answer concisely. Verify facts."
         : "You are Saturn, an advanced AI assistant. Verify facts.";
-    
+
     // Add Sandbox/Widget context (simplified for brevity, ensuring token efficiency)
     instruction += `
     PYTHON_TOOL: You can generate files using Python. Print output as:
@@ -409,7 +420,7 @@ const getCommonSystemInstruction = (mode: SearchMode, activeExtensions: Extensio
     const extInstruct = getExtensionInstructions(activeExtensions);
     if (extInstruct) instruction += `\n${extInstruct}`;
     if (customInstructions) instruction += `\nUSER_INSTRUCTIONS: ${customInstructions}`;
-    
+
     return instruction;
 };
 
@@ -426,7 +437,7 @@ const streamOpenAIResponse = async (
     try {
         const openai = getOpenAI();
         const systemMsg = getCommonSystemInstruction(mode, activeExtensions, customInstructions);
-        
+
         const messages: any[] = [
             { role: 'system', content: systemMsg },
             ...history.map(msg => {
@@ -434,17 +445,17 @@ const streamOpenAIResponse = async (
                 if (msg.attachments && msg.attachments.length > 0) {
                     const contentParts: any[] = [{ type: 'text', text: msg.content }];
                     msg.attachments.forEach(att => {
-                         // Check mime type support (OpenAI supports images)
-                         if (att.mimeType.startsWith('image/')) {
-                             contentParts.push({
-                                 type: 'image_url',
-                                 image_url: { url: `data:${att.mimeType};base64,${att.base64}` }
-                             });
-                         }
+                        // Check mime type support (OpenAI supports images)
+                        if (att.mimeType.startsWith('image/')) {
+                            contentParts.push({
+                                type: 'image_url',
+                                image_url: { url: `data:${att.mimeType};base64,${att.base64}` }
+                            });
+                        }
                     });
                     return { role: msg.role === Role.USER ? 'user' : 'assistant', content: contentParts };
                 }
-                
+
                 // Legacy single attachment
                 if (msg.attachment && msg.attachment.mimeType.startsWith('image/')) {
                     return {
@@ -504,12 +515,12 @@ const streamGeminiNativeResponse = async (
         // For 'pro' mode, we'd copy the parallel logic. 
         // For this refactor, I will focus on standard logic + extensions, 
         // effectively preserving the behavior but cleaning up structure. 
-        
+
         const previousMessages = history.slice(0, -1);
         const apiHistory = convertHistoryToApi(previousMessages);
-        
+
         let systemInstruction = getCommonSystemInstruction(mode, activeExtensions, customInstructions);
-        
+
         // Add Gemini-specific tool instructions if needed
         const tools: any[] = [{ googleSearch: {} }];
         if (mode !== 'direct') tools.push({ codeExecution: {} });
@@ -545,7 +556,7 @@ const streamGeminiNativeResponse = async (
             } else {
                 text = responseChunk.text || "";
             }
-            
+
             const newSources = extractGeminiSources(responseChunk.candidates?.[0]);
             if (newSources.length > 0) {
                 aggregatedSources = [...aggregatedSources, ...newSources];
