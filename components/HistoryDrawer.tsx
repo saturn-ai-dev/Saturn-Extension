@@ -150,7 +150,7 @@ const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         autoFocus
-                        className="w-full bg-zen-bg/50 border border-zen-border rounded-2xl py-3 pl-11 pr-10 text-sm focus:outline-none focus:border-zen-accent focus:bg-zen-bg text-zen-text placeholder-zen-muted transition-all shadow-sm group-hover:border-zen-border/80"
+                        className="w-full bg-zen-bg border border-zen-border rounded-2xl py-3 pl-11 pr-10 text-sm focus:outline-none focus:border-zen-accent focus:bg-zen-bg text-zen-text placeholder-zen-muted transition-all shadow-sm group-hover:border-zen-border/80"
                     />
                     <Search className="w-5 h-5 text-zen-muted absolute left-4 top-1/2 -translate-y-1/2 transition-colors group-hover:text-zen-text" />
                     {searchTerm && (
