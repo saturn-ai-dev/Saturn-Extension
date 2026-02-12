@@ -16,13 +16,18 @@
     "geolocation",
     "sidePanel",
     "activeTab",
-    "scripting"
+    "scripting",
+    "tabs",
+    "debugger",
+    "webNavigation",
+    "unlimitedStorage"
   ],
   "host_permissions": [
     "<all_urls>"
   ],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background.js",
+    "type": "module"
   },
   "action": {
     "default_title": "Open Saturn Sidebar"
@@ -37,5 +42,15 @@
     "pages": [
       "sandbox.html"
     ]
-  }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "buildDomTree.js"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ]
 }

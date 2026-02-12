@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, RefreshCw, Save, Trash2, GripVertical, Copy, Download, Clock } from 'lucide-react';
+import { X, RefreshCw, Save, Trash2, GripVertical, Copy, Download, Clock, Play, Square } from 'lucide-react';
+import type { AgentRun } from '../types';
 
 interface SidebarPanelProps {
     isOpen: boolean;
@@ -7,6 +8,9 @@ interface SidebarPanelProps {
     onClose: () => void;
     sidebarWidth: number;
     position?: 'left' | 'right';
+    agentRun?: AgentRun | null;
+    onStartAgent?: (task: string) => void;
+    onAbortAgent?: () => void;
 }
 
 const NotesWidget = () => {
@@ -245,7 +249,89 @@ const CalculatorWidget = () => {
     )
 }
 
-const SidebarPanel: React.FC<SidebarPanelProps> = ({ isOpen, appId, onClose, sidebarWidth, position = 'left' }) => {
+const AgentWidget = ({
+    run,
+    onStart,
+    onAbort
+}: {
+    run?: AgentRun | null;
+    onStart?: (task: string) => void;
+    onAbort?: () => void;
+}) => {
+    const [task, setTask] = useState('');
+    const latestEvent = run?.events[run.events.length - 1];
+    const isRunning = run?.status === 'running';
+
+    const handleRun = () => {
+        if (!task.trim()) return;
+        onStart?.(task.trim());
+    };
+
+    return (
+        <div className="flex flex-col h-full bg-zen-bg p-5 gap-4">
+            <div className="p-4 rounded-2xl bg-zen-surface border border-zen-border/50 shadow-sm">
+                <div className="text-xs font-bold text-zen-muted uppercase tracking-widest mb-2">Task</div>
+                <textarea
+                    className="w-full min-h-[120px] bg-zen-bg border border-zen-border rounded-xl p-3 text-sm text-zen-text focus:outline-none focus:border-zen-accent focus:ring-1 focus:ring-zen-accent/50 resize-none"
+                    placeholder="Describe what you want the agent to do..."
+                    value={task}
+                    onChange={(e) => setTask(e.target.value)}
+                />
+                <div className="mt-3 flex items-center gap-2">
+                    <button
+                        onClick={handleRun}
+                        disabled={isRunning}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors ${isRunning ? 'bg-zen-border text-zen-muted cursor-not-allowed' : 'bg-zen-accent text-white hover:bg-zen-accentHover'}`}
+                    >
+                        <Play className="w-3.5 h-3.5" />
+                        Run
+                    </button>
+                    <button
+                        onClick={() => onAbort?.()}
+                        disabled={!isRunning}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors ${!isRunning ? 'bg-zen-border text-zen-muted cursor-not-allowed' : 'bg-red-500/20 text-red-400 hover:bg-red-500/30'}`}
+                    >
+                        <Square className="w-3.5 h-3.5" />
+                        Stop
+                    </button>
+                </div>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-zen-surface border border-zen-border/50 shadow-sm flex-1 overflow-hidden">
+                <div className="text-xs font-bold text-zen-muted uppercase tracking-widest mb-2">Status</div>
+                <div className="text-sm font-semibold text-zen-text mb-2">
+                    {run ? run.status.toUpperCase() : 'IDLE'}
+                </div>
+                {latestEvent && (
+                    <div className="text-xs text-zen-muted mb-3">
+                        <div className="font-semibold">{latestEvent.actor} · {latestEvent.state}</div>
+                        <div className="mt-1">{latestEvent.details}</div>
+                        <div className="mt-1 opacity-70">Step {latestEvent.step + 1} / {latestEvent.maxSteps}</div>
+                    </div>
+                )}
+                {run?.error && (
+                    <div className="text-xs text-red-400 bg-red-500/10 border border-red-500/30 rounded-lg p-2 mb-2">
+                        {run.error}
+                    </div>
+                )}
+                <div className="text-[10px] font-bold text-zen-muted uppercase tracking-wider mb-2">Log</div>
+                <div className="space-y-2 text-xs text-zen-muted max-h-[220px] overflow-y-auto custom-scrollbar">
+                    {(run?.events || []).slice(-10).map((evt) => (
+                        <div key={evt.id} className="border border-zen-border/40 rounded-lg p-2 bg-zen-bg/40">
+                            <div className="font-semibold text-zen-text">{evt.actor} · {evt.state}</div>
+                            <div className="opacity-80">{evt.details}</div>
+                        </div>
+                    ))}
+                    {!run?.events?.length && (
+                        <div className="text-zen-muted/70">No events yet.</div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const SidebarPanel: React.FC<SidebarPanelProps> = ({ isOpen, appId, onClose, sidebarWidth, position = 'left', agentRun, onStartAgent, onAbortAgent }) => {
     const [key, setKey] = useState(0);
     const handleReload = () => setKey(prev => prev + 1);
     if (!appId) return null;
@@ -265,6 +351,11 @@ const SidebarPanel: React.FC<SidebarPanelProps> = ({ isOpen, appId, onClose, sid
             title = 'Calculator';
             isNative = true;
             content = <CalculatorWidget />;
+            break;
+        case 'agent':
+            title = 'Agent';
+            isNative = true;
+            content = <AgentWidget run={agentRun} onStart={onStartAgent} onAbort={onAbortAgent} />;
             break;
         case 'twitch':
             title = 'Twitch';

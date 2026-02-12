@@ -26,6 +26,29 @@ export interface GeneratedMedia {
   mimeType: string;
 }
 
+export type AgentRunStatus = 'idle' | 'running' | 'success' | 'error' | 'aborted';
+
+export interface AgentEvent {
+  id: string;
+  actor: string;
+  state: string;
+  details: string;
+  step: number;
+  maxSteps: number;
+  timestamp: number;
+}
+
+export interface AgentRun {
+  id: string;
+  task: string;
+  status: AgentRunStatus;
+  events: AgentEvent[];
+  startedAt: number;
+  finishedAt?: number;
+  result?: string;
+  error?: string;
+}
+
 export interface Message {
   id: string;
   role: Role;
@@ -108,6 +131,7 @@ export interface UserProfile {
   preferredImageModel?: string;
   openaiApiKey?: string;
   preferredOpenAIModel?: string;
+  nanobrowserModel?: string;
   sidebarPosition?: 'left' | 'right';
   sidebarAutoHide?: boolean;
   sidebarShowStatus?: boolean;

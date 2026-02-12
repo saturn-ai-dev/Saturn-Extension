@@ -9,9 +9,25 @@ const getGeminiApiKey = (): string => {
     return localStorage.getItem('gemini_api_key') || process.env.GEMINI_API_KEY || '';
 };
 
+const getGeminiApiKeySafe = (): string => {
+    try {
+        return getGeminiApiKey();
+    } catch {
+        return '';
+    }
+};
+
 // Helper to get OpenAI API Key
 const getOpenAIApiKey = (): string => {
     return localStorage.getItem('openai_api_key') || process.env.OPENAI_API_KEY || '';
+};
+
+const getOpenAIApiKeySafe = (): string => {
+    try {
+        return getOpenAIApiKey();
+    } catch {
+        return '';
+    }
 };
 
 // Helper to get Gemini Client
@@ -348,6 +364,64 @@ Return ONLY the title text. Do not suggest options. Do not include conversationa
     }
 }
 
+export const decideAgentUsage = async (
+    userText: string,
+    modelName: string
+): Promise<{ useAgent: boolean; task: string; reason: string }> => {
+    const fallback = { useAgent: false, task: '', reason: 'default' };
+    const prompt = `
+Decide if this request requires browser automation in the user's current Chrome tab.
+Return ONLY valid JSON with keys: useAgent (boolean), task (string), reason (short string).
+If useAgent is true, task must be a concrete, executable browser task.
+If not, task should be empty.
+User request: """${userText}"""
+`;
+
+    try {
+        const isOpenAI = modelName.startsWith('gpt') || modelName.includes('o1') || modelName.includes('o3');
+        const openaiKey = getOpenAIApiKeySafe();
+        const geminiKey = getGeminiApiKeySafe();
+
+        if (isOpenAI && openaiKey) {
+            const openai = getOpenAI();
+            const res = await openai.chat.completions.create({
+                model: modelName,
+                messages: [
+                    { role: 'system', content: 'You are a strict JSON classifier.' },
+                    { role: 'user', content: prompt }
+                ],
+                temperature: 0
+            });
+            const text = res.choices[0]?.message?.content?.trim() || '';
+            const parsed = JSON.parse(text);
+            return {
+                useAgent: !!parsed.useAgent,
+                task: String(parsed.task || ''),
+                reason: String(parsed.reason || '')
+            };
+        }
+
+        if (!geminiKey) {
+            return { ...fallback, reason: 'no_keys' };
+        }
+
+        const ai = getGeminiAI();
+        const response = await ai.models.generateContent({
+            model: 'gemini-flash-lite-latest',
+            contents: [{ role: 'user', parts: [{ text: prompt }] }],
+            config: { responseModalities: ['TEXT'] }
+        });
+        const text = response.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
+        const parsed = JSON.parse(text);
+        return {
+            useAgent: !!parsed.useAgent,
+            task: String(parsed.task || ''),
+            reason: String(parsed.reason || '')
+        };
+    } catch (e) {
+        return { ...fallback, reason: 'error' };
+    }
+};
 const getExtensionInstructions = (extensions: Extension[]): string => {
     if (!extensions || extensions.length === 0) return "";
     // Format clearly so the model recognizes these as distinct behavioral modifiers

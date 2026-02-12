@@ -35,6 +35,7 @@ interface SettingsModalProps {
     // Model
     onSetModel: (model: string) => void;
     onSetImageModel: (model: string) => void;
+    onSetNanobrowserModel: (model: string) => void;
     onResetLayout: () => void;
     onUpdateSidebarSetting: (key: keyof UserProfile, value: any) => void;
 
@@ -52,7 +53,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     customBackdrop, setCustomBackdrop, enabledSidebarApps, toggleSidebarApp,
     currentUser, users, onSwitchUser, onAddUser, downloads, availableExtensions,
     onToggleExtension, onCreateExtension, onDeleteExtension,
-    onAddCustomShortcut, onDeleteCustomShortcut, onSetModel, onSetImageModel,
+    onAddCustomShortcut, onDeleteCustomShortcut, onSetModel, onSetImageModel, onSetNanobrowserModel,
     onResetLayout, onUpdateSidebarSetting,
     tabs, setTabs, archivedTabs, setArchivedTabs, customInstructions, setCustomInstructions
 }) => {
@@ -186,6 +187,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     const sidebarAppsList = [
         { id: 'notes', label: 'Notes' },
         { id: 'calculator', label: 'Calculator' },
+        { id: 'agent', label: 'Agent' },
         { id: 'spotify', label: 'Spotify' },
         { id: 'twitch', label: 'Twitch' },
         { id: 'whatsapp', label: 'WhatsApp' },
@@ -359,6 +361,26 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                                 </button>
                                             ))}
                                         </div>
+
+                                        <div className="mb-2 text-[10px] font-bold text-zen-muted uppercase tracking-wider">Nanobrowser Agent Model</div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+                                            {[
+                                                { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', desc: 'Fast agent loops' },
+                                                { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', desc: 'Stronger planning' },
+                                                { id: 'gpt-5-mini', name: 'GPT-5 Mini', desc: 'OpenAI fast' },
+                                                { id: 'gpt-4o-2024-11-20', name: 'GPT-4o', desc: 'OpenAI reliable' },
+                                            ].map(model => (
+                                                <button
+                                                    key={model.id}
+                                                    onClick={() => onSetNanobrowserModel(model.id)}
+                                                    className={`p-3 rounded-xl border text-left transition-all ${currentUser.nanobrowserModel === model.id || (!currentUser.nanobrowserModel && model.id === 'gemini-2.5-flash') ? 'bg-zen-bg border-zen-accent shadow-md' : 'bg-zen-bg/50 border-zen-border hover:bg-zen-bg'}`}
+                                                >
+                                                    <div className="text-sm font-bold text-zen-text">{model.name}</div>
+                                                    <div className="text-xs text-zen-muted">{model.desc}</div>
+                                                </button>
+                                            ))}
+                                        </div>
+                                        <div className="text-xs text-zen-muted/70 mb-4">Uses your existing Gemini/OpenAI API keys.</div>
 
                                         {/* Layout Settings */}
                                         <div className="flex items-center justify-between p-4 rounded-xl bg-zen-bg/30 border border-zen-border/50 mb-4">

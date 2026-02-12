@@ -1,0 +1,3 @@
+[submodule "vendor/nanobrowser"]
+	path = vendor/nanobrowser
+	url = https://github.com/nanobrowser/nanobrowser

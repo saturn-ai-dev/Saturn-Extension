@@ -60,3 +60,7 @@ Open settings and paste your API key. You can also select models based on your p
 - **Code Execution Not Working?** Ensure you are using the latest version; we use a secure sandbox for `eval()` operations.
 
 Built using **React**, **Vite**, **TailwindCSS**, and **Google Gemini** by **Saksham Loonker**, **Vivan Jhaveri** and **Kian Pipalia**.
+
+## Third-Party Components
+
+- Nanobrowser submodule at `vendor/nanobrowser` (commit `322384f8b4d48d8614343e51efca68c85e64f90b`), licensed under Apache-2.0.

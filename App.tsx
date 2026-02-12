@@ -6,8 +6,9 @@ import SidebarPanel from './components/SidebarPanel';
 import MessageBubble from './components/MessageBubble';
 import InputArea from './components/InputArea';
 import SettingsModal from './components/SettingsModal';
-import { Tab, Message, Role, SearchMode, Attachment, Theme, Bookmark, DownloadItem, UserProfile, Extension, BrowserState, CustomShortcut, HistoryItem, ThreadGroup } from './types';
-import { createNewTab, streamGeminiResponse, generateImage, generateVideoWithModel, generateChatTitle } from './services/geminiService';
+import { Tab, Message, Role, SearchMode, Attachment, Theme, Bookmark, DownloadItem, UserProfile, Extension, BrowserState, CustomShortcut, HistoryItem, ThreadGroup, AgentRun, AgentEvent } from './types';
+import { createNewTab, streamGeminiResponse, generateImage, generateVideoWithModel, generateChatTitle, decideAgentUsage } from './services/geminiService';
+import { sendNanobrowserMessage } from './services/nanobrowserService';
 import { X } from 'lucide-react';
 
 const DEFAULT_USER: UserProfile = {
@@ -16,10 +17,11 @@ const DEFAULT_USER: UserProfile = {
     theme: 'red',
     avatarColor: 'bg-red-600',
     enabledExtensions: [],
-    enabledSidebarApps: ['notes', 'calculator', 'spotify', 'whatsapp', 'youtube', 'reddit', 'x'],
+    enabledSidebarApps: ['notes', 'calculator', 'agent', 'spotify', 'whatsapp', 'youtube', 'reddit', 'x'],
     customShortcuts: [],
     preferredModel: 'gemini-flash-latest',
     preferredImageModel: 'gemini-2.5-flash-image',
+    nanobrowserModel: 'gemini-2.5-flash',
     sidebarPosition: 'left',
     sidebarAutoHide: false,
     sidebarShowStatus: true,
@@ -70,6 +72,7 @@ export default function App({ mode = 'full' }: AppProps) {
             if (!user.enabledExtensions) user.enabledExtensions = [];
             if (!user.customShortcuts) user.customShortcuts = [];
             if (user.autoRenameChats === undefined) user.autoRenameChats = true;
+            if (!user.nanobrowserModel) user.nanobrowserModel = 'gemini-2.5-flash';
             return user;
         } catch { return DEFAULT_USER; }
     });
@@ -92,6 +95,7 @@ export default function App({ mode = 'full' }: AppProps) {
     const [globalHistory, setGlobalHistory] = useState<HistoryItem[]>([]);
     const [customInstructions, setCustomInstructions] = useState<string>('');
     const [draft, setDraft] = useState<{ text: string, timestamp: number } | undefined>(undefined);
+    const [agentRun, setAgentRun] = useState<AgentRun | null>(null);
 
     // Sidebar State
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -216,6 +220,55 @@ export default function App({ mode = 'full' }: AppProps) {
         }
     }, [currentTheme, isIncognito]);
 
+    useEffect(() => {
+        if (!chrome?.runtime?.onMessage) return;
+        const handler = (message: any) => {
+            if (!message || !message.type) return;
+
+            if (message.type === 'NANO_AGENT_EVENT') {
+                const event = message.event as AgentEvent;
+                const runId = message.runId as string;
+                setAgentRun(prev => {
+                    if (!prev || prev.id !== runId) return prev;
+                    return { ...prev, events: [...prev.events, event] };
+                });
+                return;
+            }
+
+            if (message.type === 'NANO_AGENT_DONE') {
+                const runId = message.runId as string;
+                const result = message.result as string;
+                const status = message.status as AgentRun['status'];
+                setAgentRun(prev => {
+                    if (!prev || prev.id !== runId) return prev;
+                    return { ...prev, status: status || 'success', result, finishedAt: Date.now() };
+                });
+                if (result) {
+                    const botMsg: Message = {
+                        id: Date.now().toString(),
+                        role: Role.MODEL,
+                        content: result,
+                        timestamp: Date.now()
+                    };
+                    setTabs(prev => prev.map(tab => tab.id === activeTabId ? { ...tab, messages: [...tab.messages, botMsg] } : tab));
+                }
+                return;
+            }
+
+            if (message.type === 'NANO_AGENT_ERROR') {
+                const runId = message.runId as string;
+                const error = message.error as string;
+                setAgentRun(prev => {
+                    if (!prev || prev.id !== runId) return prev;
+                    return { ...prev, status: 'error', error, finishedAt: Date.now() };
+                });
+            }
+        };
+
+        chrome.runtime.onMessage.addListener(handler);
+        return () => chrome.runtime.onMessage.removeListener(handler);
+    }, [activeTabId]);
+
     const toggleIncognito = () => {
         const newState = !isIncognito;
         setIsIncognito(newState);
@@ -247,7 +300,7 @@ export default function App({ mode = 'full' }: AppProps) {
 
     const handleOpenApp = (appId: string) => {
         // Apps that should open in the sidebar panel
-        const sidebarWidgets = ['notes', 'calculator', 'twitch'];
+        const sidebarWidgets = ['notes', 'calculator', 'twitch', 'agent'];
 
         // Apps that should open in a new browser tab
         const externalLinks: Record<string, string> = {
@@ -279,9 +332,11 @@ export default function App({ mode = 'full' }: AppProps) {
     const handleSwitchUser = (userId: string) => {
         const user = users.find(u => u.id === userId);
         if (user) {
-            if (!user.enabledSidebarApps) user.enabledSidebarApps = ['notes', 'calculator', 'spotify', 'whatsapp', 'youtube', 'reddit', 'x'];
+            if (!user.enabledSidebarApps) user.enabledSidebarApps = ['notes', 'calculator', 'agent', 'spotify', 'whatsapp', 'youtube', 'reddit', 'x'];
             if (!user.customShortcuts) user.customShortcuts = [];
             if (user.autoRenameChats === undefined) user.autoRenameChats = true;
+            if (!user.preferredImageModel) user.preferredImageModel = 'gemini-2.5-flash-image';
+            if (!user.nanobrowserModel) user.nanobrowserModel = 'gemini-2.5-flash';
             setCurrentUser(user);
         }
     };
@@ -293,10 +348,12 @@ export default function App({ mode = 'full' }: AppProps) {
             theme: 'red',
             avatarColor: AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)],
             enabledExtensions: [],
-            enabledSidebarApps: ['notes', 'calculator', 'spotify', 'whatsapp', 'youtube', 'reddit', 'x'],
+            enabledSidebarApps: ['notes', 'calculator', 'agent', 'spotify', 'whatsapp', 'youtube', 'reddit', 'x'],
             customShortcuts: [],
             autoRenameChats: true,
             preferredModel: 'gemini-flash-latest',
+            preferredImageModel: 'gemini-2.5-flash-image',
+            nanobrowserModel: 'gemini-2.5-flash',
             sidebarPosition: 'left',
             sidebarAutoHide: false,
             sidebarShowStatus: true,
@@ -359,6 +416,12 @@ export default function App({ mode = 'full' }: AppProps) {
 
     const handleSetImageModel = (model: string) => {
         const updatedUser = { ...currentUser, preferredImageModel: model };
+        setCurrentUser(updatedUser);
+        setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
+    };
+
+    const handleSetNanobrowserModel = (model: string) => {
+        const updatedUser = { ...currentUser, nanobrowserModel: model };
         setCurrentUser(updatedUser);
         setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
     };
@@ -509,6 +572,60 @@ export default function App({ mode = 'full' }: AppProps) {
         setDraft({ text, timestamp: Date.now() });
     };
 
+    const handleStartAgent = async (task: string) => {
+        const trimmed = task.trim();
+        if (!trimmed) return;
+        if (agentRun?.status === 'running') {
+            setAgentRun(prev => prev ? { ...prev, error: 'An agent run is already active.' } : prev);
+            return;
+        }
+
+        const runId = `nano-${Date.now()}`;
+        const model = currentUser.nanobrowserModel || currentUser.preferredModel || 'gemini-2.5-flash';
+        const apiKeys = {
+            gemini: localStorage.getItem('gemini_api_key') || '',
+            openai: localStorage.getItem('openai_api_key') || ''
+        };
+
+        const newRun: AgentRun = {
+            id: runId,
+            task: trimmed,
+            status: 'running',
+            events: [{
+                id: `${runId}-local-start`,
+                actor: 'system',
+                state: 'task.starting',
+                details: 'Starting agent...',
+                step: 0,
+                maxSteps: 0,
+                timestamp: Date.now()
+            }],
+            startedAt: Date.now()
+        };
+        setAgentRun(newRun);
+
+        try {
+            const response = await sendNanobrowserMessage({
+                type: 'NANO_AGENT_START',
+                runId,
+                task: trimmed,
+                model,
+                apiKeys
+            });
+            if (!response.ok) {
+                setAgentRun(prev => prev && prev.id === runId ? { ...prev, status: 'error', error: response.error || 'Failed to start agent.' } : prev);
+            }
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            setAgentRun(prev => prev && prev.id === runId ? { ...prev, status: 'error', error: message } : prev);
+        }
+    };
+
+    const handleAbortAgent = async () => {
+        if (!agentRun || agentRun.status !== 'running') return;
+        await sendNanobrowserMessage({ type: 'NANO_AGENT_ABORT', runId: agentRun.id });
+    };
+
     const handleSendMessage = async (text: string, attachments?: Attachment[], modeOverride?: SearchMode) => {
         const currentTabId = activeTabId;
         const effectiveMode = modeOverride || searchMode;
@@ -551,6 +668,31 @@ export default function App({ mode = 'full' }: AppProps) {
 
         const currentTab = tabs.find(t => t.id === currentTabId);
         const history = currentTab ? [...currentTab.messages, userMsg] : [userMsg];
+
+        if (effectiveMode !== 'image' && effectiveMode !== 'video' && effectiveMode !== 'simple' && trimmedText) {
+            const agentDecision = await decideAgentUsage(trimmedText, currentUser.preferredModel || 'gemini-flash-latest');
+            console.log('[AgentRouter]', agentDecision);
+            const fallbackHeuristic = agentDecision.reason === 'error' || agentDecision.reason === 'no_keys';
+            const keywordHeuristic = /(\bopen\b|\bclick\b|\bgo to\b|\bnavigate\b|\bbook\b|\border\b|\bsign in\b|\blogin\b|\bsearch\b|\bfill\b)/i;
+            const shouldAutoAgent = (agentDecision.useAgent && agentDecision.task) ||
+                (fallbackHeuristic && keywordHeuristic.test(trimmedText));
+            const taskToRun = agentDecision.task || trimmedText;
+
+            if (shouldAutoAgent) {
+                setTabs(prev => prev.map(tab => tab.id === currentTabId ? {
+                    ...tab,
+                    messages: tab.messages.map(m => m.id === botMsgId ? { ...m, isStreaming: false, content: 'Starting agent… See the Agent panel for live status.' } : m)
+                } : tab));
+
+                if (activeSidebarApp !== 'agent') {
+                    setActiveSidebarApp('agent');
+                    if (isSidebarOpen) setIsSidebarOpen(false);
+                }
+
+                await handleStartAgent(taskToRun);
+                return;
+            }
+        }
 
         if (effectiveMode === 'simple') {
             setTabs(prev => prev.map(tab => tab.id === currentTabId ? { ...tab, messages: tab.messages.map(m => m.id === botMsgId ? { ...m, isStreaming: false, content: '' } : m) } : tab));
@@ -719,6 +861,9 @@ export default function App({ mode = 'full' }: AppProps) {
                 onClose={() => setActiveSidebarApp(null)}
                 sidebarWidth={sidebarWidth}
                 position={currentUser.sidebarPosition || 'left'}
+                agentRun={agentRun}
+                onStartAgent={handleStartAgent}
+                onAbortAgent={handleAbortAgent}
             />
 
             <div
@@ -754,6 +899,7 @@ export default function App({ mode = 'full' }: AppProps) {
                     onDeleteCustomShortcut={handleDeleteCustomShortcut}
                     onSetModel={handleSetModel}
                     onSetImageModel={handleSetImageModel}
+                    onSetNanobrowserModel={handleSetNanobrowserModel}
                     onResetLayout={handleResetLayout}
                     onUpdateSidebarSetting={handleUpdateSidebarSetting}
                     tabs={tabs}

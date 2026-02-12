@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Settings, LayoutGrid, FileText, Calculator, Twitch, Menu, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Settings, LayoutGrid, FileText, Calculator, Twitch, Menu, ChevronLeft, ChevronRight, Bot } from 'lucide-react';
 import { CustomShortcut } from '../types';
 
 interface SaturnSidebarProps {
@@ -70,6 +70,7 @@ const SaturnSidebar: React.FC<SaturnSidebarProps> = ({
     const apps = [
         { id: 'notes', label: 'Notes', icon: <FileText className="w-[18px] h-[18px]" /> },
         { id: 'calculator', label: 'Calculator', icon: <Calculator className="w-[18px] h-[18px]" /> },
+        { id: 'agent', label: 'Agent', icon: <Bot className="w-[18px] h-[18px]" /> },
         { id: 'spotify', label: 'Music', icon: <SpotifyLogo className="w-[18px] h-[18px]" /> },
         { id: 'twitch', label: 'Twitch', icon: <Twitch className="w-[18px] h-[18px]" /> },
         { id: 'whatsapp', label: 'WhatsApp', icon: <WhatsAppLogo className="w-[18px] h-[18px]" /> },

@@ -21,6 +21,30 @@
     "paths": {
       "@/*": [
         "./*"
+      ],
+      "@src/*": [
+        "./vendor/nanobrowser/chrome-extension/src/*"
+      ],
+      "@src/background/services/analytics": [
+        "./services/nanobrowser/analytics.ts"
+      ],
+      "posthog-js/dist/module.no-external": [
+        "./services/nanobrowser/posthogStub.ts"
+      ],
+      "@puppeteer/browsers": [
+        "./services/nanobrowser/puppeteerBrowsersStub.ts"
+      ],
+      "@extension/storage": [
+        "./vendor/nanobrowser/packages/storage"
+      ],
+      "@extension/storage/*": [
+        "./vendor/nanobrowser/packages/storage/*"
+      ],
+      "@extension/i18n": [
+        "./services/nanobrowser/i18n.ts"
+      ],
+      "@extension/*": [
+        "./vendor/nanobrowser/packages/*"
       ]
     },
     "allowImportingTsExtensions": true,
