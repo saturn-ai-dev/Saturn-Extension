@@ -7,6 +7,7 @@ A sleek, AI-powered browser workspace that transforms your new tab page into a p
 - **AI-Powered New Tab**: Instant access to Google Gemini directly from your home screen.
 - **Source Grounding**: AI responses come with verifiable citations and links.
 - **Smart Widgets**: Built-in Calculator, Scratchpad, and Dashboard.
+- **Agentic Browser Automation**: Run Nanobrowser-powered tasks inside your existing Chrome tab.
 - **Beautiful Themes**: Switch between Glass, Galaxy, Midnight, and more.
 - **Secure Sandbox**: Safe code execution environment for math and programming tasks.
 - **Privacy Focused**: Your data stays local; only AI queries are sent to the API.
@@ -52,6 +53,18 @@ This will create a `dist` folder in your project directory containing the compil
 
 ### 3. Configure API Key
 Open settings and paste your API key. You can also select models based on your preference and tier of your Gemini API key.
+
+## 🤖 Nanobrowser Agent
+
+Saturn integrates **Nanobrowser** to automate tasks in your current Chrome tab.
+
+### How to use
+- Open the **Agent** panel from the sidebar and enter a task.
+- Or simply describe a task in the main chat; Saturn will automatically decide if it should trigger the agent.
+
+### Notes
+- The agent runs in your **existing** browser tab (not a separate headless browser).
+- It uses the same API keys you already configured in Settings.
 
 ## 🧩 Troubleshooting
 
