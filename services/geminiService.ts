@@ -370,10 +370,26 @@ export const decideAgentUsage = async (
 ): Promise<{ useAgent: boolean; task: string; reason: string }> => {
     const fallback = { useAgent: false, task: '', reason: 'default' };
     const prompt = `
-Decide if this request requires browser automation in the user's current Chrome tab.
+You are a router deciding whether a user request needs a browser automation agent or can be handled directly by an AI assistant.
+
+Use the agent (useAgent: true) ONLY when the task requires actively controlling a browser — clicking, navigating, filling forms, or interacting with a live website. Examples:
+- "Book me a flight to Tokyo on Google Flights"
+- "Go to amazon.com and add the cheapest USB-C cable to my cart"
+- "Log into my GitHub and close issue #42"
+- "Fill out the contact form on this page"
+- "Open YouTube and play the first result for lo-fi music"
+
+Do NOT use the agent (useAgent: false) when the request is something an AI can answer directly without touching a browser. Examples:
+- "Search for the best JavaScript frameworks" → just an information request, AI can answer
+- "What is the capital of France?" → factual question
+- "Summarize this text" → no browser needed
+- "How do I center a div in CSS?" → AI can explain directly
+- "What's the weather like in London?" → AI can answer with knowledge or a web search tool
+
 Return ONLY valid JSON with keys: useAgent (boolean), task (string), reason (short string).
-If useAgent is true, task must be a concrete, executable browser task.
-If not, task should be empty.
+If useAgent is true, task must be a concrete, executable browser task description.
+If useAgent is false, task should be empty.
+
 User request: """${userText}"""
 `;
 
@@ -387,7 +403,7 @@ User request: """${userText}"""
             const res = await openai.chat.completions.create({
                 model: modelName,
                 messages: [
-                    { role: 'system', content: 'You are a strict JSON classifier.' },
+                    { role: 'system', content: 'You are a strict JSON router. Only trigger browser automation for tasks that require actively controlling a browser. Never trigger it for questions or information lookups an AI can answer directly.' },
                     { role: 'user', content: prompt }
                 ],
                 temperature: 0
