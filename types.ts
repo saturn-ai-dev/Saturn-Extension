@@ -132,6 +132,7 @@ export interface UserProfile {
   openaiApiKey?: string;
   preferredOpenAIModel?: string;
   nanobrowserModel?: string;
+  nanobrowserVision?: boolean;
   sidebarPosition?: 'left' | 'right';
   sidebarAutoHide?: boolean;
   sidebarShowStatus?: boolean;

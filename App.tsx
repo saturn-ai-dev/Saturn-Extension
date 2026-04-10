@@ -22,6 +22,7 @@ const DEFAULT_USER: UserProfile = {
     preferredModel: 'gemini-flash-latest',
     preferredImageModel: 'gemini-2.5-flash-image',
     nanobrowserModel: 'gemini-2.5-flash',
+    nanobrowserVision: true,
     sidebarPosition: 'left',
     sidebarAutoHide: false,
     sidebarShowStatus: true,
@@ -73,6 +74,7 @@ export default function App({ mode = 'full' }: AppProps) {
             if (!user.customShortcuts) user.customShortcuts = [];
             if (user.autoRenameChats === undefined) user.autoRenameChats = true;
             if (!user.nanobrowserModel) user.nanobrowserModel = 'gemini-2.5-flash';
+            if (user.nanobrowserVision === undefined) user.nanobrowserVision = true;
             return user;
         } catch { return DEFAULT_USER; }
     });
@@ -337,6 +339,7 @@ export default function App({ mode = 'full' }: AppProps) {
             if (user.autoRenameChats === undefined) user.autoRenameChats = true;
             if (!user.preferredImageModel) user.preferredImageModel = 'gemini-2.5-flash-image';
             if (!user.nanobrowserModel) user.nanobrowserModel = 'gemini-2.5-flash';
+            if (user.nanobrowserVision === undefined) user.nanobrowserVision = true;
             setCurrentUser(user);
         }
     };
@@ -422,6 +425,12 @@ export default function App({ mode = 'full' }: AppProps) {
 
     const handleSetNanobrowserModel = (model: string) => {
         const updatedUser = { ...currentUser, nanobrowserModel: model };
+        setCurrentUser(updatedUser);
+        setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
+    };
+
+    const handleToggleNanobrowserVision = () => {
+        const updatedUser = { ...currentUser, nanobrowserVision: !(currentUser.nanobrowserVision !== false) };
         setCurrentUser(updatedUser);
         setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
     };
@@ -610,7 +619,8 @@ export default function App({ mode = 'full' }: AppProps) {
                 runId,
                 task: trimmed,
                 model,
-                apiKeys
+                apiKeys,
+                useVision: currentUser.nanobrowserVision !== false,
             });
             if (!response.ok) {
                 setAgentRun(prev => prev && prev.id === runId ? { ...prev, status: 'error', error: response.error || 'Failed to start agent.' } : prev);
@@ -673,7 +683,7 @@ export default function App({ mode = 'full' }: AppProps) {
             const agentDecision = await decideAgentUsage(trimmedText, currentUser.preferredModel || 'gemini-flash-latest');
             console.log('[AgentRouter]', agentDecision);
             const fallbackHeuristic = agentDecision.reason === 'error' || agentDecision.reason === 'no_keys';
-            const keywordHeuristic = /(\bopen\b|\bclick\b|\bgo to\b|\bnavigate\b|\bbook\b|\border\b|\bsign in\b|\blogin\b|\bsearch\b|\bfill\b)/i;
+            const keywordHeuristic = /(\bopen\b|\bclick\b|\bgo to\b|\bnavigate\b|\bbook\b|\border\b|\bsign in\b|\blogin\b|\bfill out\b|\bsubmit the\b)/i;
             const shouldAutoAgent = (agentDecision.useAgent && agentDecision.task) ||
                 (fallbackHeuristic && keywordHeuristic.test(trimmedText));
             const taskToRun = agentDecision.task || trimmedText;
@@ -900,6 +910,7 @@ export default function App({ mode = 'full' }: AppProps) {
                     onSetModel={handleSetModel}
                     onSetImageModel={handleSetImageModel}
                     onSetNanobrowserModel={handleSetNanobrowserModel}
+                    onToggleNanobrowserVision={handleToggleNanobrowserVision}
                     onResetLayout={handleResetLayout}
                     onUpdateSidebarSetting={handleUpdateSidebarSetting}
                     tabs={tabs}

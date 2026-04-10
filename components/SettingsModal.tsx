@@ -36,6 +36,7 @@ interface SettingsModalProps {
     onSetModel: (model: string) => void;
     onSetImageModel: (model: string) => void;
     onSetNanobrowserModel: (model: string) => void;
+    onToggleNanobrowserVision: () => void;
     onResetLayout: () => void;
     onUpdateSidebarSetting: (key: keyof UserProfile, value: any) => void;
 
@@ -54,7 +55,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     currentUser, users, onSwitchUser, onAddUser, downloads, availableExtensions,
     onToggleExtension, onCreateExtension, onDeleteExtension,
     onAddCustomShortcut, onDeleteCustomShortcut, onSetModel, onSetImageModel, onSetNanobrowserModel,
-    onResetLayout, onUpdateSidebarSetting,
+    onToggleNanobrowserVision, onResetLayout, onUpdateSidebarSetting,
     tabs, setTabs, archivedTabs, setArchivedTabs, customInstructions, setCustomInstructions
 }) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -379,6 +380,18 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                                     <div className="text-xs text-zen-muted">{model.desc}</div>
                                                 </button>
                                             ))}
+                                        </div>
+                                        <div className="flex items-center justify-between p-4 rounded-xl bg-zen-bg/30 border border-zen-border/50 mb-3">
+                                            <div>
+                                                <div className="text-sm font-bold text-zen-text">Agent Vision</div>
+                                                <div className="text-xs text-zen-muted">Send screenshots to the agent so it can see the page</div>
+                                            </div>
+                                            <button
+                                                onClick={onToggleNanobrowserVision}
+                                                className={`w-11 h-6 rounded-full p-0.5 transition-colors relative ${currentUser.nanobrowserVision !== false ? 'bg-zen-accent' : 'bg-zen-border'}`}
+                                            >
+                                                <div className={`w-5 h-5 bg-white rounded-full shadow-md transition-transform ${currentUser.nanobrowserVision !== false ? 'translate-x-5' : 'translate-x-0'}`} />
+                                            </button>
                                         </div>
                                         <div className="text-xs text-zen-muted/70 mb-4">Uses your existing Gemini/OpenAI API keys.</div>
 

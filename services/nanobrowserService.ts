@@ -9,6 +9,7 @@ export interface NanobrowserStartMessage {
   task: string;
   model: string;
   apiKeys: NanobrowserApiKeys;
+  useVision?: boolean;
 }
 
 export interface NanobrowserAbortMessage {

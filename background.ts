@@ -147,14 +147,15 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       await browserContext.switchTab(tab.id);
       await injectBuildDomTreeScripts(tab.id);
 
+      const useVision = message.useVision !== undefined ? message.useVision : settings.useVision;
       currentExecutor = new Executor(task, runId, browserContext, navigatorLLM, {
         plannerLLM,
         agentOptions: {
           maxSteps: settings.maxSteps,
           maxFailures: settings.maxFailures,
           maxActionsPerStep: settings.maxActionsPerStep,
-          useVision: settings.useVision,
-          useVisionForPlanner: settings.useVisionForPlanner,
+          useVision,
+          useVisionForPlanner: useVision,
           planningInterval: settings.planningInterval,
         },
         generalSettings: settings,
