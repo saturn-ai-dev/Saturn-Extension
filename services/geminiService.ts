@@ -372,19 +372,30 @@ export const decideAgentUsage = async (
     const prompt = `
 You are a router deciding whether a user request needs a browser automation agent or can be handled directly by an AI assistant.
 
-Use the agent (useAgent: true) ONLY when the task requires actively controlling a browser — clicking, navigating, filling forms, or interacting with a live website. Examples:
-- "Book me a flight to Tokyo on Google Flights"
-- "Go to amazon.com and add the cheapest USB-C cable to my cart"
-- "Log into my GitHub and close issue #42"
-- "Fill out the contact form on this page"
-- "Open YouTube and play the first result for lo-fi music"
+The key question: does this require physically doing something on a website (navigating, clicking, logging in, buying, submitting), or is it just asking for information/knowledge?
 
-Do NOT use the agent (useAgent: false) when the request is something an AI can answer directly without touching a browser. Examples:
-- "Search for the best JavaScript frameworks" → just an information request, AI can answer
-- "What is the capital of France?" → factual question
-- "Summarize this text" → no browser needed
-- "How do I center a div in CSS?" → AI can explain directly
-- "What's the weather like in London?" → AI can answer with knowledge or a web search tool
+Use the agent (useAgent: true) — task involves acting on or fetching live data from the web:
+- "Book me a flight to Tokyo on Google Flights" → true
+- "Add the cheapest USB-C cable on Amazon to my cart" → true
+- "Go to my GitHub and close issue #42" → true
+- "Open YouTube and play lo-fi music" → true
+- "Search for 'noise cancelling headphones' on Amazon and show me the results" → true
+- "What's the current price of the iPhone 16 on Apple's website?" → true
+- "Check my subscriber count on YouTube Studio" → true (must navigate to YT Studio)
+- "What are my recent orders on Amazon?" → true (must log in and check)
+- "Check my Gmail inbox" → true (must open Gmail)
+- "How many followers do I have on Instagram?" → true (must visit the page)
+- "What's trending on Twitter right now?" → true (live feed)
+
+Do NOT use the agent (useAgent: false) — AI can answer from its own knowledge:
+- "Search the capital of France" → false
+- "What are the best JavaScript frameworks?" → false
+- "How do I center a div?" → false
+- "Find me a pasta recipe" → false
+- "What's the weather in London?" → false (AI can answer from knowledge)
+- "Summarize this text" → false
+
+Rule of thumb: if the answer requires visiting a specific website or the user's personal account/data on a site → true. If an AI can just answer it → false.
 
 Return ONLY valid JSON with keys: useAgent (boolean), task (string), reason (short string).
 If useAgent is true, task must be a concrete, executable browser task description.
