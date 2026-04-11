@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Plus, Settings, LayoutGrid, FileText, Calculator, Twitch, Menu, ChevronLeft, ChevronRight } from 'lucide-react';
 import { CustomShortcut } from '../types';
 
@@ -13,7 +13,7 @@ interface SaturnSidebarProps {
     customShortcuts: CustomShortcut[];
     width: number;
     onWidthChange: (width: number) => void;
-    position?: 'left' | 'right';
+    position?: 'left' | 'right' | 'top' | 'bottom';
     autoHide?: boolean;
     showStatus?: boolean;
     glassIntensity?: number;
@@ -80,238 +80,269 @@ const SaturnSidebar: React.FC<SaturnSidebarProps> = ({
 
     const displayedApps = apps.filter(app => enabledApps.includes(app.id));
 
+    const isHorizontal = position === 'top' || position === 'bottom';
+
     const [isResizing, setIsResizing] = useState(false);
     const [lastExpandedWidth, setLastExpandedWidth] = useState(240);
     const [isHovered, setIsHovered] = useState(false);
-    
-    // Auto-hide logic: collapse when not hovered, but only if autoHide is enabled
-    // and we are not currently resizing
+    const [hoverLabel, setHoverLabel] = useState<{ title: string; top: number; anchorRight: number; anchorLeft: number; height: number } | null>(null);
+    const sidebarRef = useRef<HTMLDivElement>(null);
+
+    const onIconHover = useCallback((info: { title: string; top: number; anchorRight: number; anchorLeft: number; height: number } | null) => {
+        setHoverLabel(info);
+    }, []);
+
     const isActuallyExpanded = (autoHide ? (isHovered || isHistoryOpen) : true) && width > 100;
     const isExpanded = width > 100;
 
     const handleToggle = () => {
-        if (isExpanded) {
-            setLastExpandedWidth(width);
-            onWidthChange(55);
-        } else {
-            onWidthChange(lastExpandedWidth);
-        }
+        if (isExpanded) { setLastExpandedWidth(width); onWidthChange(55); }
+        else { onWidthChange(lastExpandedWidth); }
     };
 
     useEffect(() => {
         const handleMouseMove = (e: MouseEvent) => {
             if (!isResizing) return;
-            
-            let newWidth;
-            if (position === 'left') {
-                newWidth = e.clientX - 12;
-            } else {
-                newWidth = window.innerWidth - e.clientX - 12;
-            }
-
-            if (newWidth > 50 && newWidth < 500) {
-                onWidthChange(newWidth);
-            }
+            let newWidth = position === 'left' ? e.clientX - 12 : window.innerWidth - e.clientX - 12;
+            if (newWidth > 50 && newWidth < 500) onWidthChange(newWidth);
         };
-
-        const handleMouseUp = () => {
-            setIsResizing(false);
-            document.body.style.cursor = 'default';
-        };
-
+        const handleMouseUp = () => { setIsResizing(false); document.body.style.cursor = 'default'; };
         if (isResizing) {
             window.addEventListener('mousemove', handleMouseMove);
             window.addEventListener('mouseup', handleMouseUp);
             document.body.style.cursor = 'ew-resize';
         }
-
-        return () => {
-            window.removeEventListener('mousemove', handleMouseMove);
-            window.removeEventListener('mouseup', handleMouseUp);
-        };
+        return () => { window.removeEventListener('mousemove', handleMouseMove); window.removeEventListener('mouseup', handleMouseUp); };
     }, [isResizing, onWidthChange, position]);
 
-    // Simple icon button component for cleaner code
+    // Glass bg opacity: glassIntensity 0 = opaque, 100 = very transparent
+    const bgOpacity = Math.max(0.15, 0.85 - (glassIntensity / 100) * 0.65);
+
+    const glowShadow = isHovered
+        ? `0 0 0 1.5px var(--accent-glow), 0 8px 48px -4px var(--accent-glow), 0 0 80px -8px var(--accent-glow)`
+        : `0 4px 24px rgba(0,0,0,0.18)`;
+
+    // --- Icon Button ---
     const IconButton = ({
-        onClick,
-        isActive = false,
-        title,
-        children,
-        className = "",
-        color = "text-zen-muted/70"
+        onClick, isActive = false, title, children, className = "", color = "text-zen-muted/60", horizontal = false
     }: {
-        onClick: () => void;
-        isActive?: boolean;
-        title: string;
-        children: React.ReactNode;
-        className?: string;
-        color?: string;
-    }) => (
-        <button
-            onClick={onClick}
-            className={`
-                h-10 rounded-xl flex items-center transition-all duration-300 relative group shrink-0
-                ${isActuallyExpanded ? 'w-full px-3 gap-3 justify-start' : 'w-10 justify-center'}
-                ${isActive
-                    ? 'bg-zen-accent/10 text-zen-accent shadow-[inset_0_0_0_1px_rgba(var(--zen-accent-rgb),0.1)]'
-                    : `hover:bg-zen-text/5 ${color} hover:text-zen-text`
-                }
-                ${className}
-            `}
-            title={!isActuallyExpanded ? title : undefined}
-        >
-            {/* Active Indicator Line */}
-            {isActive && (
-                <div className={`absolute ${position === 'left' ? 'left-0' : 'right-0'} w-1 h-5 bg-zen-accent rounded-full`} />
-            )}
-            
-            <div className="flex items-center justify-center w-5 h-5 shrink-0 transition-transform duration-300 group-hover:scale-110">
-                {children}
-            </div>
+        onClick: () => void; isActive?: boolean; title: string; children: React.ReactNode; className?: string; color?: string; horizontal?: boolean;
+    }) => {
+        const btnRef = useRef<HTMLButtonElement>(null);
+        const [hovered, setHovered] = useState(false);
 
-            {isActuallyExpanded && (
-                <span className={`text-sm font-medium whitespace-nowrap overflow-hidden text-ellipsis transition-all duration-300 ${isActive ? 'opacity-100 translate-x-0' : 'opacity-80 group-hover:opacity-100 group-hover:translate-x-0.5'}`}>
-                    {title}
-                </span>
-            )}
-            
-            {!isActuallyExpanded && (
-                <div className={`absolute ${position === 'left' ? 'left-full ml-3' : 'right-full mr-3'} px-3 py-2 bg-zen-bg/95 backdrop-blur-md border border-zen-border/50 rounded-xl text-[11px] font-semibold opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 ${position === 'left' ? 'translate-x-[-10px]' : 'translate-x-[10px]'} group-hover:translate-x-0 whitespace-nowrap z-[100] text-zen-text shadow-2xl ring-1 ring-black/5`}>
-                    {title}
+        const handleMouseEnter = () => {
+            setHovered(true);
+            if (!isActuallyExpanded && !isHorizontal && btnRef.current) {
+                const r = btnRef.current.getBoundingClientRect();
+                onIconHover({ title, top: r.top, anchorRight: r.right, anchorLeft: r.left, height: r.height });
+            }
+        };
+        const handleMouseLeave = () => { setHovered(false); onIconHover(null); };
+
+        if (horizontal) {
+            return (
+                <button
+                    ref={btnRef}
+                    onClick={onClick}
+                    onMouseEnter={handleMouseEnter}
+                    onMouseLeave={handleMouseLeave}
+                    title={title}
+                    className={`relative flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-xl transition-all duration-200 ${isActive ? 'bg-zen-accent/15 text-zen-accent' : `text-zen-muted/60 hover:text-zen-text hover:bg-zen-text/5 ${color}`} ${className}`}
+                    style={{ boxShadow: isActive ? '0 0 16px -2px var(--accent-glow)' : undefined }}
+                >
+                    <div style={{ transform: hovered ? 'scale(1.35)' : 'scale(1)', transition: 'transform 0.2s cubic-bezier(0.34,1.56,0.64,1)' }}>
+                        {children}
+                    </div>
+                    <span className="text-[9px] font-medium opacity-70 whitespace-nowrap">{title}</span>
+                    {isActive && <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-0.5 bg-zen-accent rounded-full" />}
+                </button>
+            );
+        }
+
+        return (
+            <button
+                ref={btnRef}
+                onClick={onClick}
+                onMouseEnter={handleMouseEnter}
+                onMouseLeave={handleMouseLeave}
+                style={{ boxShadow: isActive ? '0 0 20px -4px var(--accent-glow)' : undefined }}
+                className={`
+                    h-9 rounded-lg flex items-center relative shrink-0
+                    transition-[background,color,box-shadow] duration-200
+                    ${isActuallyExpanded ? 'w-full px-2.5 gap-3 justify-start' : 'w-9 justify-center'}
+                    ${isActive ? 'bg-zen-accent/15 text-zen-accent' : `hover:bg-zen-text/5 ${color} hover:text-zen-text`}
+                    ${className}
+                `}
+            >
+                <div className={`absolute ${position === 'left' || position === 'top' || position === 'bottom' ? 'left-0' : 'right-0'} w-0.5 rounded-full bg-zen-accent transition-all duration-300 ${isActive ? 'h-4 opacity-100' : 'h-0 opacity-0'}`} />
+
+                <div style={{ transform: hovered ? 'scale(1.35)' : 'scale(1)', transition: 'transform 0.2s cubic-bezier(0.34,1.56,0.64,1)' }}
+                    className="flex items-center justify-center w-5 h-5 shrink-0">
+                    {children}
                 </div>
-            )}
-        </button>
-    );
 
+                {isActuallyExpanded && (
+                    <span className="text-sm font-medium whitespace-nowrap overflow-hidden text-ellipsis sidebar-label-in">{title}</span>
+                )}
+            </button>
+        );
+    };
+
+    // ── HORIZONTAL LAYOUT (top / bottom) ──────────────────────────────────────
+    if (isHorizontal) {
+        const allItems = [
+            { id: '__new__', label: 'New Chat', icon: <Plus className="w-4 h-4" />, action: onNewTab, isAccent: true },
+            ...displayedApps.map(a => ({ id: a.id, label: a.label, icon: a.icon, action: () => onOpenApp(a.id), isAccent: false })),
+            ...customShortcuts.map(sc => ({ id: sc.id, label: sc.label, icon: <span className="text-sm">{sc.emoji}</span>, action: () => onOpenApp(sc.id), isAccent: false })),
+        ];
+        const bottomItems = [
+            { id: '__history__', label: 'History', icon: <LayoutGrid className="w-4 h-4" />, action: onToggleHistory, isActive: isHistoryOpen },
+            { id: '__settings__', label: 'Settings', icon: <Settings className="w-4 h-4" />, action: onOpenSettings, isActive: false },
+        ];
+
+        return (
+            <div
+                ref={sidebarRef}
+                onMouseEnter={() => setIsHovered(true)}
+                onMouseLeave={() => { setIsHovered(false); setHoverLabel(null); }}
+                className={`fixed ${position === 'top' ? 'top-3 left-3 right-3' : 'bottom-3 left-3 right-3'} h-[62px] z-50 rounded-[20px] border border-zen-border/30 flex items-center px-4 gap-1 select-none transition-[box-shadow] duration-300 ${position === 'top' ? 'animate-sidebar-open' : ''}`}
+                style={{
+                    backdropFilter: `blur(${glassIntensity}px)`,
+                    WebkitBackdropFilter: `blur(${glassIntensity}px)`,
+                    backgroundColor: `rgba(var(--bg-color-rgb, 5,5,5), ${bgOpacity})`,
+                    boxShadow: glowShadow,
+                }}
+            >
+                {/* Logo */}
+                <div onClick={onNewTab} className="cursor-pointer mr-3 flex items-center gap-2 shrink-0 app-no-drag" title="New Chat">
+                    <svg viewBox="0 0 100 100" className="w-7 h-7 text-zen-accent">
+                        <circle cx="50" cy="50" r="18" fill="currentColor" />
+                        <ellipse cx="50" cy="50" rx="38" ry="9" fill="none" stroke="currentColor" strokeWidth="6" transform="rotate(-15 50 50)" opacity="0.75" />
+                    </svg>
+                </div>
+
+                <div className="h-6 w-px bg-zen-border/30 mr-2 shrink-0" />
+
+                {/* App items */}
+                <div className="flex-1 flex items-center gap-0.5 overflow-x-auto no-scrollbar app-no-drag">
+                    {allItems.map(item => (
+                        <IconButton key={item.id} onClick={item.action} title={item.label} isActive={activeApp === item.id} color={item.isAccent ? 'text-zen-accent' : undefined} horizontal>
+                            {item.icon}
+                        </IconButton>
+                    ))}
+                </div>
+
+                <div className="h-6 w-px bg-zen-border/30 mx-2 shrink-0" />
+
+                {/* Bottom items */}
+                <div className="flex items-center gap-0.5 app-no-drag">
+                    {bottomItems.map(item => (
+                        <IconButton key={item.id} onClick={item.action} title={item.label} isActive={item.isActive} horizontal>
+                            {item.icon}
+                        </IconButton>
+                    ))}
+                </div>
+            </div>
+        );
+    }
+
+    // ── VERTICAL LAYOUT (left / right) ────────────────────────────────────────
     return (
         <div
+            ref={sidebarRef}
             onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
-            className={`fixed ${position === 'left' ? 'left-3' : 'right-3'} top-3 bottom-3 bg-zen-bg/70 border border-zen-border/40 rounded-[24px] flex flex-col py-4 z-50 transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) shadow-[0_8px_32px_rgba(0,0,0,0.12)] select-none group/sidebar hover:bg-zen-bg/80 ${isResizing ? 'transition-none' : ''}`}
-            style={{ 
+            onMouseLeave={() => { setIsHovered(false); setHoverLabel(null); }}
+            className={`fixed ${position === 'left' ? 'left-3' : 'right-3'} top-3 bottom-3 border border-zen-border/30 rounded-[24px] flex flex-col py-4 z-50 select-none ${isResizing ? 'transition-none' : 'transition-[width,box-shadow] duration-400 ease-[cubic-bezier(0.16,1,0.3,1)]'} ${position === 'left' ? 'animate-sidebar-open' : 'animate-sidebar-open-right'}`}
+            style={{
                 width: isActuallyExpanded ? `${width}px` : '55px',
                 backdropFilter: `blur(${glassIntensity}px)`,
-                WebkitBackdropFilter: `blur(${glassIntensity}px)`
+                WebkitBackdropFilter: `blur(${glassIntensity}px)`,
+                backgroundColor: `rgba(var(--bg-color-rgb, 5,5,5), ${bgOpacity})`,
+                willChange: 'width',
+                boxShadow: glowShadow,
             }}
         >
-             {/* Glass Overlay for Depth */}
-             <div className="absolute inset-0 rounded-[24px] bg-gradient-to-b from-white/5 to-transparent pointer-events-none" />
+            {/* Floating hover label for collapsed icons */}
+            {!isActuallyExpanded && hoverLabel && (
+                <div className="fixed z-[200] pointer-events-none flex items-center" style={{
+                    top: hoverLabel.top, height: hoverLabel.height,
+                    left: position === 'left' ? hoverLabel.anchorRight + 8 : 'auto',
+                    right: position === 'right' ? (window.innerWidth - hoverLabel.anchorLeft + 8) : 'auto',
+                }}>
+                    <div className="flex items-center h-full px-3 bg-zen-bg border border-zen-border/60 rounded-[10px] text-sm font-medium text-zen-text whitespace-nowrap sidebar-label-in"
+                        style={{ boxShadow: '0 4px 20px var(--accent-glow)' }}>
+                        {hoverLabel.title}
+                    </div>
+                </div>
+            )}
 
-             {/* Drag Handle */}
-             <div 
-                className={`absolute ${position === 'left' ? '-right-1' : '-left-1'} top-4 bottom-4 w-3 cursor-ew-resize group-hover/sidebar:opacity-100 opacity-0 transition-opacity z-50`}
-                onMouseDown={(e) => { e.preventDefault(); setIsResizing(true); }}
-            >
-                <div className={`absolute ${position === 'left' ? 'right-1' : 'left-1'} top-0 bottom-0 w-0.5 bg-zen-accent/30 rounded-full hover:bg-zen-accent transition-colors`} />
+            {/* Drag Handle */}
+            <div className={`absolute ${position === 'left' ? '-right-1' : '-left-1'} top-4 bottom-4 w-3 cursor-ew-resize opacity-0 hover:opacity-100 transition-opacity z-50`}
+                onMouseDown={(e) => { e.preventDefault(); setIsResizing(true); }}>
+                <div className={`absolute ${position === 'left' ? 'right-1' : 'left-1'} top-0 bottom-0 w-0.5 bg-zen-border/60 rounded-full hover:bg-zen-accent transition-colors`} />
             </div>
 
             {/* Toggle Button */}
             <div className={`flex ${isActuallyExpanded ? (position === 'left' ? 'justify-end px-4' : 'justify-start px-4') : 'justify-center'} mb-3`}>
-                 <button 
-                    onClick={handleToggle} 
-                    className="text-zen-muted hover:text-zen-accent p-1.5 rounded-xl hover:bg-zen-accent/10 transition-all duration-300 hover:rotate-180"
-                >
-                    {isActuallyExpanded ? (position === 'left' ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />) : <Menu className="w-5 h-5" />}
-                 </button>
+                <button onClick={handleToggle} className="text-zen-muted/60 hover:text-zen-text p-1.5 rounded-lg hover:bg-zen-text/5 transition-all duration-200">
+                    {isActuallyExpanded ? (position === 'left' ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />) : <Menu className="w-4 h-4" />}
+                </button>
             </div>
 
-            {/* Logo Section */}
-            <div
-                className={`mb-6 cursor-pointer flex items-center gap-3 app-no-drag group px-4 ${isActuallyExpanded ? 'justify-start' : 'justify-center'}`}
-                onClick={onNewTab}
-                title="New Chat"
-            >
+            {/* Logo */}
+            <div className={`mb-6 cursor-pointer flex items-center gap-3 app-no-drag px-4 ${isActuallyExpanded ? 'justify-start' : 'justify-center'} transition-all duration-300`}
+                onClick={onNewTab} title="New Chat">
                 <div className="relative shrink-0 flex items-center justify-center">
-                    <div className="absolute inset-0 bg-zen-accent/20 blur-lg rounded-full group-hover:bg-zen-accent/30 transition-colors" />
-                    <svg viewBox="0 0 100 100" className="w-9 h-9 text-zen-accent group-hover:scale-110 transition-transform duration-500 ease-out relative z-10">
-                        <defs>
-                            <linearGradient id="saturn-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <stop offset="0%" stopColor="currentColor" />
-                                <stop offset="100%" stopColor="currentColor" stopOpacity="0.8" />
-                            </linearGradient>
-                        </defs>
-                        <circle cx="50" cy="50" r="18" fill="url(#saturn-grad)" />
-                        <ellipse cx="50" cy="50" rx="38" ry="9" fill="none" stroke="currentColor" strokeWidth="6" transform="rotate(-15 50 50)" className="opacity-80" />
+                    <svg viewBox="0 0 100 100" className="w-8 h-8 text-zen-accent">
+                        <circle cx="50" cy="50" r="18" fill="currentColor" />
+                        <ellipse cx="50" cy="50" rx="38" ry="9" fill="none" stroke="currentColor" strokeWidth="6" transform="rotate(-15 50 50)" opacity="0.75" />
                     </svg>
                 </div>
                 {isActuallyExpanded && (
-                    <div className="flex flex-col overflow-hidden animate-in fade-in slide-in-from-left-2 duration-500">
-                        <span className="font-bold text-[17px] text-zen-text leading-tight tracking-tight">Saturn</span>
-                        <span className="text-[9px] text-zen-accent font-black tracking-[0.2em] uppercase opacity-80">PRO</span>
+                    <div className="flex flex-col overflow-hidden sidebar-label-in">
+                        <span className="font-fraunces font-bold text-[16px] text-zen-text leading-tight tracking-tight">Saturn</span>
+                        <span className="text-[9px] text-zen-accent/70 font-semibold tracking-wider">PRO</span>
                     </div>
                 )}
             </div>
 
-            {/* Content Container */}
-            <div className={`flex-1 flex flex-col gap-1.5 overflow-y-auto overflow-x-hidden no-scrollbar app-no-drag py-2 ${isActuallyExpanded ? 'px-3' : 'items-center'}`}>
-                
-                <IconButton onClick={onNewTab} title="New Chat" className="mb-2 bg-zen-accent/5" color="text-zen-accent">
-                    <Plus className="w-5 h-5" />
-                </IconButton>
+            {/* Nav items */}
+            <div className={`flex-1 flex flex-col gap-1 overflow-y-auto overflow-x-hidden no-scrollbar app-no-drag py-1 ${isActuallyExpanded ? 'px-2.5' : 'items-center px-2'}`}>
+                <div className="sidebar-item">
+                    <IconButton onClick={onNewTab} title="New Chat" color="text-zen-accent"><Plus className="w-4 h-4" /></IconButton>
+                </div>
 
-                {/* Section Divider with Label */}
                 {(displayedApps.length > 0 || customShortcuts.length > 0) && (
-                    <div className="w-full flex items-center gap-2 my-3 px-1">
-                        <div className="h-px flex-1 bg-zen-border/30" />
-                        {isActuallyExpanded && <span className="text-[10px] font-bold text-zen-muted/40 uppercase tracking-widest">Tools</span>}
-                        <div className="h-px flex-1 bg-zen-border/30" />
-                    </div>
+                    <div className="w-full my-2 px-1"><div className="h-px bg-zen-border/20" /></div>
                 )}
 
-                {displayedApps.map(app => (
-                    <IconButton
-                        key={app.id}
-                        onClick={() => onOpenApp(app.id)}
-                        isActive={activeApp === app.id}
-                        title={app.label}
-                    >
-                        {app.icon}
-                    </IconButton>
+                {displayedApps.map((app, idx) => (
+                    <div key={app.id} className="sidebar-item" style={{ animationDelay: `${(idx + 2) * 0.05}s` }}>
+                        <IconButton onClick={() => onOpenApp(app.id)} isActive={activeApp === app.id} title={app.label}>
+                            {app.icon}
+                        </IconButton>
+                    </div>
                 ))}
 
-                {customShortcuts.map(sc => (
-                    <IconButton
-                        key={sc.id}
-                        onClick={() => onOpenApp(sc.id)}
-                        title={sc.label}
-                    >
-                        <span className="text-base">{sc.emoji}</span>
-                    </IconButton>
+                {customShortcuts.map((sc, idx) => (
+                    <div key={sc.id} className="sidebar-item" style={{ animationDelay: `${(idx + displayedApps.length + 2) * 0.05}s` }}>
+                        <IconButton onClick={() => onOpenApp(sc.id)} title={sc.label}>
+                            <span className="text-sm">{sc.emoji}</span>
+                        </IconButton>
+                    </div>
                 ))}
             </div>
 
-            {/* Bottom Actions */}
-            <div className={`flex flex-col gap-1.5 mt-auto pt-4 app-no-drag ${isActuallyExpanded ? 'px-3' : 'px-2 items-center'}`}>
-                <div className="h-px w-full bg-zen-border/30 mb-2" />
-                
-                <IconButton
-                    onClick={onToggleHistory}
-                    isActive={isHistoryOpen}
-                    title="History"
-                >
-                    <LayoutGrid className="w-[18px] h-[18px]" />
-                </IconButton>
-
-                <IconButton
-                    onClick={onOpenSettings}
-                    title="Settings"
-                >
-                    <Settings className="w-[18px] h-[18px] transition-transform duration-500 group-hover:rotate-90" />
-                </IconButton>
-
-                {/* Profile / Status Mini-Indicator */}
+            {/* Bottom */}
+            <div className={`flex flex-col gap-1 mt-auto pt-3 app-no-drag ${isActuallyExpanded ? 'px-2.5' : 'px-2 items-center'}`}>
+                <div className="h-px w-full bg-zen-border/20 mb-2" />
+                <IconButton onClick={onToggleHistory} isActive={isHistoryOpen} title="History"><LayoutGrid className="w-4 h-4" /></IconButton>
+                <IconButton onClick={onOpenSettings} title="Settings"><Settings className="w-4 h-4" /></IconButton>
                 {isActuallyExpanded && showStatus && (
-                    <div className="mt-4 p-2 bg-zen-text/5 rounded-2xl flex items-center gap-3 border border-zen-border/20 animate-in fade-in zoom-in-95 duration-300">
-                        <div className="w-8 h-8 rounded-xl bg-zen-accent/20 flex items-center justify-center text-zen-accent font-bold text-xs shadow-inner">
-                            S
-                        </div>
-                        <div className="flex flex-col overflow-hidden">
-                            <span className="text-[11px] font-bold text-zen-text truncate">Saturn User</span>
-                            <div className="flex items-center gap-1">
-                                <div className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
-                                <span className="text-[9px] text-zen-muted font-medium">Synced</span>
-                            </div>
-                        </div>
+                    <div className="mt-3 mb-1 px-2 flex items-center gap-2.5 sidebar-label-in">
+                        <div className="w-1.5 h-1.5 rounded-full bg-green-500/70 shrink-0" />
+                        <span className="text-[10px] text-zen-muted/60 truncate">Online</span>
                     </div>
                 )}
             </div>

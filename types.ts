@@ -96,6 +96,25 @@ export interface CustomShortcut {
   emoji: string;
 }
 
+export interface CustomMode {
+  id: string;
+  label: string;
+  emoji: string;           // icon emoji
+  model: string;           // model id to use
+  provider: 'openai' | 'gemini';
+  systemPrompt: string;    // injected as system instruction
+  desc: string;            // subtitle shown in dropdown
+}
+
+export interface ModeModelMap {
+  fast?: string;
+  normal?: string;
+  pro?: string;
+  direct?: string;
+  image?: string;
+  video?: string;
+}
+
 export interface UserProfile {
   id: string;
   name: string;
@@ -106,13 +125,18 @@ export interface UserProfile {
   customShortcuts: CustomShortcut[];
   preferredModel?: string;
   preferredImageModel?: string;
-  openaiApiKey?: string;
-  preferredOpenAIModel?: string;
-  sidebarPosition?: 'left' | 'right';
+  sidebarPosition?: 'left' | 'right' | 'top' | 'bottom';
   sidebarAutoHide?: boolean;
   sidebarShowStatus?: boolean;
   sidebarGlassIntensity?: number;
   autoRenameChats?: boolean;
+  // API Keys
+  customOpenAIKey?: string;
+  customGeminiKey?: string;
+  // Per-mode model overrides
+  modeModels?: ModeModelMap;
+  // Custom modes
+  customModes?: CustomMode[];
 }
 
 export interface ChatState {

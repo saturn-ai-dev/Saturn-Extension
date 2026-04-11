@@ -1,8 +1,9 @@
 import React, { useRef, useState } from 'react';
-import { X, Shield, Globe, PaintBucket, Droplet, Sun, Upload, Image as ImageIcon, Smartphone, Box, Rocket, Sparkles, Download, FileText, Video, Puzzle, Trash2, Plus, User, Link, Monitor, Key, ExternalLink, Check, FileUp, FileDown, Loader2 } from 'lucide-react';
-import { Theme, DownloadItem, UserProfile, Extension, CustomShortcut, Tab } from '../types';
+import { X, Shield, Globe, PaintBucket, Droplet, Sun, Upload, Image as ImageIcon, Smartphone, Box, Rocket, Sparkles, Download, FileText, Video, Puzzle, Trash2, Plus, User, Link, Monitor, Check, FileUp, FileDown, Loader2, Zap, BrainCircuit, AlertTriangle } from 'lucide-react';
+import { Theme, DownloadItem, UserProfile, Extension, CustomShortcut, Tab, CustomMode, ModeModelMap } from '../types';
 import { exportConversations, importConversations } from '../services/conversationService';
 import { generateOptimizedSystemInstructions } from '../services/geminiService';
+import { getRemainingUsage, MAX_LIMITS, isAllCreditsExhausted, isFallbackMode } from '../services/usageService';
 
 
 interface SettingsModalProps {
@@ -96,9 +97,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         }
     };
 
-    // API Key State
-    const [apiKey, setApiKey] = useState(() => localStorage.getItem('gemini_api_key') || '');
-    const [openaiKey, setOpenaiKey] = useState(() => localStorage.getItem('openai_api_key') || '');
+    // Usage state (read from usageService)
+    const remaining = getRemainingUsage();
+    const allExhausted = isAllCreditsExhausted();
+    const fallback = isFallbackMode();
 
     // State for creating extension
     const [isCreatingExt, setIsCreatingExt] = useState(false);
@@ -117,18 +119,72 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     const [newShortcutEmoji, setNewShortcutEmoji] = useState('🔗');
     const [isAddingShortcut, setIsAddingShortcut] = useState(false);
 
+    // API Keys state
+    const [openAIKeyInput, setOpenAIKeyInput] = useState(currentUser.customOpenAIKey || '');
+    const [geminiKeyInput, setGeminiKeyInput] = useState(currentUser.customGeminiKey || '');
+    const [showOpenAIKey, setShowOpenAIKey] = useState(false);
+    const [showGeminiKey, setShowGeminiKey] = useState(false);
+    const [keySaved, setKeySaved] = useState(false);
+
+    const handleSaveKeys = () => {
+        onUpdateSidebarSetting('customOpenAIKey', openAIKeyInput.trim());
+        onUpdateSidebarSetting('customGeminiKey', geminiKeyInput.trim());
+        setKeySaved(true);
+        setTimeout(() => setKeySaved(false), 2000);
+    };
+
+    // Per-mode model overrides state
+    const modeModels: ModeModelMap = currentUser.modeModels || {};
+    const handleSetModeModel = (mode: keyof ModeModelMap, model: string) => {
+        onUpdateSidebarSetting('modeModels', { ...modeModels, [mode]: model || undefined });
+    };
+
+    const MODEL_OPTIONS = [
+        { value: '', label: 'Default (auto)' },
+        { value: 'gpt-5.4-nano', label: 'GPT-5.4 Nano' },
+        { value: 'gpt-5.4-mini', label: 'GPT-5.4 Mini' },
+        { value: 'gpt-5.4', label: 'GPT-5.4' },
+        { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
+        { value: 'gemini-flash-latest', label: 'Gemini 2.5 Flash (latest)' },
+        { value: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
+        { value: 'gemini-3-flash-preview', label: 'Gemini 3 Flash (preview)' },
+        { value: 'gemini-3-pro-preview', label: 'Gemini 3 Pro (preview)' },
+    ];
+
+    // Custom modes
+    const [isAddingMode, setIsAddingMode] = useState(false);
+    const [newModeEmoji, setNewModeEmoji] = useState('🎯');
+    const [newModeLabel, setNewModeLabel] = useState('');
+    const [newModeModel, setNewModeModel] = useState('gemini-2.5-flash');
+    const [newModeProvider, setNewModeProvider] = useState<'openai' | 'gemini'>('gemini');
+    const [newModePrompt, setNewModePrompt] = useState('');
+    const [newModeDesc, setNewModeDesc] = useState('');
+
+    const handleAddCustomMode = () => {
+        if (!newModeLabel.trim() || !newModePrompt.trim()) return;
+        const newMode: CustomMode = {
+            id: `custom-mode-${Date.now()}`,
+            label: newModeLabel.trim(),
+            emoji: newModeEmoji || '🎯',
+            model: newModeModel,
+            provider: newModeProvider,
+            systemPrompt: newModePrompt.trim(),
+            desc: newModeDesc.trim() || newModeModel,
+        };
+        const updated = [...(currentUser.customModes || []), newMode];
+        onUpdateSidebarSetting('customModes', updated);
+        setNewModeLabel(''); setNewModePrompt(''); setNewModeDesc(''); setNewModeEmoji('🎯');
+        setIsAddingMode(false);
+    };
+
+    const handleDeleteCustomMode = (id: string) => {
+        const updated = (currentUser.customModes || []).filter(m => m.id !== id);
+        onUpdateSidebarSetting('customModes', updated);
+    };
+
     if (!isOpen) return null;
 
-    const handleSaveKey = (val: string) => {
-        setApiKey(val);
-        localStorage.setItem('gemini_api_key', val);
-    };
-
-    const handleSaveOpenAIKey = (val: string) => {
-        setOpenaiKey(val);
-        localStorage.setItem('openai_api_key', val);
-        onUpdateSidebarSetting('openaiApiKey', val);
-    };
+    // No more API key handlers — keys are embedded
 
     const handleBackdropUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -211,12 +267,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     };
 
     return (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] flex items-center justify-center p-4 animate-fade-in">
-            <div className="bg-zen-bg w-full max-w-4xl h-[80vh] rounded-3xl border border-zen-border shadow-deep flex overflow-hidden scale-100 animate-scale-in">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] flex items-center justify-center p-4 animate-backdrop-in">
+            <div className="bg-zen-bg w-full max-w-4xl h-[80vh] rounded-[28px] border border-zen-border shadow-deep flex overflow-hidden animate-modal-open">
 
                 {/* Sidebar */}
                 <div className="w-64 border-r border-zen-border bg-zen-surface/30 flex flex-col p-4">
-                    <div className="text-2xl font-bold text-zen-text mb-8 px-2 flex items-center gap-2">
+                    <div className="text-2xl font-fraunces font-bold text-zen-text mb-8 px-2 flex items-center gap-2">
                         <Rocket className="w-6 h-6 text-zen-accent" />
                         Saturn
                     </div>
@@ -226,11 +282,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                             { id: 'personas', label: 'Personas', icon: <User className="w-4 h-4" /> },
                             { id: 'instructions', label: 'Custom Instructions', icon: <FileText className="w-4 h-4" /> },
                             { id: 'user', label: 'Profile', icon: <User className="w-4 h-4" /> }
-                        ].map(tab => (
+                        ].map((tab, idx) => (
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id as any)}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${activeTab === tab.id ? `bg-zen-accent shadow-lg ${getActiveTextColor()}` : 'text-zen-muted hover:text-zen-text hover:bg-zen-surface'}`}
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-[14px] text-sm font-medium transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] sidebar-item ${activeTab === tab.id ? `bg-zen-accent shadow-lg ${getActiveTextColor()}` : 'text-zen-muted hover:text-zen-text hover:bg-zen-surface'}`}
+                                style={{ animationDelay: `${idx * 0.08}s` }}
                             >
                                 {tab.icon}
                                 {tab.label}
@@ -253,7 +310,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 {/* Main Content */}
                 <div className="flex-1 flex flex-col min-w-0">
                     <div className="flex items-center justify-between p-6 border-b border-zen-border">
-                        <h2 className="text-xl font-bold text-zen-text capitalize">{activeTab} Settings</h2>
+                        <h2 className="text-xl font-fraunces font-bold text-zen-text capitalize">{activeTab} Settings</h2>
                         <button onClick={onClose} className="p-2 hover:bg-zen-surface rounded-full text-zen-muted hover:text-zen-text transition-colors">
                             <X className="w-5 h-5" />
                         </button>
@@ -265,48 +322,65 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                         {activeTab === 'general' && (
                             <div className="space-y-10 max-w-2xl">
 
-                                {/* API Key Section */}
+                                {/* Usage Credits Dashboard */}
                                 <div>
-                                    <h3 className="text-xs font-bold text-zen-muted uppercase tracking-widest mb-5 pl-1">Connection</h3>
-                                    <div className="space-y-4">
-                                        <div className="p-5 rounded-2xl bg-zen-surface border border-zen-border/50 shadow-sm">
-                                            <div className="flex items-center gap-4 mb-4">
-                                                <div className="p-3 rounded-xl bg-yellow-500/10 text-yellow-500"><Key className="w-5 h-5" /></div>
-                                                <div className="flex-1">
-                                                    <div className="text-sm font-bold text-zen-text">Gemini API Key</div>
-                                                    <div className="text-xs text-zen-muted">Required for Gemini features</div>
+                                    <h3 className="text-xs font-bold text-zen-muted uppercase tracking-widest mb-5 pl-1">Usage Credits</h3>
+                                    <div className="p-5 rounded-[20px] bg-zen-surface border border-zen-border/50 shadow-sm space-y-4">
+                                        
+                                        {fallback && (
+                                            <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-3">
+                                                <AlertTriangle className="w-5 h-5 text-amber-400 mt-0.5 flex-shrink-0" />
+                                                <div>
+                                                    <div className="text-sm font-bold text-amber-400">Fallback Mode Active</div>
+                                                    <div className="text-xs text-amber-400/80">All credits exhausted. Running on Gemini. Parallel search, image & video generation are unavailable.</div>
                                                 </div>
-                                                <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-xs font-bold text-zen-accent hover:underline flex items-center gap-1">
-                                                    Get Key <ExternalLink className="w-3 h-3" />
-                                                </a>
                                             </div>
-                                            <input
-                                                type="password"
-                                                value={apiKey}
-                                                onChange={(e) => handleSaveKey(e.target.value)}
-                                                placeholder="Paste your Gemini API key here..."
-                                                className="w-full bg-zen-bg border border-zen-border rounded-xl px-4 py-3 outline-none focus:border-zen-accent text-sm font-mono text-zen-text placeholder-zen-muted/50"
-                                            />
+                                        )}
+
+                                        {/* Fast Credits */}
+                                        <div className="flex items-center gap-4">
+                                            <div className="p-3 rounded-xl bg-yellow-500/10 text-yellow-400"><Zap className="w-5 h-5" /></div>
+                                            <div className="flex-1">
+                                                <div className="flex justify-between items-center mb-1">
+                                                    <div className="text-sm font-bold text-zen-text">Fast <span className="text-[10px] text-zen-muted font-normal">(GPT-5.4 Nano)</span></div>
+                                                    <div className={`text-xs font-bold ${remaining.fast === 0 ? 'text-red-400' : 'text-green-400'}`}>{remaining.fast}/{MAX_LIMITS.fast}</div>
+                                                </div>
+                                                <div className="w-full bg-zen-bg rounded-full h-2 overflow-hidden">
+                                                    <div className={`h-full rounded-full transition-all duration-1000 ease-out relative ${remaining.fast === 0 ? 'bg-red-500' : 'bg-yellow-400'} progress-shimmer`} style={{ width: `${(remaining.fast / MAX_LIMITS.fast) * 100}%` }} />
+                                                </div>
+                                            </div>
                                         </div>
 
-                                        <div className="p-5 rounded-2xl bg-zen-surface border border-zen-border/50 shadow-sm">
-                                            <div className="flex items-center gap-4 mb-4">
-                                                <div className="p-3 rounded-xl bg-green-500/10 text-green-500"><Key className="w-5 h-5" /></div>
-                                                <div className="flex-1">
-                                                    <div className="text-sm font-bold text-zen-text">OpenAI API Key</div>
-                                                    <div className="text-xs text-zen-muted">Required for OpenAI features</div>
+                                        {/* Web Credits */}
+                                        <div className="flex items-center gap-4">
+                                            <div className="p-3 rounded-xl bg-blue-500/10 text-blue-400"><Globe className="w-5 h-5" /></div>
+                                            <div className="flex-1">
+                                                <div className="flex justify-between items-center mb-1">
+                                                    <div className="text-sm font-bold text-zen-text">Web <span className="text-[10px] text-zen-muted font-normal">(GPT-5.4 Mini)</span></div>
+                                                    <div className={`text-xs font-bold ${remaining.web === 0 ? 'text-red-400' : 'text-green-400'}`}>{remaining.web}/{MAX_LIMITS.web}</div>
                                                 </div>
-                                                <a href="https://platform.openai.com/api-keys" target="_blank" rel="noreferrer" className="text-xs font-bold text-zen-accent hover:underline flex items-center gap-1">
-                                                    Get Key <ExternalLink className="w-3 h-3" />
-                                                </a>
+                                                <div className="w-full bg-zen-bg rounded-full h-2 overflow-hidden">
+                                                    <div className={`h-full rounded-full transition-all duration-1000 ease-out relative ${remaining.web === 0 ? 'bg-red-500' : 'bg-blue-400'} progress-shimmer`} style={{ width: `${(remaining.web / MAX_LIMITS.web) * 100}%` }} />
+                                                </div>
                                             </div>
-                                            <input
-                                                type="password"
-                                                value={openaiKey}
-                                                onChange={(e) => handleSaveOpenAIKey(e.target.value)}
-                                                placeholder="Paste your OpenAI API key here..."
-                                                className="w-full bg-zen-bg border border-zen-border rounded-xl px-4 py-3 outline-none focus:border-zen-accent text-sm font-mono text-zen-text placeholder-zen-muted/50"
-                                            />
+                                        </div>
+
+                                        {/* Deep Credits */}
+                                        <div className="flex items-center gap-4">
+                                            <div className="p-3 rounded-xl bg-purple-500/10 text-purple-400"><BrainCircuit className="w-5 h-5" /></div>
+                                            <div className="flex-1">
+                                                <div className="flex justify-between items-center mb-1">
+                                                    <div className="text-sm font-bold text-zen-text">Deep <span className="text-[10px] text-zen-muted font-normal">(GPT-5.4)</span></div>
+                                                    <div className={`text-xs font-bold ${remaining.deep === 0 ? 'text-red-400' : 'text-green-400'}`}>{remaining.deep}/{MAX_LIMITS.deep}</div>
+                                                </div>
+                                                <div className="w-full bg-zen-bg rounded-full h-2 overflow-hidden">
+                                                    <div className={`h-full rounded-full transition-all duration-1000 ease-out relative ${remaining.deep === 0 ? 'bg-red-500' : 'bg-purple-400'} progress-shimmer`} style={{ width: `${(remaining.deep / MAX_LIMITS.deep) * 100}%` }} />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="text-[10px] text-zen-muted text-center pt-2 border-t border-zen-border/30">
+                                            Credits reset daily. When all credits are used, Saturn switches to Gemini fallback with unlimited searches.
                                         </div>
                                     </div>
                                 </div>
@@ -314,7 +388,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                 {/* Model Section */}
                                 <div>
                                     <h3 className="text-xs font-bold text-zen-muted uppercase tracking-widest mb-5 pl-1">Intelligence</h3>
-                                    <div className="p-5 rounded-2xl bg-zen-surface border border-zen-border/50 shadow-sm">
+                                    <div className="p-5 rounded-[20px] bg-zen-surface border border-zen-border/50 shadow-sm">
                                         <div className="flex items-center gap-4 mb-4">
                                             <div className="p-3 rounded-xl bg-purple-500/10 text-purple-400"><Sparkles className="w-5 h-5" /></div>
                                             <div>
@@ -334,7 +408,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                                 <button
                                                     key={model.id}
                                                     onClick={() => onSetModel(model.id)}
-                                                    className={`p-3 rounded-xl border text-left transition-all ${currentUser.preferredModel === model.id || (!currentUser.preferredModel && model.id === 'gemini-flash-latest') ? 'bg-zen-bg border-zen-accent shadow-md' : 'bg-zen-bg/50 border-zen-border hover:bg-zen-bg'}`}
+                                                    className={`p-3 rounded-[14px] border text-left transition-all ${currentUser.preferredModel === model.id || (!currentUser.preferredModel && model.id === 'gemini-flash-latest') ? 'bg-zen-bg border-zen-accent shadow-md' : 'bg-zen-bg/50 border-zen-border hover:bg-zen-bg'}`}
                                                 >
                                                     <div className="text-sm font-bold text-zen-text">{model.name}</div>
                                                     <div className="text-xs text-zen-muted">{model.desc}</div>
@@ -342,26 +416,18 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                             ))}
                                         </div>
 
-                                        <div className="mb-2 text-[10px] font-bold text-zen-muted uppercase tracking-wider">OpenAI Models</div>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
-                                            {[
-                                                { id: 'gpt-5.2', name: 'GPT-5.2', desc: 'Latest Flagship' },
-                                                { id: 'gpt-5-mini', name: 'GPT-5 Mini', desc: 'Fast & Efficient' },
-                                                { id: 'gpt-4o-2024-11-20', name: 'GPT-4o', desc: 'Legacy Reliable' },
-                                            ].map(model => (
-                                                <button
-                                                    key={model.id}
-                                                    onClick={() => onSetModel(model.id)}
-                                                    className={`p-3 rounded-xl border text-left transition-all ${currentUser.preferredModel === model.id ? 'bg-zen-bg border-green-500 shadow-md' : 'bg-zen-bg/50 border-zen-border hover:bg-zen-bg'}`}
-                                                >
-                                                    <div className="text-sm font-bold text-zen-text">{model.name}</div>
-                                                    <div className="text-xs text-zen-muted">{model.desc}</div>
-                                                </button>
-                                            ))}
+                                        <div className="p-4 rounded-[14px] bg-zen-bg/30 border border-zen-border/50 mb-6">
+                                            <div className="text-sm font-bold text-zen-text mb-1">OpenAI Models</div>
+                                            <div className="text-xs text-zen-muted">OpenAI models are auto-selected based on search mode:</div>
+                                            <div className="mt-2 space-y-1 text-xs text-zen-muted">
+                                                <div className="flex items-center gap-2"><Zap className="w-3 h-3 text-yellow-400" /> Fast → GPT-5.4 Nano</div>
+                                                <div className="flex items-center gap-2"><Globe className="w-3 h-3 text-blue-400" /> Web → GPT-5.4 Mini</div>
+                                                <div className="flex items-center gap-2"><BrainCircuit className="w-3 h-3 text-purple-400" /> Deep → GPT-5.4</div>
+                                            </div>
                                         </div>
 
                                         {/* Layout Settings */}
-                                        <div className="flex items-center justify-between p-4 rounded-xl bg-zen-bg/30 border border-zen-border/50 mb-4">
+                                        <div className="flex items-center justify-between p-4 rounded-[14px] bg-zen-bg/30 border border-zen-border/50 mb-4">
                                             <div>
                                                 <div className="text-sm font-bold text-zen-text">Reset Layout</div>
                                                 <div className="text-xs text-zen-muted">Restore sidebar width and defaults</div>
@@ -372,7 +438,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                         </div>
 
                                         {/* Auto Rename Setting */}
-                                        <div className="flex items-center justify-between p-4 rounded-xl bg-zen-bg/30 border border-zen-border/50 mb-4">
+                                        <div className="flex items-center justify-between p-4 rounded-[14px] bg-zen-bg/30 border border-zen-border/50 mb-4">
                                             <div>
                                                 <div className="text-sm font-bold text-zen-text">Auto-rename Chats</div>
                                                 <div className="text-xs text-zen-muted">Automatically name new threads using Gemini</div>
@@ -394,13 +460,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                             </div>
                                         </div>
                                         
-                                        {currentUser.preferredModel?.startsWith('gpt') ? (
-                                            <div className="p-4 rounded-xl bg-green-500/10 border border-green-500/30 mb-2">
-                                                <div className="text-sm font-bold text-green-400">OpenAI Mode Active</div>
-                                                <div className="text-xs text-green-400/80">
-                                                    Image Model: chatgpt-image-latest<br/>
-                                                    Video Model: sora-2-2025-10-06
-                                                </div>
+                                        {fallback ? (
+                                            <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 mb-2">
+                                                <div className="text-sm font-bold text-amber-400">Image Generation Unavailable</div>
+                                                <div className="text-xs text-amber-400/80">All credits exhausted. Image generation is disabled in fallback mode.</div>
                                             </div>
                                         ) : (
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -411,7 +474,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                                     <button
                                                         key={model.id}
                                                         onClick={() => onSetImageModel(model.id)}
-                                                        className={`p-3 rounded-xl border text-left transition-all ${currentUser.preferredImageModel === model.id || (!currentUser.preferredImageModel && model.id === 'gemini-2.5-flash-image') ? 'bg-zen-bg border-zen-accent shadow-md' : 'bg-zen-bg/50 border-zen-border hover:bg-zen-bg'}`}
+                                                        className={`p-3 rounded-[14px] border text-left transition-all ${currentUser.preferredImageModel === model.id || (!currentUser.preferredImageModel && model.id === 'gemini-2.5-flash-image') ? 'bg-zen-bg border-zen-accent shadow-md' : 'bg-zen-bg/50 border-zen-border hover:bg-zen-bg'}`}
                                                     >
                                                         <div className="text-sm font-bold text-zen-text">{model.name}</div>
                                                         <div className="text-xs text-zen-muted">{model.desc}</div>
@@ -425,7 +488,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                 {/* Theme Section */}
                                 <div>
                                     <h3 className="text-xs font-bold text-zen-muted uppercase tracking-widest mb-5 pl-1">Visuals</h3>
-                                    <div className="p-5 rounded-2xl bg-zen-surface border border-zen-border/50 shadow-sm">
+                                    <div className="p-5 rounded-[20px] bg-zen-surface border border-zen-border/50 shadow-sm">
                                         <div className="flex justify-between items-center mb-4">
                                             <div className="flex items-center gap-4">
                                                 <div className="p-3 rounded-xl bg-blue-500/10 text-blue-400"><PaintBucket className="w-5 h-5" /></div>
@@ -455,27 +518,24 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                 {/* Sidebar Customization */}
                                 <div>
                                     <h3 className="text-xs font-bold text-zen-muted uppercase tracking-widest mb-5 pl-1">Sidebar Customization</h3>
-                                    <div className="p-5 rounded-2xl bg-zen-surface border border-zen-border/50 shadow-sm space-y-6">
+                                    <div className="p-5 rounded-[20px] bg-zen-surface border border-zen-border/50 shadow-sm space-y-6">
                                         
                                         {/* Position */}
                                         <div className="flex items-center justify-between">
                                             <div>
                                                 <div className="text-sm font-bold text-zen-text">Sidebar Position</div>
-                                                <div className="text-xs text-zen-muted">Choose which side the bar appears on</div>
+                                                <div className="text-xs text-zen-muted">Choose layout and position</div>
                                             </div>
-                                            <div className="flex bg-zen-bg p-1 rounded-xl border border-zen-border">
-                                                <button 
-                                                    onClick={() => onUpdateSidebarSetting('sidebarPosition', 'left')}
-                                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${currentUser.sidebarPosition !== 'right' ? `bg-zen-accent shadow-md ${getActiveTextColor()}` : 'text-zen-muted hover:text-zen-text'}`}
-                                                >
-                                                    Left
-                                                </button>
-                                                <button 
-                                                    onClick={() => onUpdateSidebarSetting('sidebarPosition', 'right')}
-                                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${currentUser.sidebarPosition === 'right' ? `bg-zen-accent shadow-md ${getActiveTextColor()}` : 'text-zen-muted hover:text-zen-text'}`}
-                                                >
-                                                    Right
-                                                </button>
+                                            <div className="flex bg-zen-bg p-1 rounded-xl border border-zen-border gap-0.5">
+                                                {(['left', 'right', 'top', 'bottom'] as const).map(pos => (
+                                                    <button
+                                                        key={pos}
+                                                        onClick={() => onUpdateSidebarSetting('sidebarPosition', pos)}
+                                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all capitalize ${currentUser.sidebarPosition === pos ? `bg-zen-accent shadow-md ${getActiveTextColor()}` : 'text-zen-muted hover:text-zen-text'}`}
+                                                    >
+                                                        {pos}
+                                                    </button>
+                                                ))}
                                             </div>
                                         </div>
 
@@ -532,7 +592,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                         {sidebarAppsList.map(app => {
                                             const isEnabled = enabledSidebarApps.includes(app.id);
                                             return (
-                                                <div key={app.id} className="flex items-center justify-between p-4 rounded-2xl bg-zen-surface border border-zen-border/50 hover:border-zen-border transition-colors">
+                                                <div key={app.id} className="flex items-center justify-between p-4 rounded-[16px] bg-zen-surface border border-zen-border/50 hover:border-zen-border transition-colors">
                                                     <div className="flex items-center gap-3">
                                                         <div className="p-2.5 rounded-lg bg-zen-bg text-zen-text border border-zen-border/50"><Smartphone className="w-4 h-4" /></div>
                                                         <span className="text-sm font-bold text-zen-text">{app.label}</span>
@@ -587,7 +647,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                 {/* Privacy */}
                                 <div>
                                     <h3 className="text-xs font-bold text-zen-muted uppercase tracking-widest mb-5 pl-1">Privacy</h3>
-                                    <div className="flex items-center justify-between p-5 rounded-2xl bg-zen-surface border border-zen-border/50 shadow-sm">
+                                    <div className="flex items-center justify-between p-5 rounded-[20px] bg-zen-surface border border-zen-border/50 shadow-sm">
                                         <div className="flex items-center gap-4">
                                             <div className="p-3 rounded-xl bg-zinc-500/10 text-zinc-400"><Shield className="w-5 h-5" /></div>
                                             <div>
@@ -621,7 +681,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                                     alert((error as Error).message);
                                                 }
                                             }}
-                                            className="p-5 rounded-2xl bg-zen-surface border border-zen-border/50 shadow-sm hover:border-zen-accent transition-colors flex items-center gap-4">
+                                            className="p-5 rounded-[20px] bg-zen-surface border border-zen-border/50 shadow-sm hover:border-zen-accent transition-colors flex items-center gap-4">
                                             <div className="p-3 rounded-xl bg-green-500/10 text-green-400"><FileUp className="w-5 h-5" /></div>
                                             <div>
                                                 <div className="text-sm font-bold text-zen-text">Import Conversations</div>
@@ -630,7 +690,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                         </button>
                                         <button
                                             onClick={() => exportConversations([...tabs, ...archivedTabs])}
-                                            className="p-5 rounded-2xl bg-zen-surface border border-zen-border/50 shadow-sm hover:border-zen-accent transition-colors flex items-center gap-4">
+                                            className="p-5 rounded-[20px] bg-zen-surface border border-zen-border/50 shadow-sm hover:border-zen-accent transition-colors flex items-center gap-4">
                                             <div className="p-3 rounded-xl bg-blue-500/10 text-blue-400"><FileDown className="w-5 h-5" /></div>
                                             <div>
                                                 <div className="text-sm font-bold text-zen-text">Export Conversations</div>

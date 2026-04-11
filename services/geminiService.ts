@@ -1,37 +1,43 @@
 import { GoogleGenAI, type GenerateContentResponse } from "@google/genai";
 import OpenAI from "openai";
 import { Message, Role, Source, SearchMode, GeneratedMedia, Extension } from "../types";
+import {
+    getEmbeddedOpenAIKey,
+    getFallbackGeminiKey,
+    getModelForMode,
+    recordUsage,
+    isModeExhausted,
+    isAllCreditsExhausted,
+    getExhaustionMessage,
+    isImageGenAvailable,
+    isVideoGenAvailable,
+    getRemainingUsage
+} from "./usageService";
 
 // --- HELPERS ---
 
-// Helper to get Gemini API Key
+// Helper to get Gemini API Key (fallback only)
 const getGeminiApiKey = (): string => {
-    return localStorage.getItem('gemini_api_key') || process.env.GEMINI_API_KEY || '';
+    return getFallbackGeminiKey();
 };
 
-// Helper to get OpenAI API Key
+// Helper to get OpenAI API Key (embedded)
 const getOpenAIApiKey = (): string => {
-    return localStorage.getItem('openai_api_key') || process.env.OPENAI_API_KEY || '';
+    return getEmbeddedOpenAIKey();
 };
 
-// Helper to get Gemini Client
+// Helper to get Gemini Client (fallback mode)
 const getGeminiAI = () => {
     const key = getGeminiApiKey();
-    if (!key) {
-        throw new Error("Gemini API Key is missing. Please go to Settings > General.");
-    }
     return new GoogleGenAI({ apiKey: key });
 };
 
 // Helper to get OpenAI Client
 const getOpenAI = () => {
     const key = getOpenAIApiKey();
-    if (!key) {
-        throw new Error("OpenAI API Key is missing. Please go to Settings > General.");
-    }
     return new OpenAI({
         apiKey: key,
-        dangerouslyAllowBrowser: true // Required for client-side usage
+        dangerouslyAllowBrowser: true
     });
 };
 
@@ -61,19 +67,16 @@ const extractGeminiSources = (candidate: any): Source[] => {
 // --- CORE GENERATION FUNCTIONS ---
 
 export const generateImage = async (prompt: string, modelName?: string): Promise<GeneratedMedia> => {
+    // Check if image gen is available (disabled in fallback mode)
+    if (!isImageGenAvailable()) {
+        throw new Error("🚫 Image generation is not available in fallback mode. All credits have been exhausted.");
+    }
+
     const selectedModel = modelName || 'gemini-2.5-flash-image';
     console.log(`Generating image with model: ${selectedModel}`);
 
     // OpenAI Handling
-    if (selectedModel.toLowerCase().includes('chatgpt') || selectedModel.toLowerCase().includes('dall-e') || getOpenAIApiKey() && selectedModel.startsWith('gpt')) {
-        // Enforce the specific model requested by user rules if OpenAI is active context, 
-        // but here we rely on the passed modelName.
-        // User rule: "image model is always chatgpt-image-latest" when OpenAI is selected.
-        // The calling code (App.tsx) might pass the user's preference. 
-        // We will try to use the passed model, or fallback to 'dall-e-3' if 'chatgpt-image-latest' fails validation?
-        // We'll trust the string.
-
-        // If the passed model is a text model (like gpt-5.2), switch to the image model
+    if (selectedModel.toLowerCase().includes('chatgpt') || selectedModel.toLowerCase().includes('dall-e') || selectedModel.startsWith('gpt')) {
         let imageModel = selectedModel;
         if (imageModel.startsWith('gpt-')) {
             imageModel = 'chatgpt-image-latest';
@@ -81,7 +84,6 @@ export const generateImage = async (prompt: string, modelName?: string): Promise
 
         try {
             const openai = getOpenAI();
-            // Note: Some newer models like 'chatgpt-image-latest' may not support response_format parameter
             const response = await openai.images.generate({
                 model: imageModel as any,
                 prompt: prompt,
@@ -147,27 +149,16 @@ export const generateImage = async (prompt: string, modelName?: string): Promise
 };
 
 export const generateVideo = async (prompt: string): Promise<GeneratedMedia> => {
-    // Check if we should use OpenAI logic (based on some global context or if this function accepts a model arg later) 
-    // Currently App.tsx doesn't pass model to generateVideo, but we can infer from user preference if we had access. 
-    // However, the function signature is `(prompt: string)`.
-    // We'll check if OpenAI key is present AND if we can maybe infer preference? 
-    // Ideally, App.tsx should pass the model. But to avoid breaking signature too much, 
-    // I will just implement the parameter.
-
-    // Actually, let's update the signature to accept optional model, App.tsx passes nothing so it's undefined.
-    // If undefined, we default to Veo (Gemini).
-    // But wait, the user said "When openAI is selected as a model... video is sora...".
-    // Since App.tsx calls this, we should really update App.tsx to pass the current preferred model 
-    // or a flag. 
-    // I'll stick to Veo default here, but I will modify the function to accept `modelName`.
-    // I need to update App.tsx call site later if I want strict adherence, but for now 
-    // I will just implement the parameter.
-
+    if (!isVideoGenAvailable()) {
+        throw new Error("🚫 Video generation is not available in fallback mode. All credits have been exhausted.");
+    }
     return generateGeminiVideo(prompt);
 };
 
-// Overload or modified export for Video to accept model
 export const generateVideoWithModel = async (prompt: string, modelName?: string): Promise<GeneratedMedia> => {
+    if (!isVideoGenAvailable()) {
+        throw new Error("🚫 Video generation is not available in fallback mode. All credits have been exhausted.");
+    }
     if (modelName && (modelName.startsWith('gpt') || modelName.includes('sora'))) {
         return generateOpenAIVideo(prompt, 'sora-2-2025-10-06');
     }
@@ -178,7 +169,6 @@ const generateOpenAIVideo = async (prompt: string, model: string): Promise<Gener
     try {
         const key = getOpenAIApiKey();
 
-        // 1. Create Video Job
         const response = await fetch('https://api.openai.com/v1/videos', {
             method: 'POST',
             headers: {
@@ -198,7 +188,6 @@ const generateOpenAIVideo = async (prompt: string, model: string): Promise<Gener
 
         let data = await response.json();
 
-        // If it returns URL immediately (unlikely for Sora but possible for some snapshots)
         if (data.url || (data.data && data.data[0]?.url)) {
             return {
                 type: 'video',
@@ -210,11 +199,10 @@ const generateOpenAIVideo = async (prompt: string, model: string): Promise<Gener
         const jobId = data.id;
         if (!jobId) throw new Error("No job ID returned from OpenAI Video API");
 
-        // 2. Poll for Completion
         console.log(`OpenAI Video Job ${jobId} started. Polling...`);
         let status = data.status || 'pending';
         let attempts = 0;
-        const maxAttempts = 60; // 5 minutes with 5s interval
+        const maxAttempts = 60;
 
         while (status !== 'succeeded' && status !== 'completed' && attempts < maxAttempts) {
             await new Promise(resolve => setTimeout(resolve, 5000));
@@ -239,14 +227,12 @@ const generateOpenAIVideo = async (prompt: string, model: string): Promise<Gener
             throw new Error("Video generation timed out.");
         }
 
-        // 3. Fetch Final Content reliably
         console.log(`Fetching final video content for ${jobId}...`);
         const contentResponse = await fetch(`https://api.openai.com/v1/videos/${jobId}/content`, {
             headers: { 'Authorization': `Bearer ${key}` }
         });
 
         if (!contentResponse.ok) {
-            // Fallback to extraction logic if /content is not directly serving the file
             const finalUrl = data.url ||
                 (data.data && data.data[0]?.url) ||
                 (data.video && data.video.url) ||
@@ -301,7 +287,6 @@ const generateGeminiVideo = async (prompt: string): Promise<GeneratedMedia> => {
 };
 
 export const generateOptimizedSystemInstructions = async (answers: string[]): Promise<string> => {
-    // Defaults to Gemini for system tooling as it's cheaper/faster usually
     try {
         const ai = getGeminiAI();
         const prompt = `
@@ -320,7 +305,6 @@ export const generateOptimizedSystemInstructions = async (answers: string[]): Pr
 };
 
 export const generateChatTitle = async (history: Message[]): Promise<string> => {
-    // Defaults to Gemini for utilitarian tasks
     try {
         const firstMessage = history[0];
         if (!firstMessage) return "New Chat";
@@ -336,12 +320,11 @@ Return ONLY the title text. Do not suggest options. Do not include conversationa
         const text = response.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
         if (!text) return "New Chat";
 
-        // Post-processing cleanup to remove common conversational debris
         return text
-            .replace(/^Here (is|are).+?:/i, '') // Remove "Here is..."
-            .replace(/^Title:/i, '')            // Remove "Title:"
-            .replace(/["*]/g, '')               // Remove quotes and asterisks
-            .split('\n')[0]                     // Take only the first line if multiple are returned
+            .replace(/^Here (is|are).+?:/i, '')
+            .replace(/^Title:/i, '')
+            .replace(/["*]/g, '')
+            .split('\n')[0]
             .trim();
     } catch (e) {
         return "New Chat";
@@ -350,7 +333,6 @@ Return ONLY the title text. Do not suggest options. Do not include conversationa
 
 const getExtensionInstructions = (extensions: Extension[]): string => {
     if (!extensions || extensions.length === 0) return "";
-    // Format clearly so the model recognizes these as distinct behavioral modifiers
     return extensions.map((ext, i) =>
         `[EXTENSION ${i + 1}: ${ext.name}]\nBEHAVIOR/INSTRUCTION: ${ext.instruction}\n` +
         (ext.widgets ? `WIDGETS_AVAILABLE: You can use special tokens to render widgets. Tokens: ${ext.widgets.map(w => `$$$UI:${w.type}:::${w.content}$$$`).join(', ')}` : "")
@@ -361,12 +343,10 @@ const convertHistoryToApi = (history: Message[]) => {
     return history.slice(-10).map(msg => {
         const parts: any[] = [{ text: msg.content || (msg.generatedMedia ? "[Media Generated]" : "") }];
 
-        // Handle legacy single attachment
         if (msg.attachment) {
             parts.push({ inlineData: { mimeType: msg.attachment.mimeType, data: msg.attachment.base64 } });
         }
 
-        // Handle new multiple attachments
         if (msg.attachments && msg.attachments.length > 0) {
             msg.attachments.forEach(att => {
                 parts.push({ inlineData: { mimeType: att.mimeType, data: att.base64 } });
@@ -382,7 +362,25 @@ const convertHistoryToApi = (history: Message[]) => {
 
 // --- STREAMING LOGIC ---
 
-// Main entry point that dispatches
+/** Reads custom modes from localStorage for the current user */
+const getCustomModeConfig = (mode: string): { systemPrompt: string; model: string; provider: 'openai' | 'gemini' } | null => {
+    try {
+        const users = JSON.parse(localStorage.getItem('deepsearch_users') || '[]');
+        const currentId = localStorage.getItem('deepsearch_current_user_id');
+        const user = users.find((u: any) => u.id === currentId) || users[0];
+        const customMode = user?.customModes?.find((m: any) => m.id === mode);
+        if (customMode) {
+            return {
+                systemPrompt: customMode.systemPrompt,
+                model: customMode.model,
+                provider: customMode.provider || (customMode.model.startsWith('gemini') ? 'gemini' : 'openai')
+            };
+        }
+    } catch {}
+    return null;
+};
+
+// Main entry point that dispatches based on usage limits
 export const streamGeminiResponse = async (
     history: Message[],
     mode: SearchMode,
@@ -393,12 +391,37 @@ export const streamGeminiResponse = async (
     onFinish: () => void,
     onError: (error: Error) => void
 ) => {
-    const isOpenAI = modelName.startsWith('gpt') || modelName.includes('o1') || modelName.includes('o3'); // crude check, but effective given the set
+    // Check for custom mode first
+    const customModeCfg = getCustomModeConfig(mode);
+    if (customModeCfg) {
+        const merged = `${customModeCfg.systemPrompt}\n${customInstructions || ''}`.trim();
+        if (customModeCfg.provider === 'gemini') {
+            return streamGeminiNativeResponse(history, mode as SearchMode, activeExtensions, customModeCfg.model, merged, onChunk, onFinish, onError);
+        } else {
+            return streamOpenAIResponse(history, mode as SearchMode, activeExtensions, customModeCfg.model, merged, onChunk, onFinish, onError);
+        }
+    }
 
-    if (isOpenAI) {
-        return streamOpenAIResponse(history, mode, activeExtensions, modelName, customInstructions, onChunk, onFinish, onError);
+    // Check if mode is exhausted and show message
+    const exhaustionMsg = getExhaustionMessage(mode);
+
+    // Get the right model based on usage
+    const { model, provider, isFallback } = getModelForMode(mode);
+
+    // Record usage for non-fallback modes
+    if (!isFallback) {
+        recordUsage(mode);
+    }
+
+    // If exhausted, prepend a warning
+    if (exhaustionMsg) {
+        onChunk(exhaustionMsg + '\n\n', undefined);
+    }
+
+    if (provider === 'openai') {
+        return streamOpenAIResponse(history, mode, activeExtensions, model, customInstructions, onChunk, onFinish, onError);
     } else {
-        return streamGeminiNativeResponse(history, mode, activeExtensions, modelName, customInstructions, onChunk, onFinish, onError);
+        return streamGeminiNativeResponse(history, mode, activeExtensions, model, customInstructions, onChunk, onFinish, onError);
     }
 };
 
@@ -407,7 +430,6 @@ const getCommonSystemInstruction = (mode: SearchMode, activeExtensions: Extensio
         ? "Answer concisely. Verify facts."
         : "You are Saturn, an advanced AI assistant. Verify facts.";
 
-    // Add Sandbox/Widget context (simplified for brevity, ensuring token efficiency)
     instruction += `
     PYTHON_TOOL: You can generate files using Python. Print output as:
     $$$FILE:::filename.ext:::mime/type$$$base64_encoded_content$$$END_FILE$$$
@@ -466,7 +488,6 @@ const getSearchContext = async (query: string): Promise<{ text: string, sources:
             }
         });
 
-        // Deduplicate sources
         const uniqueSources = Array.from(new Map(sources.map(item => [item.uri, item])).values());
         return { text, sources: uniqueSources };
     } catch (e) {
@@ -490,21 +511,15 @@ const streamOpenAIResponse = async (
         let systemMsg = getCommonSystemInstruction(mode, activeExtensions, customInstructions);
         let externalSources: Source[] = [];
 
-        // --- PERFORM SEARCH (Grounding) if applicable ---
-        // If mode is normal/pro (search enabled) and not direct, we try to fetch context
         if (mode !== 'direct' && mode !== 'simple' && mode !== 'image' && mode !== 'video') {
             const lastUserMsg = history[history.length - 1];
             if (lastUserMsg && lastUserMsg.role === Role.USER) {
-
                 try {
-                    // Only search if there's a real query
                     if (lastUserMsg.content && lastUserMsg.content.length > 2) {
                         const { text: context, sources } = await getSearchContext(lastUserMsg.content);
                         if (context) {
                             systemMsg += `\n\n[WEB SEARCH CONTEXT]\nThe following information was retrieved from a web search to help you answer the user's request. Use it to verify facts and provide up-to-date information.\n\n${context}\n\n[END CONTEXT]`;
                             externalSources = sources;
-                            // Send sources immediately to UI if possible, or wait for first chunk
-                            // We'll send them with the first chunk
                         }
                     }
                 } catch (e) {
@@ -516,11 +531,9 @@ const streamOpenAIResponse = async (
         const messages: any[] = [
             { role: 'system', content: systemMsg },
             ...history.map(msg => {
-                // Handle multimodal content for OpenAI
                 if (msg.attachments && msg.attachments.length > 0) {
                     const contentParts: any[] = [{ type: 'text', text: msg.content }];
                     msg.attachments.forEach(att => {
-                        // Check mime type support (OpenAI supports images)
                         if (att.mimeType.startsWith('image/')) {
                             contentParts.push({
                                 type: 'image_url',
@@ -531,7 +544,6 @@ const streamOpenAIResponse = async (
                     return { role: msg.role === Role.USER ? 'user' : 'assistant', content: contentParts };
                 }
 
-                // Legacy single attachment
                 if (msg.attachment && msg.attachment.mimeType.startsWith('image/')) {
                     return {
                         role: msg.role === Role.USER ? 'user' : 'assistant',
@@ -556,7 +568,6 @@ const streamOpenAIResponse = async (
         for await (const chunk of stream) {
             const content = chunk.choices[0]?.delta?.content || "";
             if (content) {
-                // Attach sources to the first real chunk if we have them
                 if (!sentSources && externalSources.length > 0) {
                     onChunk(content, externalSources);
                     sentSources = true;
@@ -565,8 +576,6 @@ const streamOpenAIResponse = async (
                 }
             }
         }
-        // Ensure sources are sent if content was empty for some reason but we have sources? 
-        // Ensure sources are sent if content was empty for some reason but we have sources? 
         if (!sentSources && externalSources.length > 0) {
             onChunk("", externalSources);
         }
@@ -594,23 +603,15 @@ const streamGeminiNativeResponse = async (
         const currentMessage = history[history.length - 1];
         let aggregatedSources: Source[] = [];
 
-        // ... [Existing Deep Mode Logic abbreviated for safety, assume same implementation] ...
-        // To save space/complexity I'll reuse the standard logic for now unless 'pro' is requested.
-        // For 'pro' mode, we'd copy the parallel logic. 
-        // For this refactor, I will focus on standard logic + extensions, 
-        // effectively preserving the behavior but cleaning up structure. 
-
         const previousMessages = history.slice(0, -1);
         const apiHistory = convertHistoryToApi(previousMessages);
 
         let systemInstruction = getCommonSystemInstruction(mode, activeExtensions, customInstructions);
 
-        // Add Gemini-specific tool instructions if needed
         const tools: any[] = [{ googleSearch: {} }];
         if (mode !== 'direct') tools.push({ codeExecution: {} });
 
         let model = modelName || "gemini-2.5-flash";
-        if (mode === 'fast' || mode === 'direct') model = "gemini-flash-lite-latest";
 
         const chat = ai.chats.create({
             model: model,
@@ -618,7 +619,6 @@ const streamGeminiNativeResponse = async (
             config: { tools, systemInstruction }
         });
 
-        // Construct current message
         let messagePayload: any[] = [{ text: currentMessage.content }];
         if (currentMessage.attachment) {
             messagePayload.push({ inlineData: { mimeType: currentMessage.attachment.mimeType, data: currentMessage.attachment.base64 } });
@@ -644,7 +644,6 @@ const streamGeminiNativeResponse = async (
             const newSources = extractGeminiSources(responseChunk.candidates?.[0]);
             if (newSources.length > 0) {
                 aggregatedSources = [...aggregatedSources, ...newSources];
-                // Deduplicate
                 aggregatedSources = Array.from(new Map(aggregatedSources.map(item => [item.uri, item])).values());
             }
 
