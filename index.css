@@ -4,6 +4,7 @@
 
 :root {
   --bg-color: #050505;
+  --bg-color-rgb: 5, 5, 5;
   --surface-color: rgba(20, 20, 23, 0.7);
   --border-color: rgba(255, 255, 255, 0.1);
   --accent-color: #dc2626;
@@ -12,6 +13,14 @@
   --muted-color: #a1a1aa;
   --titlebar-area-height: env(titlebar-area-height, 32px);
 }
+
+[data-theme="blue"]            { --bg-color-rgb: 5, 5, 5; }
+[data-theme="incognito"]       { --bg-color-rgb: 0, 0, 0; }
+[data-theme="blackbox"]        { --bg-color-rgb: 0, 0, 0; }
+[data-theme="glass"]           { --bg-color-rgb: 3, 7, 18; }
+[data-theme="charcoal-cosmic"] { --bg-color-rgb: 14, 14, 16; }
+[data-theme="galaxy"]          { --bg-color-rgb: 15, 10, 30; }
+[data-theme="light"]           { --bg-color-rgb: 248, 250, 252; }
 
 [data-theme="blue"] {
   --accent-color: #3b82f6;
@@ -72,15 +81,53 @@
   --muted-color: #64748b;
 }
 
+/* ============================================
+   🌿 ORGANIC DESIGN SYSTEM
+   ============================================ */
+
+:root {
+  --accent-glow: rgba(220, 38, 38, 0.55);
+}
+[data-theme="blue"]            { --accent-glow: rgba(59, 130, 246, 0.55); }
+[data-theme="glass"]           { --accent-glow: rgba(6, 182, 212, 0.55); }
+[data-theme="charcoal-cosmic"] { --accent-glow: rgba(255, 123, 0, 0.55); }
+[data-theme="galaxy"]          { --accent-glow: rgba(240, 171, 252, 0.50); }
+[data-theme="light"]           { --accent-glow: rgba(239, 68, 68, 0.35); }
+[data-theme="incognito"]       { --accent-glow: rgba(120, 120, 130, 0.40); }
+[data-theme="blackbox"]        { --accent-glow: rgba(255, 255, 255, 0.30); }
+
+:root {
+  --organic-shadow: rgba(0, 0, 0, 0.35);
+}
+[data-theme="blue"]            { --organic-shadow: rgba(20, 50, 110, 0.30); }
+[data-theme="incognito"]       { --organic-shadow: rgba(0, 0, 0, 0.50); }
+[data-theme="blackbox"]        { --organic-shadow: rgba(0, 0, 0, 0.60); }
+[data-theme="glass"]           { --organic-shadow: rgba(8, 145, 178, 0.20); }
+[data-theme="charcoal-cosmic"] { --organic-shadow: rgba(160, 65, 0, 0.28); }
+[data-theme="galaxy"]          { --organic-shadow: rgba(100, 20, 140, 0.28); }
+[data-theme="light"]           { --organic-shadow: rgba(90, 65, 30, 0.20); }
+
+.shadow-deep {
+  box-shadow: 0 10px 50px -10px var(--organic-shadow, rgba(0, 0, 0, 0.8));
+}
+
 html,
-body {
+body,
+#root {
   height: 100%;
+  height: 100dvh;
   width: 100%;
   overflow: hidden;
   overscroll-behavior: none;
   -webkit-font-smoothing: antialiased;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Nunito', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   user-select: none;
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 body {
@@ -88,6 +135,7 @@ body {
   color: var(--text-color);
   transition: background-color 0.5s cubic-bezier(0.16, 1, 0.3, 1), color 0.3s ease;
 }
+
 
 /* Advanced Glass Blur */
 .glass-panel {
@@ -109,12 +157,23 @@ body {
   pointer-events: none;
 }
 
+/* Organic blob morphing — shapes drift between amorphous forms
+   rather than sitting as perfect circles, following wabi-sabi asymmetry. */
+@keyframes blobMorph {
+  0%,  100% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; }
+  25%        { border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%; }
+  50%        { border-radius: 50% 60% 30% 60% / 30% 60% 70% 40%; }
+  75%        { border-radius: 60% 40% 60% 30% / 70% 30% 50% 60%; }
+}
+
 .mesh-blob {
   position: absolute;
   filter: blur(100px);
   opacity: 0.3;
-  border-radius: 50%;
-  animation: blob 20s infinite cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+  animation:
+    blob 20s infinite cubic-bezier(0.4, 0, 0.2, 1),
+    blobMorph 18s ease-in-out infinite;
   transition: background-color 1s ease;
 }
 
@@ -271,7 +330,370 @@ textarea,
   box-shadow: 0 10px 50px -10px rgba(0, 0, 0, 0.8);
 }
 
-/* New Interactive Utilities */
+.shadow-glow-lg {
+  box-shadow: 0 0 40px -10px var(--accent-color);
+}
+
+/* ============================================
+   🚀 ANIMATION SYSTEM
+   ============================================ */
+
+/* --- App Opening / Splash --- */
+@keyframes appFadeIn {
+  0% { opacity: 0; transform: scale(0.96); filter: blur(8px); }
+  60% { opacity: 1; filter: blur(0); }
+  100% { opacity: 1; transform: scale(1); filter: blur(0); }
+}
+
+@keyframes splashReveal {
+  0% { opacity: 0; transform: translateY(30px) scale(0.9); }
+  50% { opacity: 1; }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes textReveal {
+  0% { opacity: 0; transform: translateY(20px); letter-spacing: 0.3em; }
+  100% { opacity: 1; transform: translateY(0); letter-spacing: -0.02em; }
+}
+
+.animate-app-open {
+  animation: appFadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-splash {
+  animation: splashReveal 1s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.animate-text-reveal {
+  animation: textReveal 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.3s forwards;
+  opacity: 0;
+}
+
+/* --- Sidebar Animations --- */
+@keyframes sidebarSlideIn {
+  0% { opacity: 0; transform: translateX(-20px) scale(0.95); }
+  100% { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+@keyframes sidebarSlideInRight {
+  0% { opacity: 0; transform: translateX(20px) scale(0.95); }
+  100% { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+@keyframes sidebarItemStagger {
+  0% { opacity: 0; transform: translateX(-12px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+
+.animate-sidebar-open {
+  animation: sidebarSlideIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.animate-sidebar-open-right {
+  animation: sidebarSlideInRight 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.sidebar-item {
+  animation: sidebarItemStagger 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  opacity: 0;
+}
+
+.sidebar-item:nth-child(1) { animation-delay: 0.05s; }
+.sidebar-item:nth-child(2) { animation-delay: 0.1s; }
+.sidebar-item:nth-child(3) { animation-delay: 0.15s; }
+.sidebar-item:nth-child(4) { animation-delay: 0.2s; }
+.sidebar-item:nth-child(5) { animation-delay: 0.25s; }
+.sidebar-item:nth-child(6) { animation-delay: 0.3s; }
+.sidebar-item:nth-child(7) { animation-delay: 0.35s; }
+.sidebar-item:nth-child(8) { animation-delay: 0.4s; }
+
+/* --- Message Bubble Entrance --- */
+@keyframes messageBubbleIn {
+  0% { opacity: 0; transform: translateY(16px) scale(0.97); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes messageSlideUp {
+  0% { opacity: 0; transform: translateY(24px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.animate-message-in {
+  animation: messageBubbleIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-slide-up {
+  animation: messageSlideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* --- 🚀 Rocket Fuel Gauge --- */
+@keyframes rocketHover {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  25% { transform: translateY(-4px) rotate(0deg); }
+  50% { transform: translateY(-2px) rotate(2deg); }
+  75% { transform: translateY(-5px) rotate(-1deg); }
+}
+
+@keyframes rocketShake {
+  0%, 100% { transform: translateX(0) rotate(0deg); }
+  10% { transform: translateX(-1px) rotate(-1deg); }
+  20% { transform: translateX(1px) rotate(1deg); }
+  30% { transform: translateX(-1px) rotate(-0.5deg); }
+  40% { transform: translateX(1px) rotate(0.5deg); }
+  50% { transform: translateX(0) rotate(0deg); }
+}
+
+@keyframes exhaustFlame {
+  0% { opacity: 0.9; transform: scaleY(1) scaleX(1); }
+  25% { opacity: 0.7; transform: scaleY(1.3) scaleX(0.8); }
+  50% { opacity: 0.5; transform: scaleY(0.8) scaleX(1.1); }
+  75% { opacity: 0.8; transform: scaleY(1.1) scaleX(0.9); }
+  100% { opacity: 0.9; transform: scaleY(1) scaleX(1); }
+}
+
+@keyframes exhaustDying {
+  0% { opacity: 0.4; transform: scaleY(0.5); }
+  50% { opacity: 0.2; transform: scaleY(0.3); }
+  100% { opacity: 0.1; transform: scaleY(0.1); }
+}
+
+@keyframes smokeParticle {
+  0% { opacity: 0.6; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(20px) scale(2); }
+}
+
+.animate-rocket {
+  animation: rocketHover 3s ease-in-out infinite;
+}
+
+.animate-rocket-shake {
+  animation: rocketShake 0.5s ease-in-out;
+}
+
+.animate-exhaust {
+  animation: exhaustFlame 0.3s ease-in-out infinite;
+  transform-origin: top center;
+}
+
+.animate-exhaust-dying {
+  animation: exhaustDying 2s ease-in-out infinite;
+  transform-origin: top center;
+}
+
+.animate-smoke {
+  animation: smokeParticle 1.5s ease-out infinite;
+}
+
+/* Fuel bar depletion shimmer */
+@keyframes fuelShimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+.fuel-bar-shimmer {
+  background-size: 200% 100%;
+  animation: fuelShimmer 2s linear infinite;
+}
+
+/* --- Sidebar label fade-slide on expand --- */
+@keyframes sidebarLabelIn {
+  0%   { opacity: 0; transform: translateX(-6px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+
+.sidebar-label-in {
+  animation: sidebarLabelIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* --- Input Area (no breathing glow — too distracting) --- */
+.animate-breathing-glow {
+  /* intentionally empty: idle input has no glow animation */
+}
+
+/* --- Mode Switch --- */
+@keyframes modeSwitch {
+  0% { transform: scale(1); }
+  30% { transform: scale(0.9); }
+  60% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+@keyframes modePulse {
+  0% { box-shadow: 0 0 0 0 var(--accent-color); }
+  50% { box-shadow: 0 0 0 6px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+.animate-mode-switch {
+  animation: modeSwitch 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.animate-mode-pulse {
+  animation: modePulse 0.6s ease-out;
+}
+
+/* --- Progress Bar & Credits --- */
+@keyframes progressShimmer {
+  0% { left: -100%; }
+  100% { left: 200%; }
+}
+
+@keyframes creditPop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+
+.progress-shimmer::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  animation: progressShimmer 2s ease-in-out infinite;
+}
+
+.animate-credit-pop {
+  animation: creditPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* --- Dropdown & Modal --- */
+@keyframes dropdownOpen {
+  0% { opacity: 0; transform: translateY(8px) scale(0.95); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes dropdownClose {
+  0% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(8px) scale(0.95); }
+}
+
+@keyframes modalOpen {
+  0% { opacity: 0; transform: scale(0.92); filter: blur(4px); }
+  100% { opacity: 1; transform: scale(1); filter: blur(0); }
+}
+
+@keyframes backdropIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+.animate-dropdown-open {
+  animation: dropdownOpen 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.animate-modal-open {
+  animation: modalOpen 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-backdrop-in {
+  animation: backdropIn 0.3s ease forwards;
+}
+
+/* --- Scale In (generic) --- */
+@keyframes scaleIn {
+  0% { opacity: 0; transform: scale(0.9); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes scaleOut {
+  0% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(0.9); }
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* --- Fade In --- */
+@keyframes fadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes fadeInUp {
+  0% { opacity: 0; transform: translateY(12px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* --- Button Interactions --- */
+@keyframes buttonPress {
+  0% { transform: scale(1); }
+  50% { transform: scale(0.92); }
+  100% { transform: scale(1); }
+}
+
+@keyframes ripple {
+  0% { transform: scale(0); opacity: 0.5; }
+  100% { transform: scale(4); opacity: 0; }
+}
+
+.animate-press {
+  animation: buttonPress 0.2s ease;
+}
+
+/* --- Float / Hover --- */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes gentleFloat {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  33% { transform: translateY(-6px) rotate(0.5deg); }
+  66% { transform: translateY(-3px) rotate(-0.5deg); }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-gentle-float {
+  animation: gentleFloat 5s ease-in-out infinite;
+}
+
+/* --- Typing / Loading Dots --- */
+@keyframes typingDot {
+  0%, 100% { opacity: 0.3; transform: translateY(0); }
+  50% { opacity: 1; transform: translateY(-4px); }
+}
+
+.typing-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-color);
+  animation: typingDot 1.2s ease-in-out infinite;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.15s; }
+.typing-dot:nth-child(3) { animation-delay: 0.3s; }
+
+/* --- Glow Ring (Saturn logo) --- */
+@keyframes glowRing {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(1.1); }
+}
+
+.animate-glow-ring {
+  animation: glowRing 3s ease-in-out infinite;
+}
+
+/* --- Stagger utilities --- */
+.stagger-1 { animation-delay: 0.05s; }
+.stagger-2 { animation-delay: 0.1s; }
+.stagger-3 { animation-delay: 0.15s; }
+.stagger-4 { animation-delay: 0.2s; }
+.stagger-5 { animation-delay: 0.25s; }
+.stagger-6 { animation-delay: 0.3s; }
+
+/* --- Old compatibility (keep existing classes working) --- */
 .hover-lift {
   transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
 }
@@ -293,54 +715,12 @@ textarea,
   text-shadow: 0 0 15px var(--accent-color);
 }
 
-@keyframes float {
-  0% {
-    transform: translateY(0px);
-  }
-
-  50% {
-    transform: translateY(-10px);
-  }
-
-  100% {
-    transform: translateY(0px);
-  }
-}
-
-.animate-float {
-  animation: float 6s ease-in-out infinite;
-}
-
 .interactive-element {
   transition: all 0.2s ease;
 }
 
 .interactive-element:active {
   transform: scale(0.95);
-}
-
-@keyframes slideInFromLeft {
-  from {
-    transform: translateX(-20px);
-    opacity: 0;
-  }
-
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
-}
-
-@keyframes slideInFromRight {
-  from {
-    transform: translateX(20px);
-    opacity: 0;
-  }
-
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
 }
 
 .animate-in {
@@ -364,3 +744,68 @@ textarea,
 .zoom-in-95 {
   animation-name: scaleIn;
 }
+
+
+@keyframes slideInFromLeft {
+  from { transform: translateX(-20px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slideInFromRight {
+  from { transform: translateX(20px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+button, a, input, textarea, select {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ============================================
+   🌿 ORGANIC UTILITY CLASSES
+   ============================================ */
+
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 20px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-color);
+  background-clip: content-box;
+}
+
+.organic-section {
+  background: var(--surface-color);
+  border-radius: 20px;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 2px 20px -4px var(--organic-shadow, rgba(0,0,0,0.2));
+}
+
+.organic-pill {
+  border-radius: 999px;
+  padding: 0.2em 0.75em;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.organic-focus:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-color) 25%, transparent);
+  border-color: var(--accent-color);
+}
+
+.organic-bar {
+  border-radius: 999px;
+  overflow: hidden;
+}
+.organic-bar > div {
+  border-radius: 999px;
+}
+

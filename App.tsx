@@ -6,7 +6,8 @@ import SidebarPanel from './components/SidebarPanel';
 import MessageBubble from './components/MessageBubble';
 import InputArea from './components/InputArea';
 import SettingsModal from './components/SettingsModal';
-import { Tab, Message, Role, SearchMode, Attachment, Theme, Bookmark, DownloadItem, UserProfile, Extension, BrowserState, CustomShortcut, HistoryItem, ThreadGroup, AgentRun, AgentEvent } from './types';
+import AmbientPlayer from './components/AmbientPlayer';
+import { Tab, Message, Role, SearchMode, Attachment, Theme, Bookmark, DownloadItem, UserProfile, Extension, BrowserState, CustomShortcut, HistoryItem, ThreadGroup, AgentRun, AgentEvent, CustomMode, ModeModelMap } from './types';
 import { createNewTab, streamGeminiResponse, generateImage, generateVideoWithModel, generateChatTitle, decideAgentUsage } from './services/geminiService';
 import { sendNanobrowserMessage } from './services/nanobrowserService';
 import { X } from 'lucide-react';
@@ -442,6 +443,7 @@ export default function App({ mode = 'full' }: AppProps) {
         setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
     };
 
+
     const handleResetLayout = () => {
         setSidebarWidth(50);
     };
@@ -643,6 +645,7 @@ export default function App({ mode = 'full' }: AppProps) {
         await sendNanobrowserMessage({ type: 'NANO_AGENT_ABORT', runId: agentRun.id });
     };
 
+
     const handleSendMessage = async (text: string, attachments?: Attachment[], modeOverride?: SearchMode) => {
         const currentTabId = activeTabId;
         const effectiveMode = modeOverride || searchMode;
@@ -818,7 +821,7 @@ export default function App({ mode = 'full' }: AppProps) {
 
     return (
         <div
-            className="flex h-[100dvh] bg-zen-bg text-zen-text font-sans overflow-hidden transition-colors duration-500 bg-cover bg-center relative"
+            className="flex h-full bg-zen-bg text-zen-text font-sans overflow-hidden transition-colors duration-500 bg-cover bg-center relative"
             style={
                 customBackdrop ? { backgroundImage: `url(${customBackdrop})` } :
                     currentTheme === 'galaxy' ? { backgroundImage: `url(${GALAXY_IMG})` } :
@@ -886,8 +889,10 @@ export default function App({ mode = 'full' }: AppProps) {
             <div
                 className={`flex-1 flex flex-col min-w-0 z-10 relative h-full transition-all duration-500`}
                 style={{
-                    paddingLeft: currentUser.sidebarPosition === 'right' ? '24px' : `${sidebarWidth + 24}px`,
-                    paddingRight: currentUser.sidebarPosition === 'right' ? `${sidebarWidth + 24}px` : '24px'
+                    paddingLeft: (currentUser.sidebarPosition === 'right' || currentUser.sidebarPosition === 'top' || currentUser.sidebarPosition === 'bottom') ? '24px' : `${sidebarWidth + 24}px`,
+                    paddingRight: currentUser.sidebarPosition === 'right' ? `${sidebarWidth + 24}px` : '24px',
+                    paddingTop: currentUser.sidebarPosition === 'top' ? '74px' : undefined,
+                    paddingBottom: currentUser.sidebarPosition === 'bottom' ? '74px' : undefined,
                 }}
             >
                 <SettingsModal
@@ -928,7 +933,7 @@ export default function App({ mode = 'full' }: AppProps) {
                     setCustomInstructions={setCustomInstructions}
                 />
 
-                <div className="flex flex-col flex-1 overflow-hidden relative h-full transition-all duration-300">
+                <div className="flex flex-col flex-1 overflow-hidden relative min-h-0 transition-all duration-300">
                     <div className="flex-1 relative overflow-hidden">
                         {isIframeOpen && browserState ? (
                             <div className="relative w-full h-full animate-scale-in bg-white">
@@ -949,21 +954,21 @@ export default function App({ mode = 'full' }: AppProps) {
                             </div>
                         ) : (
                             <>
-                                <div className="absolute inset-0 overflow-y-auto scroll-smooth pb-96 custom-scrollbar">
-                                    <div className="max-w-6xl mx-auto w-full px-8 pt-16 min-h-full flex flex-col">
+                                <div className="absolute inset-0 overflow-y-auto scroll-smooth custom-scrollbar flex flex-col">
+                                    <div className="max-w-6xl mx-auto w-full px-8 pt-8 flex-1 flex flex-col min-h-full">
                                         {!activeTab?.messages.length ? (
-                                            <div className="flex-1 flex flex-col items-center justify-center animate-slide-up">
-                                                <div className="mb-8 relative flex items-center justify-center group">
-                                                    <div className="absolute inset-0 bg-zen-accent/20 blur-3xl rounded-full animate-pulse-slow" />
-                                                    <svg viewBox="0 0 100 100" className="w-36 h-36 text-zen-accent animate-spin-slow opacity-90 relative z-10 filter drop-shadow-[0_0_20px_rgba(var(--accent-color-rgb),0.6)]">
+                                            <div className="flex-1 flex flex-col items-center justify-center pb-40 animate-app-open">
+                                                <div className="mb-6 relative flex items-center justify-center group animate-splash">
+                                                    <div className="absolute inset-0 bg-zen-accent/20 blur-3xl rounded-full animate-glow-ring" />
+                                                    <svg viewBox="0 0 100 100" className="w-28 h-28 sm:w-36 sm:h-36 text-zen-accent animate-gentle-float opacity-90 relative z-10 filter drop-shadow-[0_0_20px_rgba(var(--accent-color-rgb),0.6)]">
                                                         <circle cx="50" cy="50" r="20" fill="currentColor" />
                                                         <ellipse cx="50" cy="50" rx="40" ry="10" fill="none" stroke="currentColor" strokeWidth="4" transform="rotate(-15 50 50)" />
                                                     </svg>
                                                 </div>
-                                                <h1 className="text-6xl font-bold mb-6 text-zen-text tracking-tighter text-center drop-shadow-lg">Saturn</h1>
+                                                <h1 className="font-fraunces text-4xl sm:text-6xl font-bold mb-4 text-zen-text tracking-tighter text-center drop-shadow-lg animate-text-reveal">Saturn</h1>
                                             </div>
                                         ) : (
-                                            <div className="flex flex-col justify-end flex-1 pb-10">
+                                            <div className="flex flex-col justify-end flex-1 pb-48 pt-8">
                                                 {activeTab.messages.map((msg) => (
                                                     <MessageBubble
                                                         key={msg.id}
@@ -978,7 +983,7 @@ export default function App({ mode = 'full' }: AppProps) {
                                         )}
                                     </div>
                                 </div>
-                                <div className="absolute bottom-0 left-0 right-0 p-6 pb-12 z-20 bg-gradient-to-t from-zen-bg via-zen-bg/80 to-transparent pointer-events-none">
+                                <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 pb-6 sm:pb-10 z-20 bg-gradient-to-t from-zen-bg via-zen-bg/90 to-transparent pointer-events-none">
                                     <div className="pointer-events-auto max-w-6xl mx-auto">
                                         <InputArea
                                             onSend={(text, attach) => handleSendMessage(text, attach)}
@@ -987,6 +992,7 @@ export default function App({ mode = 'full' }: AppProps) {
                                             setMode={setSearchMode}
                                             onGetContext={mode === 'sidebar' ? handleGetPageContext : undefined}
                                             draft={draft}
+                                            customModes={currentUser.customModes || []}
                                         />
                                     </div>
                                 </div>
@@ -995,6 +1001,9 @@ export default function App({ mode = 'full' }: AppProps) {
                     </div>
                 </div>
             </div>
+
+            {/* Ambient music player — always available */}
+            <AmbientPlayer />
         </div>
     );
 }

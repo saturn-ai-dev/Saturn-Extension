@@ -121,10 +121,7 @@ const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
 
     return (
         <div 
-            className={`
-                fixed top-4 bottom-4 w-[500px] bg-zen-surface/95 backdrop-blur-2xl border border-zen-border/50 shadow-2xl z-40 rounded-3xl transform transition-all duration-300 ease-in-out flex flex-col
-                ${isOpen ? 'translate-x-0 opacity-100' : (position === 'left' ? '-translate-x-10' : 'translate-x-10') + ' opacity-0 pointer-events-none'}
-            `}
+            className={`fixed top-4 bottom-4 w-[500px] bg-zen-surface/95 backdrop-blur-2xl border border-zen-border/50 shadow-2xl z-40 rounded-[28px] transform transition-all duration-300 ease-in-out flex flex-col ${isOpen ? 'translate-x-0 opacity-100' : (position === 'left' ? '-translate-x-10' : 'translate-x-10') + ' opacity-0 pointer-events-none'}`}
             style={{ 
                 left: position === 'left' ? `${sidebarWidth + 24}px` : 'auto',
                 right: position === 'right' ? `${sidebarWidth + 24}px` : 'auto'
@@ -132,9 +129,9 @@ const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
         >
             {/* Header */}
             <div className="h-16 border-b border-zen-border flex items-center justify-between px-6 bg-zen-bg/50 shrink-0">
-                <span className="text-base font-bold tracking-widest text-zen-muted uppercase flex items-center gap-2">
+                <span className="font-fraunces text-lg font-bold text-zen-text flex items-center gap-2">
                     <History className="w-5 h-5 text-zen-accent" />
-                    Deep History
+                    History
                 </span>
                 <button onClick={onClose} className="p-2 rounded-full hover:bg-zen-bg text-zen-muted hover:text-zen-text transition-colors">
                     <X className="w-5 h-5" />
@@ -150,7 +147,7 @@ const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         autoFocus
-                        className="w-full bg-zen-bg border border-zen-border rounded-2xl py-3 pl-11 pr-10 text-sm focus:outline-none focus:border-zen-accent focus:bg-zen-bg text-zen-text placeholder-zen-muted transition-all shadow-sm group-hover:border-zen-border/80"
+                        className="w-full bg-zen-bg border border-zen-border rounded-[18px] py-3 pl-11 pr-10 text-sm focus:outline-none focus:border-zen-accent focus:bg-zen-bg text-zen-text placeholder-zen-muted transition-all shadow-sm group-hover:border-zen-border/80"
                     />
                     <Search className="w-5 h-5 text-zen-muted absolute left-4 top-1/2 -translate-y-1/2 transition-colors group-hover:text-zen-text" />
                     {searchTerm && (
@@ -166,7 +163,7 @@ const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
                 {!isCreatingGroup ? (
                     <button 
                         onClick={() => setIsCreatingGroup(true)}
-                        className="w-full flex items-center justify-center gap-2 text-sm font-medium text-zen-muted hover:text-zen-accent py-2.5 border border-dashed border-zen-border rounded-xl hover:border-zen-accent/50 hover:bg-zen-bg/30 transition-all"
+                        className="w-full flex items-center justify-center gap-2 text-sm font-medium text-zen-muted hover:text-zen-accent py-2.5 border border-dashed border-zen-border rounded-[14px] hover:border-zen-accent/50 hover:bg-zen-bg/30 transition-all"
                     >
                         <FolderPlus className="w-4 h-4" />
                         Create New Project Group
@@ -302,12 +299,12 @@ const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
 
              {/* Footer Status */}
              <div className="p-6 border-t border-zen-border bg-zen-bg/30 shrink-0">
-                <div className="flex items-center justify-between text-[10px] text-zen-muted font-mono tracking-tight">
-                    <span className="flex items-center gap-1.5">
-                        <div className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]"></div>
-                        SYSTEM ONLINE
+                <div className="flex items-center justify-between text-[11px] text-zen-muted font-medium">
+                    <span className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-green-500/80"></div>
+                        Online
                     </span>
-                    <span>{pastConversations.length} ITEMS STORED</span>
+                    <span>{pastConversations.length} conversations</span>
                 </div>
             </div>
         </div>
@@ -356,7 +353,7 @@ const HistoryItem: React.FC<{
         <div className="relative group">
             <button
                 onClick={() => onRestore(tab.id)}
-                className="w-full text-left p-4 rounded-2xl bg-zen-bg/40 border border-zen-border/50 hover:border-zen-accent/40 hover:bg-zen-bg hover:shadow-md transition-all group pr-10 flex flex-col gap-1.5"
+                className="w-full text-left p-4 rounded-[18px] bg-zen-bg/40 border border-zen-border/50 hover:border-zen-accent/40 hover:bg-zen-bg hover:shadow-md transition-all group pr-10 flex flex-col gap-1.5"
             >
                 <div className="flex items-start justify-between gap-2">
                     <div className="text-sm font-bold text-zen-text truncate leading-tight">
@@ -433,7 +430,7 @@ const HistoryItem: React.FC<{
 
             {/* Context Menu */}
             {isMoving && (
-                <div className="absolute right-0 top-10 mt-1 w-56 bg-zen-surface border border-zen-border rounded-xl shadow-2xl z-50 overflow-hidden animate-scale-in origin-top-right backdrop-blur-xl">
+                <div className="absolute right-0 top-10 mt-1 w-56 bg-zen-surface border border-zen-border rounded-[16px] shadow-2xl z-50 overflow-hidden animate-scale-in origin-top-right backdrop-blur-xl">
                     <div className="p-1.5 space-y-0.5">
                         <div className="px-3 py-2 text-[10px] font-bold text-zen-muted uppercase tracking-wider">
                             Move project to...

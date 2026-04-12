@@ -1,8 +1,10 @@
 
 import React, { useRef, useEffect, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { ArrowUp, Zap, Globe, BrainCircuit, Paperclip, X, Image as ImageIcon, Video, Target, Eye, EyeOff, ChevronDown, Check, FileText } from 'lucide-react';
-import { SearchMode, Attachment } from '../types';
+import { ArrowUp, Zap, Globe, BrainCircuit, Paperclip, X, Image as ImageIcon, Video, Target, Eye, EyeOff, ChevronDown, Check, FileText, AlertTriangle } from 'lucide-react';
+import { SearchMode, Attachment, CustomMode } from '../types';
+import { getRemainingUsage, isModeExhausted, isImageGenAvailable, isVideoGenAvailable, isFallbackMode } from '../services/usageService';
+import RocketFuelGauge from './RocketFuelGauge';
 
 interface InputAreaProps {
   onSend: (text: string, attachments?: Attachment[]) => void;
@@ -11,9 +13,10 @@ interface InputAreaProps {
   setMode: (mode: SearchMode) => void;
   onGetContext?: () => void;
   draft?: { text: string, timestamp: number };
+  customModes?: CustomMode[];
 }
 
-const InputArea: React.FC<InputAreaProps> = ({ onSend, disabled, mode, setMode, onGetContext, draft }) => {
+const InputArea: React.FC<InputAreaProps> = ({ onSend, disabled, mode, setMode, onGetContext, draft, customModes = [] }) => {
   const [input, setInput] = useState('');
   
   useEffect(() => {
@@ -171,14 +174,41 @@ const InputArea: React.FC<InputAreaProps> = ({ onSend, disabled, mode, setMode, 
     }
   };
 
-  const modes: { id: SearchMode; label: string; icon: React.ReactNode; desc: string }[] = [
-    { id: 'fast', label: 'Fast', icon: <Zap className="w-4 h-4 text-yellow-400" />, desc: 'Quick answers' },
-    { id: 'normal', label: 'Web', icon: <Globe className="w-4 h-4 text-blue-400" />, desc: 'Search the web' },
-    { id: 'pro', label: 'Deep', icon: <BrainCircuit className="w-4 h-4 text-purple-400" />, desc: 'Complex reasoning' },
+  const remaining = getRemainingUsage();
+  const fallback = isFallbackMode();
+
+  const getModeCredits = (id: SearchMode): string => {
+    switch (id) {
+      case 'fast': return `${remaining.fast} left`;
+      case 'normal': return `${remaining.web} left`;
+      case 'pro': return `${remaining.deep} left`;
+      default: return '';
+    }
+  };
+
+  const isModeDisabled = (id: SearchMode): boolean => {
+    if (id === 'image') return !isImageGenAvailable();
+    if (id === 'video') return !isVideoGenAvailable();
+    return false;
+  };
+
+  const builtinModes: { id: SearchMode; label: string; icon: React.ReactNode; desc: string }[] = [
+    { id: 'fast', label: 'Fast', icon: <Zap className="w-4 h-4 text-yellow-400" />, desc: remaining.fast > 0 ? `${remaining.fast} credits left` : '⚠️ Exhausted' },
+    { id: 'normal', label: 'Web', icon: <Globe className="w-4 h-4 text-blue-400" />, desc: remaining.web > 0 ? `${remaining.web} credits left` : '⚠️ Exhausted' },
+    { id: 'pro', label: 'Deep', icon: <BrainCircuit className="w-4 h-4 text-purple-400" />, desc: remaining.deep > 0 ? `${remaining.deep} credits left` : '⚠️ Exhausted' },
     { id: 'direct', label: 'Direct', icon: <Target className="w-4 h-4 text-red-400" />, desc: 'Concise facts' },
-    { id: 'image', label: 'Image', icon: <ImageIcon className="w-4 h-4 text-pink-400" />, desc: 'Generate art' },
-    { id: 'video', label: 'Video', icon: <Video className="w-4 h-4 text-orange-400" />, desc: 'Create clips' },
+    { id: 'image', label: 'Image', icon: <ImageIcon className="w-4 h-4 text-pink-400" />, desc: fallback ? '🚫 Unavailable' : 'Generate art' },
+    { id: 'video', label: 'Video', icon: <Video className="w-4 h-4 text-orange-400" />, desc: fallback ? '🚫 Unavailable' : 'Create clips' },
   ];
+
+  const customModeEntries = customModes.map(cm => ({
+    id: cm.id as SearchMode,
+    label: cm.label,
+    icon: <span className="text-base leading-none">{cm.emoji}</span>,
+    desc: cm.desc || cm.model,
+  }));
+
+  const modes = [...builtinModes, ...customModeEntries];
 
   const currentMode = modes.find(m => m.id === mode) || modes[1];
 
@@ -208,8 +238,6 @@ const InputArea: React.FC<InputAreaProps> = ({ onSend, disabled, mode, setMode, 
     <div className="w-full mx-auto relative z-50">
       <div className="relative group transition-all duration-500 ease-out">
 
-        <div className={`absolute -inset-0.5 bg-gradient-to-r from-zen-accent via-purple-500 to-zen-accent rounded-[28px] opacity-0 transition-opacity duration-500 blur-xl ${isFocused || isDragging ? 'opacity-20' : 'group-hover:opacity-10'}`} />
-
         <div
           ref={inputAreaRef}
           onDragOver={handleDragOver}
@@ -217,10 +245,14 @@ const InputArea: React.FC<InputAreaProps> = ({ onSend, disabled, mode, setMode, 
           onDrop={handleDrop}
           onPaste={handlePaste}
           className={`
-            relative bg-zen-surface/95 backdrop-blur-2xl rounded-[28px] border border-zen-border flex flex-col transition-all duration-300
-            ${isFocused || isDragging ? 'border-zen-text/30 shadow-glow-lg translate-y-[-2px]' : 'shadow-deep hover:border-zen-border/80'}
-            ${isDragging ? 'border-zen-accent border-dashed' : ''}
+            relative bg-zen-surface/90 backdrop-blur-2xl rounded-[24px] border flex flex-col transition-[border-color,box-shadow] duration-300
+            ${isDragging ? 'border-zen-accent/60 border-dashed' : isFocused ? 'border-zen-text/20' : 'border-zen-border/60'}
           `}
+          style={{
+            boxShadow: isFocused
+              ? '0 0 0 1px var(--accent-glow), 0 8px 40px -8px var(--accent-glow), 0 4px 16px rgba(0,0,0,0.12)'
+              : '0 2px 12px rgba(0,0,0,0.08)'
+          }}
         >
 
           {attachments.length > 0 && (
@@ -303,11 +335,16 @@ const InputArea: React.FC<InputAreaProps> = ({ onSend, disabled, mode, setMode, 
             {/* Mode Dropdown & Send Right */}
             <div className="flex items-center gap-3 pb-1.5">
 
+              {/* Rocket Fuel Gauge */}
+              <div className="pb-2">
+                <RocketFuelGauge />
+              </div>
+
               {/* Mode Selector */}
               <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={() => setShowModeDropdown(!showModeDropdown)}
-                  className="flex items-center gap-2 px-3 py-2 rounded-xl bg-zen-bg/50 hover:bg-zen-bg text-zen-text border border-zen-border/50 hover:border-zen-accent/50 transition-all text-xs font-bold uppercase tracking-wide min-w-[100px] justify-between"
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-zen-bg/60 hover:bg-zen-bg text-zen-text border border-zen-border/40 hover:border-zen-border transition-[background,border-color] duration-150 text-xs font-medium min-w-[90px] justify-between"
                 >
                   <div className="flex items-center gap-2">
                     {currentMode.icon}
@@ -317,23 +354,26 @@ const InputArea: React.FC<InputAreaProps> = ({ onSend, disabled, mode, setMode, 
                 </button>
 
                 {showModeDropdown && (
-                  <div className="absolute bottom-full right-0 mb-3 w-56 bg-zen-surface/95 backdrop-blur-xl border border-zen-border rounded-2xl shadow-2xl overflow-hidden animate-scale-in z-[60] origin-bottom-right p-1">
-                    {modes.map((m) => (
+                  <div className="absolute bottom-full right-0 mb-2 w-52 bg-zen-surface/98 backdrop-blur-xl border border-zen-border/50 rounded-[18px] shadow-xl animate-dropdown-open z-[60] origin-bottom-right p-2 space-y-0.5">
+                    {modes.map((m) => {
+                      const mDisabled = isModeDisabled(m.id);
+                      return (
                       <button
                         key={m.id}
-                        onClick={() => { setMode(m.id); setShowModeDropdown(false); }}
-                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all group ${mode === m.id ? 'bg-zen-bg text-zen-text shadow-sm' : 'text-zen-muted hover:text-zen-text hover:bg-zen-bg/50'}`}
+                        onClick={() => { if (!mDisabled) { setMode(m.id); setShowModeDropdown(false); } }}
+                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-[12px] text-left transition-[background,color] duration-150 ${mDisabled ? 'opacity-40 cursor-not-allowed' : ''} ${mode === m.id ? 'bg-zen-bg text-zen-text' : 'text-zen-muted hover:text-zen-text hover:bg-zen-bg/50'}`}
                       >
-                        <div className={`p-2 rounded-lg bg-zen-bg border border-zen-border/50 group-hover:border-zen-accent/30 transition-colors ${mode === m.id ? 'border-zen-accent' : ''}`}>
+                        <div className="flex items-center justify-center w-4 h-4 shrink-0">
                           {m.icon}
                         </div>
                         <div className="flex-1">
-                          <div className="text-xs font-bold uppercase tracking-wider">{m.label}</div>
-                          <div className="text-[10px] text-zen-muted font-medium">{m.desc}</div>
+                          <div className="text-xs font-medium">{m.label}</div>
+                          <div className={`text-[10px] ${m.desc.includes('Exhausted') || m.desc.includes('Unavailable') ? 'text-red-400' : 'text-zen-muted/60'}`}>{m.desc}</div>
                         </div>
-                        {mode === m.id && <Check className="w-3.5 h-3.5 text-zen-accent" />}
+                        {mode === m.id && <Check className="w-3 h-3 text-zen-accent" />}
                       </button>
-                    ))}
+                    );
+                    })}
                   </div>
                 )}
               </div>
@@ -342,12 +382,7 @@ const InputArea: React.FC<InputAreaProps> = ({ onSend, disabled, mode, setMode, 
               <button
                 onClick={handleSend}
                 disabled={(!input.trim() && attachments.length === 0) || disabled}
-                className={`
-                    p-3 rounded-xl transition-all duration-300 flex-shrink-0
-                    ${(input.trim() || attachments.length > 0) && !disabled
-                    ? 'bg-zen-text text-zen-bg hover:bg-zen-accent hover:text-white shadow-lg transform hover:scale-105 active:scale-95'
-                    : 'bg-zen-surface text-zen-muted cursor-not-allowed border border-zen-border'}
-                `}
+                className={`p-3 rounded-[16px] transition-all duration-300 flex-shrink-0 ${(input.trim() || attachments.length > 0) && !disabled ? 'bg-zen-text text-zen-bg hover:bg-zen-accent hover:text-white shadow-lg transform hover:scale-105 active:scale-95' : 'bg-zen-surface text-zen-muted cursor-not-allowed border border-zen-border'}`}
               >
                 {disabled ? (
                   <div className="w-5 h-5 animate-spin">
