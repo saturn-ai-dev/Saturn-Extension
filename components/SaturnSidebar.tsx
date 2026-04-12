@@ -154,7 +154,7 @@ const SaturnSidebar: React.FC<SaturnSidebarProps> = ({
                 h-10 rounded-xl flex items-center transition-all duration-300 relative group shrink-0
                 ${isActuallyExpanded ? 'w-full px-3 gap-3 justify-start' : 'w-10 justify-center'}
                 ${isActive
-                    ? 'bg-zen-accent/10 text-zen-accent shadow-[inset_0_0_0_1px_rgba(var(--zen-accent-rgb),0.1)]'
+                    ? 'bg-zen-accent/10 text-zen-accent shadow-[inset_0_0_0_1px_rgba(var(--accent-color-rgb),0.22),0_18px_35px_-28px_rgba(var(--accent-color-rgb),0.7)]'
                     : `hover:bg-zen-text/5 ${color} hover:text-zen-text`
                 }
                 ${className}
@@ -188,7 +188,7 @@ const SaturnSidebar: React.FC<SaturnSidebarProps> = ({
         <div
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
-            className={`fixed ${position === 'left' ? 'left-3' : 'right-3'} top-3 bottom-3 bg-zen-bg/70 border border-zen-border/40 rounded-[24px] flex flex-col py-4 z-50 transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) shadow-[0_8px_32px_rgba(0,0,0,0.12)] select-none group/sidebar hover:bg-zen-bg/80 ${isResizing ? 'transition-none' : ''}`}
+            className={`glass-elevated fixed ${position === 'left' ? 'left-3' : 'right-3'} top-3 bottom-3 rounded-[24px] flex flex-col py-4 z-50 transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) select-none group/sidebar ${isResizing ? 'transition-none' : ''}`}
             style={{ 
                 width: isActuallyExpanded ? `${width}px` : '55px',
                 backdropFilter: `blur(${glassIntensity}px)`,
@@ -210,7 +210,7 @@ const SaturnSidebar: React.FC<SaturnSidebarProps> = ({
             <div className={`flex ${isActuallyExpanded ? (position === 'left' ? 'justify-end px-4' : 'justify-start px-4') : 'justify-center'} mb-3`}>
                  <button 
                     onClick={handleToggle} 
-                    className="text-zen-muted hover:text-zen-accent p-1.5 rounded-xl hover:bg-zen-accent/10 transition-all duration-300 hover:rotate-180"
+                    className="text-zen-muted hover:text-zen-accent p-1.5 rounded-xl hover:bg-zen-accent/10 transition-all duration-300 hover:rotate-180 hover:-translate-y-0.5"
                 >
                     {isActuallyExpanded ? (position === 'left' ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />) : <Menu className="w-5 h-5" />}
                  </button>
@@ -218,27 +218,27 @@ const SaturnSidebar: React.FC<SaturnSidebarProps> = ({
 
             {/* Logo Section */}
             <div
-                className={`mb-6 cursor-pointer flex items-center gap-3 app-no-drag group px-4 ${isActuallyExpanded ? 'justify-start' : 'justify-center'}`}
+                className={`mb-6 cursor-pointer flex items-center gap-3 app-no-drag group/logo px-4 ${isActuallyExpanded ? 'justify-start' : 'justify-center'}`}
                 onClick={onNewTab}
                 title="New Chat"
             >
                 <div className="relative shrink-0 flex items-center justify-center">
                     <div className="absolute inset-0 bg-zen-accent/20 blur-lg rounded-full group-hover:bg-zen-accent/30 transition-colors" />
-                    <svg viewBox="0 0 100 100" className="w-9 h-9 text-zen-accent group-hover:scale-110 transition-transform duration-500 ease-out relative z-10">
+                    <svg viewBox="0 0 100 100" className="saturn-brand-logo w-9 h-9 text-zen-accent group-hover:scale-110 transition-transform duration-500 ease-out relative z-10">
                         <defs>
                             <linearGradient id="saturn-grad" x1="0%" y1="0%" x2="100%" y2="100%">
                                 <stop offset="0%" stopColor="currentColor" />
                                 <stop offset="100%" stopColor="currentColor" stopOpacity="0.8" />
                             </linearGradient>
                         </defs>
-                        <circle cx="50" cy="50" r="18" fill="url(#saturn-grad)" />
-                        <ellipse cx="50" cy="50" rx="38" ry="9" fill="none" stroke="currentColor" strokeWidth="6" transform="rotate(-15 50 50)" className="opacity-80" />
+                        <circle cx="50" cy="50" r="18" fill="url(#saturn-grad)" className="saturn-brand-core" />
+                        <ellipse cx="50" cy="50" rx="38" ry="9" fill="none" stroke="currentColor" strokeWidth="6" className="saturn-brand-ring opacity-80" />
                     </svg>
                 </div>
                 {isActuallyExpanded && (
                     <div className="flex flex-col overflow-hidden animate-in fade-in slide-in-from-left-2 duration-500">
                         <span className="font-bold text-[17px] text-zen-text leading-tight tracking-tight">Saturn</span>
-                        <span className="text-[9px] text-zen-accent font-black tracking-[0.2em] uppercase opacity-80">PRO</span>
+                        <span className="text-[11px] text-zen-muted font-medium opacity-80">AI</span>
                     </div>
                 )}
             </div>
@@ -254,7 +254,7 @@ const SaturnSidebar: React.FC<SaturnSidebarProps> = ({
                 {(displayedApps.length > 0 || customShortcuts.length > 0) && (
                     <div className="w-full flex items-center gap-2 my-3 px-1">
                         <div className="h-px flex-1 bg-zen-border/30" />
-                        {isActuallyExpanded && <span className="text-[10px] font-bold text-zen-muted/40 uppercase tracking-widest">Tools</span>}
+                        {isActuallyExpanded && <span className="text-[11px] font-medium text-zen-muted/60">Tools</span>}
                         <div className="h-px flex-1 bg-zen-border/30" />
                     </div>
                 )}
@@ -302,7 +302,7 @@ const SaturnSidebar: React.FC<SaturnSidebarProps> = ({
 
                 {/* Profile / Status Mini-Indicator */}
                 {isActuallyExpanded && showStatus && (
-                    <div className="mt-4 p-2 bg-zen-text/5 rounded-2xl flex items-center gap-3 border border-zen-border/20 animate-in fade-in zoom-in-95 duration-300">
+                    <div className="mt-4 p-2.5 bg-zen-text/5 rounded-2xl flex items-center gap-3 border border-zen-border/20 animate-in fade-in zoom-in-95 duration-300">
                         <div className="w-8 h-8 rounded-xl bg-zen-accent/20 flex items-center justify-center text-zen-accent font-bold text-xs shadow-inner">
                             S
                         </div>
@@ -310,7 +310,7 @@ const SaturnSidebar: React.FC<SaturnSidebarProps> = ({
                             <span className="text-[11px] font-bold text-zen-text truncate">Saturn User</span>
                             <div className="flex items-center gap-1">
                                 <div className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
-                                <span className="text-[9px] text-zen-muted font-medium">Synced</span>
+                                <span className="text-[9px] text-zen-muted font-medium">Synced and ready</span>
                             </div>
                         </div>
                     </div>

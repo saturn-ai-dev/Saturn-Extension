@@ -1,8 +1,9 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { X, Shield, Globe, PaintBucket, Droplet, Sun, Upload, Image as ImageIcon, Smartphone, Box, Rocket, Sparkles, Download, FileText, Video, Puzzle, Trash2, Plus, User, Link, Monitor, Key, ExternalLink, Check, FileUp, FileDown, Loader2 } from 'lucide-react';
 import { Theme, DownloadItem, UserProfile, Extension, CustomShortcut, Tab } from '../types';
 import { exportConversations, importConversations } from '../services/conversationService';
 import { generateOptimizedSystemInstructions } from '../services/geminiService';
+import { fetchGeminiModels, fetchOpenAIModels, getFallbackModelCatalog, type ModelOption } from '../services/modelCatalogService';
 
 
 interface SettingsModalProps {
@@ -101,6 +102,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     // API Key State
     const [apiKey, setApiKey] = useState(() => localStorage.getItem('gemini_api_key') || '');
     const [openaiKey, setOpenaiKey] = useState(() => localStorage.getItem('openai_api_key') || '');
+    const fallbackCatalog = getFallbackModelCatalog();
+    const [geminiModels, setGeminiModels] = useState<ModelOption[]>(fallbackCatalog.geminiText);
+    const [geminiImageModels, setGeminiImageModels] = useState<ModelOption[]>(fallbackCatalog.geminiImage);
+    const [openaiModels, setOpenaiModels] = useState<ModelOption[]>(fallbackCatalog.openaiText);
+    const [isLoadingGeminiModels, setIsLoadingGeminiModels] = useState(false);
+    const [isLoadingOpenAIModels, setIsLoadingOpenAIModels] = useState(false);
+    const [geminiModelsError, setGeminiModelsError] = useState('');
+    const [openaiModelsError, setOpenaiModelsError] = useState('');
 
     // State for creating extension
     const [isCreatingExt, setIsCreatingExt] = useState(false);
@@ -119,8 +128,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     const [newShortcutEmoji, setNewShortcutEmoji] = useState('🔗');
     const [isAddingShortcut, setIsAddingShortcut] = useState(false);
 
-    if (!isOpen) return null;
-
     const handleSaveKey = (val: string) => {
         setApiKey(val);
         localStorage.setItem('gemini_api_key', val);
@@ -131,6 +138,52 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         localStorage.setItem('openai_api_key', val);
         onUpdateSidebarSetting('openaiApiKey', val);
     };
+
+    useEffect(() => {
+        let cancelled = false;
+        const load = async () => {
+            setIsLoadingGeminiModels(true);
+            setGeminiModelsError('');
+            try {
+                const models = await fetchGeminiModels(apiKey);
+                if (cancelled) return;
+                setGeminiModels(models.text);
+                setGeminiImageModels(models.image);
+            } catch (error: any) {
+                if (cancelled) return;
+                setGeminiModels(fallbackCatalog.geminiText);
+                setGeminiImageModels(fallbackCatalog.geminiImage);
+                setGeminiModelsError(error?.message || 'Unable to load Gemini models');
+            } finally {
+                if (!cancelled) setIsLoadingGeminiModels(false);
+            }
+        };
+        load();
+        return () => { cancelled = true; };
+    }, [apiKey]);
+
+    useEffect(() => {
+        let cancelled = false;
+        const load = async () => {
+            setIsLoadingOpenAIModels(true);
+            setOpenaiModelsError('');
+            try {
+                const models = await fetchOpenAIModels(openaiKey);
+                if (cancelled) return;
+                setOpenaiModels(models.text);
+            } catch (error: any) {
+                if (cancelled) return;
+                setOpenaiModels(fallbackCatalog.openaiText);
+                setOpenaiModelsError(error?.message || 'Unable to load OpenAI models');
+            } finally {
+                if (!cancelled) setIsLoadingOpenAIModels(false);
+            }
+        };
+        load();
+        return () => { cancelled = true; };
+    }, [openaiKey]);
+
+    if (!isOpen) return null;
 
     const handleBackdropUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -264,7 +317,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
                                 {/* API Key Section */}
                                 <div>
-                                    <h3 className="text-xs font-bold text-zen-muted uppercase tracking-widest mb-5 pl-1">Connection</h3>
+                                    <h3 className="text-sm font-medium text-zen-muted mb-5 pl-1">Connection</h3>
                                     <div className="space-y-4">
                                         <div className="p-5 rounded-2xl bg-zen-surface border border-zen-border/50 shadow-sm">
                                             <div className="flex items-center gap-4 mb-4">
@@ -310,7 +363,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
                                 {/* Model Section */}
                                 <div>
-                                    <h3 className="text-xs font-bold text-zen-muted uppercase tracking-widest mb-5 pl-1">Intelligence</h3>
+                                    <h3 className="text-sm font-medium text-zen-muted mb-5 pl-1">Intelligence</h3>
                                     <div className="p-5 rounded-2xl bg-zen-surface border border-zen-border/50 shadow-sm">
                                         <div className="flex items-center gap-4 mb-4">
                                             <div className="p-3 rounded-xl bg-purple-500/10 text-purple-400"><Sparkles className="w-5 h-5" /></div>
@@ -320,58 +373,48 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                             </div>
                                         </div>
                                         
-                                        <div className="mb-2 text-[10px] font-bold text-zen-muted uppercase tracking-wider">Gemini Models</div>
+                                        <div className="mb-2 text-xs font-medium text-zen-muted">Gemini Models</div>
+                                        {geminiModelsError && <div className="mb-2 text-[11px] text-yellow-400">{geminiModelsError}</div>}
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
-                                            {[
-                                                { id: 'gemini-flash-latest', name: 'Gemini 2.5 Flash', desc: 'Latest Fast Model' },
-                                                { id: 'gemini-3-flash-preview', name: 'Gemini 3 Flash', desc: 'Next-Gen High Speed' },
-                                                { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', desc: 'Advanced Reasoning' },
-                                                { id: 'gemini-3-pro-preview', name: 'Gemini 3.0 Pro', desc: 'Next-Gen Preview' },
-                                            ].map(model => (
+                                            {geminiModels.map(model => (
                                                 <button
                                                     key={model.id}
                                                     onClick={() => onSetModel(model.id)}
                                                     className={`p-3 rounded-xl border text-left transition-all ${currentUser.preferredModel === model.id || (!currentUser.preferredModel && model.id === 'gemini-flash-latest') ? 'bg-zen-bg border-zen-accent shadow-md' : 'bg-zen-bg/50 border-zen-border hover:bg-zen-bg'}`}
                                                 >
                                                     <div className="text-sm font-bold text-zen-text">{model.name}</div>
-                                                    <div className="text-xs text-zen-muted">{model.desc}</div>
+                                                    <div className="text-xs text-zen-muted font-mono">{model.id}</div>
                                                 </button>
                                             ))}
                                         </div>
+                                        {isLoadingGeminiModels && <div className="mb-6 text-[11px] text-zen-muted">Loading latest Gemini models...</div>}
 
-                                        <div className="mb-2 text-[10px] font-bold text-zen-muted uppercase tracking-wider">OpenAI Models</div>
+                                        <div className="mb-2 text-xs font-medium text-zen-muted">OpenAI Models</div>
+                                        {openaiModelsError && <div className="mb-2 text-[11px] text-yellow-400">{openaiModelsError}</div>}
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
-                                            {[
-                                                { id: 'gpt-5.2', name: 'GPT-5.2', desc: 'Latest Flagship' },
-                                                { id: 'gpt-5-mini', name: 'GPT-5 Mini', desc: 'Fast & Efficient' },
-                                                { id: 'gpt-4o-2024-11-20', name: 'GPT-4o', desc: 'Legacy Reliable' },
-                                            ].map(model => (
+                                            {openaiModels.map(model => (
                                                 <button
                                                     key={model.id}
                                                     onClick={() => onSetModel(model.id)}
                                                     className={`p-3 rounded-xl border text-left transition-all ${currentUser.preferredModel === model.id ? 'bg-zen-bg border-green-500 shadow-md' : 'bg-zen-bg/50 border-zen-border hover:bg-zen-bg'}`}
                                                 >
                                                     <div className="text-sm font-bold text-zen-text">{model.name}</div>
-                                                    <div className="text-xs text-zen-muted">{model.desc}</div>
+                                                    <div className="text-xs text-zen-muted font-mono">{model.id}</div>
                                                 </button>
                                             ))}
                                         </div>
+                                        {isLoadingOpenAIModels && <div className="mb-6 text-[11px] text-zen-muted">Loading latest OpenAI models...</div>}
 
-                                        <div className="mb-2 text-[10px] font-bold text-zen-muted uppercase tracking-wider">Nanobrowser Agent Model</div>
+                                        <div className="mb-2 text-xs font-medium text-zen-muted">Nanobrowser Agent Model</div>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
-                                            {[
-                                                { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', desc: 'Fast agent loops' },
-                                                { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', desc: 'Stronger planning' },
-                                                { id: 'gpt-5-mini', name: 'GPT-5 Mini', desc: 'OpenAI fast' },
-                                                { id: 'gpt-4o-2024-11-20', name: 'GPT-4o', desc: 'OpenAI reliable' },
-                                            ].map(model => (
+                                            {[...geminiModels, ...openaiModels].map(model => (
                                                 <button
                                                     key={model.id}
                                                     onClick={() => onSetNanobrowserModel(model.id)}
                                                     className={`p-3 rounded-xl border text-left transition-all ${currentUser.nanobrowserModel === model.id || (!currentUser.nanobrowserModel && model.id === 'gemini-2.5-flash') ? 'bg-zen-bg border-zen-accent shadow-md' : 'bg-zen-bg/50 border-zen-border hover:bg-zen-bg'}`}
                                                 >
                                                     <div className="text-sm font-bold text-zen-text">{model.name}</div>
-                                                    <div className="text-xs text-zen-muted">{model.desc}</div>
+                                                    <div className="text-xs text-zen-muted font-mono">{model.id}</div>
                                                 </button>
                                             ))}
                                         </div>
@@ -433,17 +476,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                             </div>
                                         ) : (
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                                {[
-                                                    { id: 'gemini-2.5-flash-image', name: 'Gemini 2.5 Flash Image', desc: 'Fast Generation' },
-                                                    { id: 'gemini-3-pro-image-preview', name: 'Gemini 3.0 Image', desc: 'High Fidelity Preview' },
-                                                ].map(model => (
+                                                {geminiImageModels.map(model => (
                                                     <button
                                                         key={model.id}
                                                         onClick={() => onSetImageModel(model.id)}
                                                         className={`p-3 rounded-xl border text-left transition-all ${currentUser.preferredImageModel === model.id || (!currentUser.preferredImageModel && model.id === 'gemini-2.5-flash-image') ? 'bg-zen-bg border-zen-accent shadow-md' : 'bg-zen-bg/50 border-zen-border hover:bg-zen-bg'}`}
                                                     >
                                                         <div className="text-sm font-bold text-zen-text">{model.name}</div>
-                                                        <div className="text-xs text-zen-muted">{model.desc}</div>
+                                                        <div className="text-xs text-zen-muted font-mono">{model.id}</div>
                                                     </button>
                                                 ))}
                                             </div>
@@ -453,7 +493,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
                                 {/* Theme Section */}
                                 <div>
-                                    <h3 className="text-xs font-bold text-zen-muted uppercase tracking-widest mb-5 pl-1">Visuals</h3>
+                                    <h3 className="text-sm font-medium text-zen-muted mb-5 pl-1">Visuals</h3>
                                     <div className="p-5 rounded-2xl bg-zen-surface border border-zen-border/50 shadow-sm">
                                         <div className="flex justify-between items-center mb-4">
                                             <div className="flex items-center gap-4">
@@ -483,7 +523,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
                                 {/* Sidebar Customization */}
                                 <div>
-                                    <h3 className="text-xs font-bold text-zen-muted uppercase tracking-widest mb-5 pl-1">Sidebar Customization</h3>
+                                    <h3 className="text-sm font-medium text-zen-muted mb-5 pl-1">Sidebar Customization</h3>
                                     <div className="p-5 rounded-2xl bg-zen-surface border border-zen-border/50 shadow-sm space-y-6">
                                         
                                         {/* Position */}
@@ -556,7 +596,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
                                 {/* Sidebar Apps */}
                                 <div>
-                                    <h3 className="text-xs font-bold text-zen-muted uppercase tracking-widest mb-5 pl-1">Sidebar Apps & Links</h3>
+                                    <h3 className="text-sm font-medium text-zen-muted mb-5 pl-1">Sidebar Apps & Links</h3>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
                                         {sidebarAppsList.map(app => {
                                             const isEnabled = enabledSidebarApps.includes(app.id);
@@ -615,7 +655,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
                                 {/* Privacy */}
                                 <div>
-                                    <h3 className="text-xs font-bold text-zen-muted uppercase tracking-widest mb-5 pl-1">Privacy</h3>
+                                    <h3 className="text-sm font-medium text-zen-muted mb-5 pl-1">Privacy</h3>
                                     <div className="flex items-center justify-between p-5 rounded-2xl bg-zen-surface border border-zen-border/50 shadow-sm">
                                         <div className="flex items-center gap-4">
                                             <div className="p-3 rounded-xl bg-zinc-500/10 text-zinc-400"><Shield className="w-5 h-5" /></div>
@@ -632,7 +672,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
                                 {/* Data Management */}
                                 <div>
-                                    <h3 className="text-xs font-bold text-zen-muted uppercase tracking-widest mb-5 pl-1">Data Management</h3>
+                                    <h3 className="text-sm font-medium text-zen-muted mb-5 pl-1">Data Management</h3>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <button
                                             onClick={async () => {
@@ -727,7 +767,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                 {optimizationStep >= 0 ? (
                                     <div className="flex-1 flex flex-col items-center justify-center p-8 bg-zen-surface/30 rounded-2xl border border-zen-border animate-fade-in">
                                         <div className="w-full max-w-md space-y-6">
-                                            <div className="flex items-center justify-between text-xs font-bold text-zen-muted uppercase tracking-widest">
+                                            <div className="flex items-center justify-between text-xs font-medium text-zen-muted">
                                                 <span>Step {optimizationStep + 1} of {optimizationQuestions.length}</span>
                                                 <button onClick={() => setOptimizationStep(-1)} className="hover:text-zen-text"><X className="w-4 h-4" /></button>
                                             </div>
@@ -796,7 +836,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                 </div>
 
                                 <div className="space-y-4">
-                                    <h3 className="text-xs font-bold text-zen-muted uppercase tracking-widest pl-1">Switch Profile</h3>
+                                    <h3 className="text-sm font-medium text-zen-muted pl-1">Switch Profile</h3>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                         {users.map(u => (
                                             <button
@@ -839,7 +879,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
                                 {/* Custom Backdrop */}
                                 <div className="pt-6 border-t border-zen-border/50">
-                                    <h3 className="text-xs font-bold text-zen-muted uppercase tracking-widest mb-4 pl-1">Wallpaper</h3>
+                                    <h3 className="text-sm font-medium text-zen-muted mb-4 pl-1">Wallpaper</h3>
                                     <div className="flex gap-4 items-center">
                                         <div className="w-32 h-20 rounded-xl bg-zen-bg border border-zen-border overflow-hidden relative group">
                                             {customBackdrop ? (

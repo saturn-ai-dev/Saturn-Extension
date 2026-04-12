@@ -60,23 +60,23 @@ const LinkRenderer = ({ href, children, onNavigate }: any) => {
 
 // Custom Markdown Components
 const H1 = ({ children, ...props }: any) => (
-  <h1 className="font-fraunces text-3xl font-bold mb-6 pb-2 border-b border-zen-border/50 text-zen-text mt-4" {...props}>{children}</h1>
+  <h1 className="text-[1.75rem] font-semibold tracking-tight mb-6 pb-2 border-b border-zen-border/50 text-zen-text mt-4" {...props}>{children}</h1>
 );
 
 const H2 = ({ children, ...props }: any) => (
-  <h2 className="font-fraunces text-2xl font-bold mb-4 mt-8 text-zen-text" {...props}>{children}</h2>
+  <h2 className="text-[1.45rem] font-semibold tracking-tight mb-4 mt-8 text-zen-text" {...props}>{children}</h2>
 );
 
 const H3 = ({ children, ...props }: any) => (
-  <h3 className="font-fraunces text-xl font-bold mb-3 mt-6 text-zen-text/90" {...props}>{children}</h3>
+  <h3 className="text-xl font-semibold tracking-tight mb-3 mt-6 text-zen-text/90" {...props}>{children}</h3>
 );
 
 const H4 = ({ children, ...props }: any) => (
-  <h4 className="font-fraunces text-lg font-semibold mb-2 mt-4 text-zen-text/85" {...props}>{children}</h4>
+  <h4 className="text-lg font-semibold mb-2 mt-4 text-zen-text/85" {...props}>{children}</h4>
 );
 
 const P = ({ children, ...props }: any) => (
-  <p className="mb-2 leading-7 text-zen-text/90 last:mb-0" {...props}>{children}</p>
+  <p className="mb-3 leading-7 text-zen-text/92 last:mb-0" {...props}>{children}</p>
 );
 
 const UL = ({ children, ...props }: any) => (
@@ -106,7 +106,7 @@ const TableRenderer = ({ children }: any) => (
 );
 
 const TableHeadRenderer = ({ children }: any) => (
-  <thead className="bg-zen-surface text-zen-muted font-bold uppercase tracking-wider text-xs border-b border-zen-border/50">
+  <thead className="bg-zen-surface text-zen-muted font-semibold text-xs border-b border-zen-border/50">
     {children}
   </thead>
 );
@@ -203,7 +203,7 @@ const CodeRenderer = ({ node, inline, className, children, ...props }: any) => {
             <div className="flex items-center justify-between px-4 py-2 bg-[#161b22] border-b border-white/10 text-xs text-gray-400 select-none font-sans rounded-t-xl">
                 <div className="flex items-center gap-2">
                     <span className="uppercase font-bold tracking-wider opacity-70">{language || 'CODE'}</span>
-                    {canExecute && <span className="text-[10px] bg-zen-accent/20 text-zen-accent px-1.5 py-0.5 rounded border border-zen-accent/30 font-bold">RUNNABLE</span>}
+                    {canExecute && <span className="text-[10px] bg-zen-accent/20 text-zen-accent px-1.5 py-0.5 rounded border border-zen-accent/30 font-semibold">Runnable</span>}
                 </div>
                 <div className="flex items-center gap-3">
                     {canExecute && (
@@ -233,7 +233,7 @@ const CodeRenderer = ({ node, inline, className, children, ...props }: any) => {
             {output !== null && (
                 <div className="mt-2 border border-zen-border/50 rounded-xl overflow-hidden shadow-lg animate-fade-in">
                     <div className="flex items-center justify-between px-4 py-2 bg-[#161b22] border-b border-white/5">
-                        <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                        <div className="flex items-center gap-2 text-xs font-semibold text-gray-400">
                             <Terminal className="w-3.5 h-3.5" />
                             Console Output
                         </div>
@@ -385,16 +385,16 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onDownload, onNa
   };
 
   return (
-    <div id={message.id} className={`flex w-full ${isUser ? 'justify-end' : 'justify-start'} mb-5 animate-message-in group`}>
-      <div className={`flex gap-4 max-w-[90%] lg:max-w-[85%] w-full ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
+    <div id={message.id} className={`flex w-full ${isUser ? 'justify-end' : 'justify-start'} mb-6 animate-message-in group/message`}>
+      <div className={`flex gap-3 sm:gap-4 max-w-[92%] lg:max-w-[84%] w-full ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
 
         <div
-          className={`w-8 h-8 flex items-center justify-center flex-shrink-0 mt-1 rounded-xl ${isUser ? 'bg-zen-surface/80 text-zen-muted border border-zen-border/50' : 'bg-zen-text/10 text-zen-text'}`}
+          className={`w-8 h-8 flex items-center justify-center flex-shrink-0 mt-1 rounded-2xl ${isUser ? 'bg-zen-surface/80 text-zen-muted border border-zen-border/50' : 'bg-zen-text/10 text-zen-text border border-white/5 shadow-[0_14px_34px_-26px_rgba(var(--accent-color-rgb),0.9)]'}`}
         >
           {isUser ? <User className="w-4 h-4" /> : (
-             <svg viewBox="0 0 100 100" className="w-4 h-4 animate-spin-slow">
-                <circle cx="50" cy="50" r="20" fill="currentColor" />
-                <ellipse cx="50" cy="50" rx="40" ry="10" fill="none" stroke="currentColor" strokeWidth="8" transform="rotate(-15 50 50)" />
+             <svg viewBox="0 0 100 100" className="saturn-brand-logo w-4 h-4">
+                <circle cx="50" cy="50" r="20" fill="currentColor" className="saturn-brand-core" />
+                <ellipse cx="50" cy="50" rx="40" ry="10" fill="none" stroke="currentColor" strokeWidth="8" className="saturn-brand-ring" />
              </svg>
           )}
         </div>
@@ -430,7 +430,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onDownload, onNa
                      )}
                  </div>
                  <div className="flex justify-between items-center mt-3 px-1">
-                     <span className="text-xs font-bold text-zen-muted flex items-center gap-2 uppercase tracking-wider">
+                    <span className="text-xs font-semibold text-zen-muted flex items-center gap-2">
                         <Sparkles className="w-3.5 h-3.5 text-zen-accent" /> 
                         Generated {message.generatedMedia.type}
                      </span>
@@ -445,12 +445,12 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onDownload, onNa
           {(cleanContent || (!isUser && !cleanContent && !message.attachment && !message.generatedMedia)) && (
             <div
               style={{ borderRadius: isUser ? '20px 20px 6px 20px' : '6px 20px 20px 20px' }}
-              className={`px-5 py-3 text-base leading-7 relative w-fit border transition-colors duration-200 ${isUser ? 'bg-zen-surface/70 text-zen-text border-zen-border/60' : 'text-zen-text border-transparent'}`}
+              className={`chat-message-card px-4 sm:px-5 py-3.5 text-[15px] leading-7 relative w-full sm:w-fit border transition-colors duration-200 select-text cursor-text ${isUser ? 'chat-message-card-user text-zen-text' : 'text-zen-text interactive-card'}`}
             >
                 {isUser ? (
                 <>
-                    <p className="whitespace-pre-wrap font-medium select-text cursor-text">{cleanContent}</p>
-                    <div className="flex gap-2 mt-2 pt-2 border-t border-zen-border/30 opacity-0 group-hover:opacity-100 transition-opacity justify-end">
+                    <p className="whitespace-pre-wrap font-normal text-[15px] leading-7 select-text cursor-text">{cleanContent}</p>
+                    <div className="flex gap-2 mt-3 pt-2 border-t border-zen-border/30 opacity-0 group-hover/message:opacity-100 focus-within:opacity-100 transition-opacity justify-end">
                         <button onClick={() => onEdit?.(cleanContent)} className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-zen-muted hover:text-zen-text hover:bg-zen-surface transition-colors text-xs font-bold" title="Edit Prompt">
                             <Pencil className="w-3.5 h-3.5" />
                             <span>Edit</span>
@@ -462,7 +462,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onDownload, onNa
                     </div>
                 </>
                 ) : (
-                <div className={`markdown-content w-full ${message.isStreaming ? 'opacity-90' : 'opacity-100'}`}>
+                <div className={`markdown-content w-full select-text ${message.isStreaming ? 'opacity-90' : 'opacity-100'}`}>
                     {cleanContent ? (
                     <>
                         <ReactMarkdown
@@ -498,7 +498,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onDownload, onNa
                         {message.isStreaming && <span className="inline-block w-2 h-5 bg-zen-accent ml-1 animate-pulse align-middle rounded-full shadow-[0_0_10px_var(--accent-color)]"></span>}
                     </>
                     ) : (
-                    <div className="flex items-center gap-2 text-zen-muted py-2">
+                    <div className="flex items-center gap-2 text-zen-muted py-2 select-none">
                         <div className="typing-dot"></div>
                         <div className="typing-dot"></div>
                         <div className="typing-dot"></div>
@@ -510,7 +510,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onDownload, onNa
 
                 {/* WIDGETS RENDERING */}
                 {!isUser && widgets.length > 0 && (
-                    <div className="mt-4 space-y-3">
+                    <div className="mt-4 space-y-3 select-none">
                         {widgets.map((w, i) => (
                             <div key={i} className="animate-fade-in">
                                 {w.type === 'BUTTON' && (
@@ -536,7 +536,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onDownload, onNa
                 )}
 
                 {!isUser && cleanContent && !message.isStreaming && (
-                    <div className="flex gap-2 mt-4 pt-2 border-t border-zen-border/30 transition-opacity duration-300 animate-fade-in-up">
+                    <div className="flex gap-2 mt-4 pt-2 border-t border-zen-border/30 transition-opacity duration-300 animate-fade-in-up select-none">
                         <button onClick={handleSpeak} className="flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] bg-zen-surface border border-zen-border/70 text-zen-muted hover:text-zen-text hover:border-zen-accent/60 hover:bg-zen-surface/90 transition-all text-xs font-semibold active:scale-95" title="Read Aloud"><Volume2 className="w-4 h-4" /><span className="hidden sm:inline">Read</span></button>
                         <button onClick={handleCopyText} className="flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] bg-zen-surface border border-zen-border/70 text-zen-muted hover:text-zen-text hover:border-zen-accent/60 hover:bg-zen-surface/90 transition-all text-xs font-semibold active:scale-95" title="Copy"><Copy className="w-4 h-4" /><span className="hidden sm:inline">{isCopied ? 'Copied' : 'Copy'}</span></button>
                         <button onClick={handleDownloadPdf} className="flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] bg-zen-surface border border-zen-border/70 text-zen-muted hover:text-zen-text hover:border-zen-accent/60 hover:bg-zen-surface/90 transition-all text-xs font-semibold active:scale-95" title="Export PDF"><FileText className="w-4 h-4" /><span className="hidden sm:inline">PDF</span></button>
@@ -547,7 +547,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onDownload, onNa
 
           {!isUser && message.sources && message.sources.length > 0 && (
             <div className="mt-5 w-full pt-3 border-t border-zen-border/20">
-              <div className="flex items-center gap-2 text-xs text-zen-muted/60 mb-3 pl-1">
+                <div className="flex items-center gap-2 text-xs text-zen-muted/70 mb-3 pl-1 font-medium">
                 <Globe className="w-3 h-3" />
                 Sources
               </div>
@@ -558,7 +558,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onDownload, onNa
                   const favicon = getFaviconUrl(source.uri);
                   
                   return (
-                    <div key={idx} className="flex flex-col bg-zen-surface/40 border border-zen-border rounded-[16px] transition-colors duration-200 hover:bg-zen-surface hover:border-zen-accent/30 group/source">
+                    <div key={idx} className="interactive-card flex flex-col bg-zen-surface/40 border border-zen-border rounded-[16px] transition-colors duration-200 hover:bg-zen-surface hover:border-zen-accent/30 group/source">
                         <a href={source.uri || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { e.preventDefault(); if(source.uri) { if (onNavigate) onNavigate(source.uri); else window.open(source.uri, '_blank'); } }} className="flex items-center gap-3 p-4 w-full relative overflow-hidden">
                             
                             {ytId ? (
@@ -595,7 +595,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onDownload, onNa
                                 <div className="text-sm font-semibold truncate text-zen-text group-hover/source:text-zen-accent transition-colors leading-tight mb-0.5">{source.title || hostname || "Source"}</div>
                                 <div className="text-[10px] text-zen-muted truncate flex items-center gap-1 opacity-70">
                                     {hostname}
-                                    {ytId && <span className="bg-red-500 text-white px-1.5 rounded-[3px] text-[8px] uppercase tracking-wider font-bold ml-1">YouTube</span>}
+                                    {ytId && <span className="bg-red-500 text-white px-1.5 rounded-[3px] text-[8px] font-semibold ml-1">YouTube</span>}
                                 </div>
                             </div>
                         </a>

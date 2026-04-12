@@ -310,11 +310,10 @@ export default function App({ mode = 'full' }: AppProps) {
 
     const handleOpenApp = (appId: string) => {
         // Apps that should open in the sidebar panel
-        const sidebarWidgets = ['notes', 'calculator', 'twitch', 'agent'];
+        const sidebarWidgets = ['notes', 'calculator', 'twitch', 'agent', 'spotify'];
 
         // Apps that should open in a new browser tab
         const externalLinks: Record<string, string> = {
-            'spotify': 'https://open.spotify.com',
             'whatsapp': 'https://web.whatsapp.com',
             'reddit': 'https://www.reddit.com',
             'x': 'https://x.com',
@@ -821,7 +820,7 @@ export default function App({ mode = 'full' }: AppProps) {
 
     return (
         <div
-            className="flex h-full bg-zen-bg text-zen-text font-sans overflow-hidden transition-colors duration-500 bg-cover bg-center relative"
+            className="app-shell flex h-full bg-zen-bg text-zen-text font-sans overflow-hidden transition-colors duration-500 bg-cover bg-center relative"
             style={
                 customBackdrop ? { backgroundImage: `url(${customBackdrop})` } :
                     currentTheme === 'galaxy' ? { backgroundImage: `url(${GALAXY_IMG})` } :
@@ -954,21 +953,21 @@ export default function App({ mode = 'full' }: AppProps) {
                             </div>
                         ) : (
                             <>
-                                <div className="absolute inset-0 overflow-y-auto scroll-smooth custom-scrollbar flex flex-col">
-                                    <div className="max-w-6xl mx-auto w-full px-8 pt-8 flex-1 flex flex-col min-h-full">
+                                <div className="chat-scroll absolute inset-0 overflow-y-auto scroll-smooth custom-scrollbar flex flex-col">
+                                    <div className="max-w-[78rem] mx-auto w-full px-5 sm:px-8 pt-8 flex-1 flex flex-col min-h-full">
                                         {!activeTab?.messages.length ? (
                                             <div className="flex-1 flex flex-col items-center justify-center pb-40 animate-app-open">
-                                                <div className="mb-6 relative flex items-center justify-center group animate-splash">
+                                                <div className="mb-6 relative flex items-center justify-center group/logo animate-splash">
                                                     <div className="absolute inset-0 bg-zen-accent/20 blur-3xl rounded-full animate-glow-ring" />
-                                                    <svg viewBox="0 0 100 100" className="w-28 h-28 sm:w-36 sm:h-36 text-zen-accent animate-gentle-float opacity-90 relative z-10 filter drop-shadow-[0_0_20px_rgba(var(--accent-color-rgb),0.6)]">
-                                                        <circle cx="50" cy="50" r="20" fill="currentColor" />
-                                                        <ellipse cx="50" cy="50" rx="40" ry="10" fill="none" stroke="currentColor" strokeWidth="4" transform="rotate(-15 50 50)" />
+                                                    <svg viewBox="0 0 100 100" className="saturn-brand-logo w-28 h-28 sm:w-36 sm:h-36 text-zen-accent opacity-90 relative z-10">
+                                                        <circle cx="50" cy="50" r="20" fill="currentColor" className="saturn-brand-core" />
+                                                        <ellipse cx="50" cy="50" rx="40" ry="10" fill="none" stroke="currentColor" strokeWidth="4" className="saturn-brand-ring" />
                                                     </svg>
                                                 </div>
-                                                <h1 className="font-fraunces text-4xl sm:text-6xl font-bold mb-4 text-zen-text tracking-tighter text-center drop-shadow-lg animate-text-reveal">Saturn</h1>
+                                                <h1 className="font-fraunces text-4xl sm:text-6xl font-semibold mb-3 text-zen-text tracking-tight text-center drop-shadow-lg animate-text-reveal">Saturn</h1>
                                             </div>
                                         ) : (
-                                            <div className="flex flex-col justify-end flex-1 pb-48 pt-8">
+                                            <div className="flex flex-col justify-end flex-1 pb-48 pt-6">
                                                 {activeTab.messages.map((msg) => (
                                                     <MessageBubble
                                                         key={msg.id}
@@ -983,8 +982,8 @@ export default function App({ mode = 'full' }: AppProps) {
                                         )}
                                     </div>
                                 </div>
-                                <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 pb-6 sm:pb-10 z-20 bg-gradient-to-t from-zen-bg via-zen-bg/90 to-transparent pointer-events-none">
-                                    <div className="pointer-events-auto max-w-6xl mx-auto">
+                                <div className="chat-compose-dock absolute bottom-0 left-0 right-0 p-4 sm:p-6 pb-6 sm:pb-10 z-20 pointer-events-none">
+                                    <div className="pointer-events-auto max-w-[78rem] mx-auto">
                                         <InputArea
                                             onSend={(text, attach) => handleSendMessage(text, attach)}
                                             disabled={activeTab?.messages[activeTab.messages.length - 1]?.isStreaming || false}

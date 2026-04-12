@@ -245,15 +245,22 @@ const InputArea: React.FC<InputAreaProps> = ({ onSend, disabled, mode, setMode, 
           onDrop={handleDrop}
           onPaste={handlePaste}
           className={`
-            relative bg-zen-surface/90 backdrop-blur-2xl rounded-[24px] border flex flex-col transition-[border-color,box-shadow] duration-300
+            chat-input-shell relative rounded-[28px] border flex flex-col transition-[border-color,box-shadow,transform] duration-300
             ${isDragging ? 'border-zen-accent/60 border-dashed' : isFocused ? 'border-zen-text/20' : 'border-zen-border/60'}
           `}
           style={{
             boxShadow: isFocused
-              ? '0 0 0 1px var(--accent-glow), 0 8px 40px -8px var(--accent-glow), 0 4px 16px rgba(0,0,0,0.12)'
-              : '0 2px 12px rgba(0,0,0,0.08)'
+              ? '0 0 0 1px rgba(var(--accent-color-rgb),0.2), 0 22px 58px -34px rgba(var(--accent-color-rgb),0.65), 0 16px 34px -28px rgba(0,0,0,0.7)'
+              : '0 18px 48px -34px rgba(0,0,0,0.7)'
           }}
         >
+          {isDragging && (
+            <div className="absolute inset-3 rounded-[22px] border border-dashed border-zen-accent/60 bg-zen-accent/5 flex items-center justify-center pointer-events-none z-20">
+              <div className="px-4 py-2 rounded-full bg-zen-bg/80 text-sm font-medium text-zen-text border border-zen-accent/30 shadow-lg">
+                Drop files to attach
+              </div>
+            </div>
+          )}
 
           {attachments.length > 0 && (
             <div className="mx-4 mt-4 mb-1">
@@ -286,7 +293,7 @@ const InputArea: React.FC<InputAreaProps> = ({ onSend, disabled, mode, setMode, 
               />
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="p-2 rounded-full hover:bg-zen-bg/50 hover:text-zen-text transition-colors"
+                className="p-2.5 rounded-2xl hover:bg-zen-bg/70 hover:text-zen-text transition-colors"
                 title="Attach File"
                 disabled={mode === 'image' || mode === 'video'}
               >
@@ -295,7 +302,7 @@ const InputArea: React.FC<InputAreaProps> = ({ onSend, disabled, mode, setMode, 
               {onGetContext && (
                 <button
                   onClick={onGetContext}
-                  className="p-2 rounded-full hover:bg-zen-bg/50 hover:text-zen-text transition-colors"
+                  className="p-2.5 rounded-2xl hover:bg-zen-bg/70 hover:text-zen-text transition-colors"
                   title="Add Current Page Content"
                   disabled={disabled}
                 >
@@ -326,10 +333,14 @@ const InputArea: React.FC<InputAreaProps> = ({ onSend, disabled, mode, setMode, 
                   placeholder={getPlaceholder()}
                   disabled={disabled}
                   rows={1}
-                  className="w-full bg-transparent border-0 focus:ring-0 outline-none focus:outline-none text-zen-text placeholder-zen-muted/60 resize-y py-3 px-2 text-base leading-relaxed max-h-[400px] min-h-[48px] overflow-y-auto disabled:opacity-0 caret-zen-accent font-medium"
-                  style={{ minHeight: '48px' }}
+                  className="w-full bg-transparent border-0 focus:ring-0 outline-none focus:outline-none text-zen-text placeholder-zen-muted/60 resize-y py-3 px-2 text-[15px] leading-7 max-h-[400px] min-h-[56px] overflow-y-auto disabled:opacity-50 caret-zen-accent font-normal"
+                  style={{ minHeight: '56px' }}
                 />
               )}
+              <div className="flex items-center gap-2 px-2 pt-1 text-[11px] text-zen-muted/65">
+                <span className="inline-flex items-center gap-1 rounded-full bg-zen-bg/60 px-2 py-1 border border-zen-border/40">Enter to send</span>
+                <span className="inline-flex items-center gap-1 rounded-full bg-zen-bg/60 px-2 py-1 border border-zen-border/40">Shift + Enter for newline</span>
+              </div>
             </div>
 
             {/* Mode Dropdown & Send Right */}
@@ -344,7 +355,7 @@ const InputArea: React.FC<InputAreaProps> = ({ onSend, disabled, mode, setMode, 
               <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={() => setShowModeDropdown(!showModeDropdown)}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-zen-bg/60 hover:bg-zen-bg text-zen-text border border-zen-border/40 hover:border-zen-border transition-[background,border-color] duration-150 text-xs font-medium min-w-[90px] justify-between"
+                className="flex items-center gap-2 px-3.5 py-2 rounded-full bg-zen-bg/70 hover:bg-zen-bg text-zen-text border border-zen-border/40 hover:border-zen-border transition-[background,border-color,transform] duration-150 text-xs font-medium min-w-[98px] justify-between hover:-translate-y-0.5"
                 >
                   <div className="flex items-center gap-2">
                     {currentMode.icon}
@@ -354,7 +365,7 @@ const InputArea: React.FC<InputAreaProps> = ({ onSend, disabled, mode, setMode, 
                 </button>
 
                 {showModeDropdown && (
-                  <div className="absolute bottom-full right-0 mb-2 w-52 bg-zen-surface/98 backdrop-blur-xl border border-zen-border/50 rounded-[18px] shadow-xl animate-dropdown-open z-[60] origin-bottom-right p-2 space-y-0.5">
+                  <div className="absolute bottom-full right-0 mb-2 w-56 glass-elevated rounded-[20px] shadow-xl animate-dropdown-open z-[60] origin-bottom-right p-2 space-y-1">
                     {modes.map((m) => {
                       const mDisabled = isModeDisabled(m.id);
                       return (
@@ -382,7 +393,7 @@ const InputArea: React.FC<InputAreaProps> = ({ onSend, disabled, mode, setMode, 
               <button
                 onClick={handleSend}
                 disabled={(!input.trim() && attachments.length === 0) || disabled}
-                className={`p-3 rounded-[16px] transition-all duration-300 flex-shrink-0 ${(input.trim() || attachments.length > 0) && !disabled ? 'bg-zen-text text-zen-bg hover:bg-zen-accent hover:text-white shadow-lg transform hover:scale-105 active:scale-95' : 'bg-zen-surface text-zen-muted cursor-not-allowed border border-zen-border'}`}
+                className={`p-3.5 rounded-[18px] transition-all duration-300 flex-shrink-0 ${(input.trim() || attachments.length > 0) && !disabled ? 'bg-zen-text text-zen-bg hover:bg-zen-accent hover:text-white shadow-[0_18px_40px_-22px_rgba(var(--accent-color-rgb),0.9)] transform hover:-translate-y-0.5 active:translate-y-0 active:scale-95' : 'bg-zen-surface text-zen-muted cursor-not-allowed border border-zen-border'}`}
               >
                 {disabled ? (
                   <div className="w-5 h-5 animate-spin">

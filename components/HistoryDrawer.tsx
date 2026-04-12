@@ -129,7 +129,7 @@ const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
         >
             {/* Header */}
             <div className="h-16 border-b border-zen-border flex items-center justify-between px-6 bg-zen-bg/50 shrink-0">
-                <span className="font-fraunces text-lg font-bold text-zen-text flex items-center gap-2">
+                <span className="font-fraunces text-lg font-semibold text-zen-text flex items-center gap-2">
                     <History className="w-5 h-5 text-zen-accent" />
                     History
                 </span>
@@ -263,7 +263,7 @@ const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
                     {uncategorized.length > 0 && (
                         <div className="space-y-3">
                              {groups.length > 0 && (
-                                <div className="px-3 py-2 text-xs font-bold text-zen-muted uppercase tracking-wider flex items-center gap-2">
+                                <div className="px-3 py-2 text-xs font-medium text-zen-muted flex items-center gap-2">
                                     <div className="h-px flex-1 bg-zen-border"></div>
                                     <span>Uncategorized</span>
                                     <div className="h-px flex-1 bg-zen-border"></div>
@@ -364,7 +364,7 @@ const HistoryItem: React.FC<{
                 {/* Smart Search Highlight */}
                 {searchTerm && snippet ? (
                     <div className="text-xs text-zen-accent/90 font-medium bg-zen-accent/5 px-2 py-1.5 rounded-lg border border-zen-accent/10 line-clamp-2">
-                        <span className="opacity-70 text-[10px] uppercase tracking-wider mr-1 font-bold">Match:</span> 
+                        <span className="opacity-70 text-[10px] mr-1 font-medium">Match:</span> 
                         "{snippet}"
                     </div>
                 ) : (
@@ -432,7 +432,7 @@ const HistoryItem: React.FC<{
             {isMoving && (
                 <div className="absolute right-0 top-10 mt-1 w-56 bg-zen-surface border border-zen-border rounded-[16px] shadow-2xl z-50 overflow-hidden animate-scale-in origin-top-right backdrop-blur-xl">
                     <div className="p-1.5 space-y-0.5">
-                        <div className="px-3 py-2 text-[10px] font-bold text-zen-muted uppercase tracking-wider">
+                        <div className="px-3 py-2 text-[11px] font-medium text-zen-muted">
                             Move project to...
                         </div>
                         <button

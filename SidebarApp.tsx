@@ -10,6 +10,7 @@ import {
   createNewTab, streamGeminiResponse, generateImage,
   generateVideoWithModel, generateChatTitle, decideAgentUsage
 } from './services/geminiService';
+import { fetchGeminiModels, fetchOpenAIModels, getFallbackModelCatalog, type ModelOption } from './services/modelCatalogService';
 import { sendNanobrowserMessage } from './services/nanobrowserService';
 import {
   Plus, History, Settings, Trash2, RotateCcw,
@@ -159,17 +160,17 @@ const CompactInput: React.FC<CompactInputProps> = ({ onSend, disabled, mode, set
       )}
 
       {/* Main input row */}
-      <div className={`flex items-end gap-1.5 bg-zen-surface/95 backdrop-blur-xl border rounded-2xl px-2 py-1.5 transition-all duration-200 ${isFocused ? 'border-zen-accent/40' : 'border-zen-border hover:border-zen-border/80'}`}>
+      <div className={`chat-input-shell flex items-end gap-1.5 rounded-[22px] px-2.5 py-2 transition-all duration-200 ${isFocused ? 'border-zen-accent/45 shadow-[0_0_0_1px_rgba(var(--accent-color-rgb),0.12),0_18px_40px_-28px_rgba(var(--accent-color-rgb),0.45)]' : 'hover:border-zen-border/80'}`}>
         {/* Left buttons */}
         <div className="flex items-center gap-0.5 pb-1">
           <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileSelect} multiple accept="*/*" />
           <button onClick={() => fileInputRef.current?.click()} disabled={mode === 'image' || mode === 'video'}
-            className="p-1.5 rounded-lg hover:bg-zen-bg text-zen-muted hover:text-zen-text transition-colors disabled:opacity-30" title="Attach">
+            className="p-2 rounded-xl hover:bg-zen-bg/80 text-zen-muted hover:text-zen-text transition-colors disabled:opacity-30" title="Attach">
             <Paperclip className="w-4 h-4" />
           </button>
           {onGetContext && (
             <button onClick={onGetContext} disabled={disabled}
-              className="p-1.5 rounded-lg hover:bg-zen-bg text-zen-muted hover:text-zen-text transition-colors disabled:opacity-30" title="Add page content">
+              className="p-2 rounded-xl hover:bg-zen-bg/80 text-zen-muted hover:text-zen-text transition-colors disabled:opacity-30" title="Add page content">
               <FileText className="w-4 h-4" />
             </button>
           )}
@@ -187,7 +188,7 @@ const CompactInput: React.FC<CompactInputProps> = ({ onSend, disabled, mode, set
           placeholder={placeholder}
           disabled={disabled}
           rows={1}
-          className="flex-1 bg-transparent border-0 outline-none focus:ring-0 text-zen-text placeholder-zen-muted/60 text-sm leading-relaxed resize-none py-1.5 min-h-[32px] max-h-[120px] overflow-y-auto caret-zen-accent disabled:opacity-50"
+          className="flex-1 bg-transparent border-0 outline-none focus:ring-0 text-zen-text placeholder-zen-muted/60 text-[13px] leading-6 resize-none py-2 px-1 min-h-[38px] max-h-[120px] overflow-y-auto caret-zen-accent disabled:opacity-50"
         />
 
         {/* Right: mode + send */}
@@ -196,7 +197,7 @@ const CompactInput: React.FC<CompactInputProps> = ({ onSend, disabled, mode, set
           <div className="relative">
             <button
               onClick={() => setShowModeDropdown(v => !v)}
-              className="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-zen-bg/60 hover:bg-zen-bg border border-zen-border/50 hover:border-zen-accent/40 transition-all"
+              className="flex items-center gap-1 px-2.5 py-2 rounded-xl bg-zen-bg/65 hover:bg-zen-bg border border-zen-border/50 hover:border-zen-accent/40 transition-all"
               title={`Mode: ${currentMode.label}`}
             >
               {currentMode.icon}
@@ -204,7 +205,7 @@ const CompactInput: React.FC<CompactInputProps> = ({ onSend, disabled, mode, set
             </button>
 
             {showModeDropdown && (
-              <div className="absolute bottom-full right-0 mb-2 w-44 bg-zen-surface/98 backdrop-blur-xl border border-zen-border rounded-xl shadow-2xl overflow-hidden z-50 p-1 animate-scale-in origin-bottom-right">
+              <div className="absolute bottom-full right-0 mb-2 w-44 glass-elevated rounded-2xl shadow-2xl overflow-hidden z-50 p-1 animate-scale-in origin-bottom-right">
                 {MODES.map(m => (
                   <button key={m.id} onClick={() => { setMode(m.id); setShowModeDropdown(false); }}
                     className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left transition-all text-xs ${mode === m.id ? 'bg-zen-bg text-zen-text' : 'text-zen-muted hover:text-zen-text hover:bg-zen-bg/50'}`}>
@@ -219,7 +220,7 @@ const CompactInput: React.FC<CompactInputProps> = ({ onSend, disabled, mode, set
 
           {/* Send */}
           <button onClick={handleSend} disabled={!canSend}
-            className={`p-2 rounded-xl transition-all duration-200 flex-shrink-0 ${canSend ? 'bg-zen-text text-zen-bg hover:bg-zen-accent hover:text-white shadow-sm active:scale-95' : 'bg-zen-surface text-zen-muted cursor-not-allowed border border-zen-border'}`}>
+            className={`p-2.5 rounded-[14px] transition-all duration-200 flex-shrink-0 ${canSend ? 'bg-zen-text text-zen-bg hover:bg-zen-accent hover:text-white shadow-[0_16px_35px_-22px_rgba(var(--accent-color-rgb),0.9)] hover:-translate-y-0.5 active:translate-y-0 active:scale-95' : 'bg-zen-surface text-zen-muted cursor-not-allowed border border-zen-border'}`}>
             {disabled ? (
               <div className="w-4 h-4 animate-spin">
                 <svg viewBox="0 0 100 100" className="w-full h-full">
@@ -388,7 +389,7 @@ const AgentWidget = ({ run, onStart, onAbort }: { run?: AgentRun | null; onStart
     <div className="flex flex-col h-full p-3 gap-3">
       {/* Task input */}
       <div className="rounded-xl bg-zen-surface border border-zen-border/50 p-3 flex-shrink-0">
-        <div className="text-[10px] font-bold text-zen-muted uppercase tracking-widest mb-2">Task</div>
+        <div className="text-[11px] font-medium text-zen-muted mb-2">Task</div>
         <textarea
           className="w-full min-h-[72px] bg-zen-bg border border-zen-border rounded-lg p-2.5 text-sm text-zen-text focus:outline-none focus:border-zen-accent resize-none"
           placeholder="Describe what you want the agent to do…"
@@ -397,11 +398,11 @@ const AgentWidget = ({ run, onStart, onAbort }: { run?: AgentRun | null; onStart
         />
         <div className="mt-2 flex gap-2">
           <button onClick={() => { if (task.trim()) onStart?.(task.trim()); }} disabled={isRunning}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors ${isRunning ? 'bg-zen-border text-zen-muted cursor-not-allowed' : 'bg-zen-accent text-white hover:bg-zen-accentHover'}`}>
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${isRunning ? 'bg-zen-border text-zen-muted cursor-not-allowed' : 'bg-zen-accent text-white hover:bg-zen-accentHover'}`}>
             <Play className="w-3 h-3" /> Run
           </button>
           <button onClick={() => onAbort?.()} disabled={!isRunning}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors ${!isRunning ? 'bg-zen-border text-zen-muted cursor-not-allowed' : 'bg-red-500/20 text-red-400 hover:bg-red-500/30'}`}>
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${!isRunning ? 'bg-zen-border text-zen-muted cursor-not-allowed' : 'bg-red-500/20 text-red-400 hover:bg-red-500/30'}`}>
             <Square className="w-3 h-3" /> Stop
           </button>
           <span className={`ml-auto text-xs font-bold px-2 py-1 rounded-lg self-center ${run?.status === 'running' ? 'text-yellow-400 bg-yellow-400/10' : run?.status === 'success' ? 'text-green-400 bg-green-400/10' : run?.status === 'error' ? 'text-red-400 bg-red-400/10' : 'text-zen-muted bg-zen-bg'}`}>
@@ -412,7 +413,7 @@ const AgentWidget = ({ run, onStart, onAbort }: { run?: AgentRun | null; onStart
 
       {/* Events log */}
       <div className="flex-1 rounded-xl bg-zen-surface border border-zen-border/50 p-3 overflow-hidden flex flex-col">
-        <div className="text-[10px] font-bold text-zen-muted uppercase tracking-widest mb-2">Log</div>
+        <div className="text-[11px] font-medium text-zen-muted mb-2">Log</div>
         {run?.error && (
           <div className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg p-2 mb-2">{run.error}</div>
         )}
@@ -461,12 +462,61 @@ const SidebarSettings: React.FC<SidebarSettingsProps> = ({
   const [activeTab, setActiveTab] = useState<SettingsTab>('general');
   const [geminiKey, setGeminiKey] = useState(() => localStorage.getItem('gemini_api_key') || '');
   const [openaiKey, setOpenaiKey] = useState(() => localStorage.getItem('openai_api_key') || '');
+  const fallbackCatalog = getFallbackModelCatalog();
+  const [geminiModels, setGeminiModels] = useState<ModelOption[]>(fallbackCatalog.geminiText);
+  const [openaiModels, setOpenaiModels] = useState<ModelOption[]>(fallbackCatalog.openaiText);
+  const [isLoadingGeminiModels, setIsLoadingGeminiModels] = useState(false);
+  const [isLoadingOpenAIModels, setIsLoadingOpenAIModels] = useState(false);
+  const [geminiModelsError, setGeminiModelsError] = useState('');
+  const [openaiModelsError, setOpenaiModelsError] = useState('');
   const [newExtName, setNewExtName] = useState('');
   const [newExtIcon, setNewExtIcon] = useState('🎭');
   const [newExtInstruct, setNewExtInstruct] = useState('');
   const [isAddingExt, setIsAddingExt] = useState(false);
   const [newUserName, setNewUserName] = useState('');
   const [isAddingUser, setIsAddingUser] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      setIsLoadingGeminiModels(true);
+      setGeminiModelsError('');
+      try {
+        const models = await fetchGeminiModels(geminiKey);
+        if (cancelled) return;
+        setGeminiModels(models.text);
+      } catch (error: any) {
+        if (cancelled) return;
+        setGeminiModels(fallbackCatalog.geminiText);
+        setGeminiModelsError(error?.message || 'Unable to load Gemini models');
+      } finally {
+        if (!cancelled) setIsLoadingGeminiModels(false);
+      }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [geminiKey]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      setIsLoadingOpenAIModels(true);
+      setOpenaiModelsError('');
+      try {
+        const models = await fetchOpenAIModels(openaiKey);
+        if (cancelled) return;
+        setOpenaiModels(models.text);
+      } catch (error: any) {
+        if (cancelled) return;
+        setOpenaiModels(fallbackCatalog.openaiText);
+        setOpenaiModelsError(error?.message || 'Unable to load OpenAI models');
+      } finally {
+        if (!cancelled) setIsLoadingOpenAIModels(false);
+      }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [openaiKey]);
 
   if (!isOpen) return null;
 
@@ -510,7 +560,7 @@ const SidebarSettings: React.FC<SidebarSettingsProps> = ({
       <div className="flex border-b border-zen-border flex-shrink-0">
         {tabs.map(tab => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-            className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 text-[10px] font-semibold uppercase tracking-wide transition-colors relative ${activeTab === tab.id ? 'text-zen-accent' : 'text-zen-muted hover:text-zen-text'}`}>
+            className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 text-[11px] font-medium transition-colors relative ${activeTab === tab.id ? 'text-zen-accent' : 'text-zen-muted hover:text-zen-text'}`}>
             {tab.icon}
             <span>{tab.label}</span>
             {activeTab === tab.id && <span className="absolute bottom-0 left-2 right-2 h-0.5 bg-zen-accent rounded-full" />}
@@ -524,7 +574,7 @@ const SidebarSettings: React.FC<SidebarSettingsProps> = ({
         {/* ── GENERAL ── */}
         {activeTab === 'general' && (
           <>
-            <div className="text-[10px] font-bold text-zen-muted uppercase tracking-widest mb-1">API Keys</div>
+            <div className="text-[11px] font-medium text-zen-muted mb-1">API Keys</div>
             <div className="space-y-3">
               <div className="p-3 rounded-xl bg-zen-surface border border-zen-border/50">
                 <div className="flex items-center justify-between mb-2">
@@ -556,34 +606,27 @@ const SidebarSettings: React.FC<SidebarSettingsProps> = ({
               </div>
             </div>
 
-            <div className="text-[10px] font-bold text-zen-muted uppercase tracking-widest mt-4 mb-1">Chat Model</div>
+            <div className="text-[11px] font-medium text-zen-muted mt-4 mb-1">Chat Model</div>
+            {geminiModelsError && <div className="mb-2 text-[10px] text-yellow-400">{geminiModelsError}</div>}
+            {openaiModelsError && <div className="mb-2 text-[10px] text-yellow-400">{openaiModelsError}</div>}
             <div className="grid grid-cols-2 gap-2">
-              {[
-                { id: 'gemini-flash-latest', name: 'Gemini Flash', desc: 'Fast & Smart' },
-                { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', desc: 'Most Capable' },
-                { id: 'gpt-5-mini', name: 'GPT-5 Mini', desc: 'Fast OpenAI' },
-                { id: 'gpt-4o-2024-11-20', name: 'GPT-4o', desc: 'Reliable' },
-              ].map(m => (
+              {[...geminiModels, ...openaiModels].map(m => (
                 <button key={m.id} onClick={() => updateUser({ preferredModel: m.id })}
                   className={`p-2.5 rounded-xl border text-left transition-all ${currentUser.preferredModel === m.id ? 'bg-zen-bg border-zen-accent' : 'bg-zen-surface border-zen-border hover:bg-zen-bg'}`}>
                   <div className="text-xs font-bold text-zen-text">{m.name}</div>
-                  <div className="text-[10px] text-zen-muted">{m.desc}</div>
+                  <div className="text-[10px] text-zen-muted font-mono">{m.id}</div>
                 </button>
               ))}
             </div>
+            {(isLoadingGeminiModels || isLoadingOpenAIModels) && <div className="mt-2 text-[10px] text-zen-muted">Refreshing latest models...</div>}
 
-            <div className="text-[10px] font-bold text-zen-muted uppercase tracking-widest mt-4 mb-1">Agent Model</div>
+            <div className="text-[11px] font-medium text-zen-muted mt-4 mb-1">Agent Model</div>
             <div className="grid grid-cols-2 gap-2">
-              {[
-                { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', desc: 'Fast loops' },
-                { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', desc: 'Stronger' },
-                { id: 'gpt-5-mini', name: 'GPT-5 Mini', desc: 'OpenAI fast' },
-                { id: 'gpt-4o-2024-11-20', name: 'GPT-4o', desc: 'Reliable' },
-              ].map(m => (
+              {[...geminiModels, ...openaiModels].map(m => (
                 <button key={m.id} onClick={() => updateUser({ nanobrowserModel: m.id })}
                   className={`p-2.5 rounded-xl border text-left transition-all ${(currentUser.nanobrowserModel || 'gemini-2.5-flash') === m.id ? 'bg-zen-bg border-zen-accent' : 'bg-zen-surface border-zen-border hover:bg-zen-bg'}`}>
                   <div className="text-xs font-bold text-zen-text">{m.name}</div>
-                  <div className="text-[10px] text-zen-muted">{m.desc}</div>
+                  <div className="text-[10px] text-zen-muted font-mono">{m.id}</div>
                 </button>
               ))}
             </div>
@@ -599,7 +642,7 @@ const SidebarSettings: React.FC<SidebarSettingsProps> = ({
               </Row>
             </div>
 
-            <div className="text-[10px] font-bold text-zen-muted uppercase tracking-widest mt-4 mb-1">Theme</div>
+            <div className="text-[11px] font-medium text-zen-muted mt-4 mb-1">Theme</div>
             <div className="flex gap-2 flex-wrap">
               {[
                 { id: 'red', color: 'bg-red-600' },
@@ -620,7 +663,7 @@ const SidebarSettings: React.FC<SidebarSettingsProps> = ({
         {/* ── INSTRUCTIONS ── */}
         {activeTab === 'instructions' && (
           <>
-            <div className="text-[10px] font-bold text-zen-muted uppercase tracking-widest mb-2">Custom System Instructions</div>
+            <div className="text-[11px] font-medium text-zen-muted mb-2">Custom System Instructions</div>
             <p className="text-xs text-zen-muted mb-3">Tell Saturn how to behave — your role, preferred tone, formatting, and any context it should always keep in mind.</p>
             <textarea
               value={customInstructions}
@@ -636,7 +679,7 @@ const SidebarSettings: React.FC<SidebarSettingsProps> = ({
         {/* ── PERSONAS ── */}
         {activeTab === 'personas' && (
           <>
-            <div className="text-[10px] font-bold text-zen-muted uppercase tracking-widest mb-2">Custom Personas</div>
+            <div className="text-[11px] font-medium text-zen-muted mb-2">Custom Personas</div>
             <div className="space-y-2">
               {customExtensions.map(ext => (
                 <div key={ext.id} className="flex items-center gap-2 p-3 rounded-xl bg-zen-surface border border-zen-border/50">
@@ -688,7 +731,7 @@ const SidebarSettings: React.FC<SidebarSettingsProps> = ({
         {/* ── PROFILE ── */}
         {activeTab === 'profile' && (
           <>
-            <div className="text-[10px] font-bold text-zen-muted uppercase tracking-widest mb-2">Profiles</div>
+            <div className="text-[11px] font-medium text-zen-muted mb-2">Profiles</div>
             <div className="space-y-2">
               {users.map(u => (
                 <button key={u.id} onClick={() => onSwitchUser(u.id)}
@@ -1141,14 +1184,14 @@ export default function SidebarApp() {
   ];
 
   return (
-    <div className="relative flex flex-col h-[100dvh] bg-zen-bg text-zen-text font-sans overflow-hidden">
+    <div className="app-shell relative flex flex-col h-[100dvh] bg-zen-bg text-zen-text font-sans overflow-hidden">
 
       {/* ── Header ── */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-zen-border bg-zen-surface/80 backdrop-blur-md flex-shrink-0">
+      <div className="glass-elevated flex items-center justify-between px-3 py-2 border-b border-zen-border flex-shrink-0">
         <div className="flex items-center gap-2 min-w-0">
-          <svg viewBox="0 0 100 100" className="w-5 h-5 text-zen-accent flex-shrink-0">
-            <circle cx="50" cy="50" r="20" fill="currentColor" />
-            <ellipse cx="50" cy="50" rx="40" ry="10" fill="none" stroke="currentColor" strokeWidth="4" transform="rotate(-15 50 50)" />
+          <svg viewBox="0 0 100 100" className="saturn-brand-logo w-5 h-5 text-zen-accent flex-shrink-0">
+            <circle cx="50" cy="50" r="20" fill="currentColor" className="saturn-brand-core" />
+            <ellipse cx="50" cy="50" rx="40" ry="10" fill="none" stroke="currentColor" strokeWidth="4" className="saturn-brand-ring" />
           </svg>
           <span className="font-bold text-sm text-zen-text tracking-tight">Saturn</span>
           {activeAppTab === 'chat' && activeTab && activeTab.messages.length > 0 && (
@@ -1211,14 +1254,15 @@ export default function SidebarApp() {
       <div className="flex-1 overflow-hidden relative">
         {/* Chat */}
         {activeAppTab === 'chat' && (
-          <div className="absolute inset-0 overflow-y-auto">
+          <div className="chat-scroll absolute inset-0 overflow-y-auto custom-scrollbar">
             {!activeTab?.messages.length ? (
-              <div className="flex flex-col items-center justify-center h-full gap-2 text-zen-muted">
-                <svg viewBox="0 0 100 100" className="w-10 h-10 text-zen-accent opacity-70">
-                  <circle cx="50" cy="50" r="20" fill="currentColor" />
-                  <ellipse cx="50" cy="50" rx="40" ry="10" fill="none" stroke="currentColor" strokeWidth="4" transform="rotate(-15 50 50)" />
+              <div className="flex flex-col items-center justify-center h-full gap-3 text-zen-muted px-6 text-center">
+                <svg viewBox="0 0 100 100" className="saturn-brand-logo w-10 h-10 text-zen-accent opacity-80">
+                  <circle cx="50" cy="50" r="20" fill="currentColor" className="saturn-brand-core" />
+                  <ellipse cx="50" cy="50" rx="40" ry="10" fill="none" stroke="currentColor" strokeWidth="4" className="saturn-brand-ring" />
                 </svg>
-                <span className="text-sm">Ask anything</span>
+                <span className="text-sm text-zen-text">Ask anything</span>
+                <span className="text-xs leading-5 max-w-[240px]">Search, summarize the current page, or keep a focused thread without leaving the panel.</span>
               </div>
             ) : (
               <div className="px-3 pt-3 pb-3 flex flex-col gap-1">
@@ -1259,7 +1303,7 @@ export default function SidebarApp() {
 
       {/* ── Input (chat only) ── */}
       {activeAppTab === 'chat' && (
-        <div className="flex-shrink-0 px-3 pb-2 pt-1.5 bg-gradient-to-t from-zen-bg via-zen-bg/95 to-transparent">
+        <div className="chat-compose-dock flex-shrink-0 px-3 pb-2 pt-1.5">
           <CompactInput
             onSend={handleSendMessage}
             disabled={isStreaming}
@@ -1272,10 +1316,10 @@ export default function SidebarApp() {
       )}
 
       {/* ── Bottom tab bar ── */}
-      <div className="flex-shrink-0 flex items-stretch border-t border-zen-border bg-zen-surface/80 backdrop-blur-md">
+      <div className="glass-elevated flex-shrink-0 flex items-stretch border-t border-zen-border">
         {appTabs.map(tab => (
           <button key={tab.id} onClick={() => setActiveAppTab(tab.id)}
-            className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2 text-[10px] font-semibold uppercase tracking-wide transition-colors relative ${activeAppTab === tab.id ? 'text-zen-accent bg-zen-bg/50' : 'text-zen-muted hover:text-zen-text hover:bg-zen-bg/30'}`}>
+            className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2 text-[11px] font-medium transition-colors relative ${activeAppTab === tab.id ? 'text-zen-accent bg-zen-bg/50' : 'text-zen-muted hover:text-zen-text hover:bg-zen-bg/30'}`}>
             {tab.badge && <span className="absolute top-1.5 right-1/4 w-1.5 h-1.5 rounded-full bg-yellow-400" />}
             {tab.icon}
             <span>{tab.label}</span>
