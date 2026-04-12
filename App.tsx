@@ -98,6 +98,8 @@ export default function App({ mode = 'full' }: AppProps) {
     const [customInstructions, setCustomInstructions] = useState<string>('');
     const [draft, setDraft] = useState<{ text: string, timestamp: number } | undefined>(undefined);
     const [agentRun, setAgentRun] = useState<AgentRun | null>(null);
+    // Keep ref in sync so the message handler can check ownership without stale closure
+    useEffect(() => { agentRunRef.current = agentRun; }, [agentRun]);
 
     // Sidebar State
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -110,6 +112,8 @@ export default function App({ mode = 'full' }: AppProps) {
     const [customBackdrop, setCustomBackdrop] = useState<string | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const [sidebarWidth, setSidebarWidth] = useState(50);
+    // Ref used to gate NANO_AGENT_DONE so only the panel that started the run handles its result
+    const agentRunRef = useRef<AgentRun | null>(null);
 
     // --- Persistence & User Switching ---
     useEffect(() => {
@@ -241,6 +245,8 @@ export default function App({ mode = 'full' }: AppProps) {
                 const runId = message.runId as string;
                 const result = message.result as string;
                 const status = message.status as AgentRun['status'];
+                // Only handle if this panel actually started this run
+                if (!agentRunRef.current || agentRunRef.current.id !== runId) return;
                 setAgentRun(prev => {
                     if (!prev || prev.id !== runId) return prev;
                     return { ...prev, status: status || 'success', result, finishedAt: Date.now() };
@@ -260,6 +266,7 @@ export default function App({ mode = 'full' }: AppProps) {
             if (message.type === 'NANO_AGENT_ERROR') {
                 const runId = message.runId as string;
                 const error = message.error as string;
+                if (!agentRunRef.current || agentRunRef.current.id !== runId) return;
                 setAgentRun(prev => {
                     if (!prev || prev.id !== runId) return prev;
                     return { ...prev, status: 'error', error, finishedAt: Date.now() };

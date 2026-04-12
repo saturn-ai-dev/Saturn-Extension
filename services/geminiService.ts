@@ -366,40 +366,51 @@ Return ONLY the title text. Do not suggest options. Do not include conversationa
 
 export const decideAgentUsage = async (
     userText: string,
-    modelName: string
+    modelName: string,
+    pageContext?: { url: string; title: string; hasContent: boolean }
 ): Promise<{ useAgent: boolean; task: string; reason: string }> => {
     const fallback = { useAgent: false, task: '', reason: 'default' };
+
+    const pageContextBlock = pageContext
+        ? `
+CURRENT PAGE CONTEXT:
+The AI assistant already has access to the current page's content injected into its context.
+- URL: ${pageContext.url}
+- Title: ${pageContext.title}
+- Page text content: ${pageContext.hasContent ? 'YES — already provided to the AI' : 'not available'}
+
+CRITICAL RULE: If the user is asking ABOUT the current page (summarize it, what does it say, what's on it, can you see it, explain it, translate it, etc.) — the AI can answer directly from the injected context. Do NOT use the agent for read-only questions about the current page.
+Only use the agent if the user wants to DO something (click, scroll, navigate away, fill a form, buy, submit, log in, etc.).
+`
+        : '';
+
     const prompt = `
 You are a router deciding whether a user request needs a browser automation agent or can be handled directly by an AI assistant.
+${pageContextBlock}
+AGENT (useAgent: true) — only when the task requires physically controlling a browser:
+- Navigating to a URL: "go to amazon.com", "open YouTube" → true
+- Clicking UI elements: "click the buy button", "close that popup" → true
+- Filling/submitting forms: "fill out the checkout form", "submit the search" → true
+- Logging into accounts: "sign in to Gmail", "log into my GitHub" → true
+- Taking actions on live sites: "add to cart", "book a flight", "close issue #42" → true
+- Fetching live personal account data that requires login: "check my subscriber count on YouTube Studio", "what are my Gmail unread emails", "how many Instagram followers do I have" → true
+- Live feeds that require visiting: "what's trending on Twitter right now" → true
 
-The key question: does this require physically doing something on a website (navigating, clicking, logging in, buying, submitting), or is it just asking for information/knowledge?
+NO AGENT (useAgent: false) — AI answers directly:
+- General knowledge: "capital of France", "how do I center a div", "pasta recipe" → false
+- Summarize/read/explain current page: "summarize this page", "what does this article say", "can you see this page", "what's on this page", "explain this", "translate this page" → false (use injected page context)
+- Questions about the current URL/title: "what site am I on", "what's the page title" → false
+- Any question the AI can answer from its knowledge or from the already-injected page context → false
+- "Search for X" when it means 'find information about X' (not literally operating a search engine) → false
 
-Use the agent (useAgent: true) — task involves acting on or fetching live data from the web:
-- "Book me a flight to Tokyo on Google Flights" → true
-- "Add the cheapest USB-C cable on Amazon to my cart" → true
-- "Go to my GitHub and close issue #42" → true
-- "Open YouTube and play lo-fi music" → true
-- "Search for 'noise cancelling headphones' on Amazon and show me the results" → true
-- "What's the current price of the iPhone 16 on Apple's website?" → true
-- "Check my subscriber count on YouTube Studio" → true (must navigate to YT Studio)
-- "What are my recent orders on Amazon?" → true (must log in and check)
-- "Check my Gmail inbox" → true (must open Gmail)
-- "How many followers do I have on Instagram?" → true (must visit the page)
-- "What's trending on Twitter right now?" → true (live feed)
+DECIDING RULE:
+Ask yourself: "Does completing this task require the AI to physically operate a browser — navigate, click, type into a form, or log into an account?"
+- YES → useAgent: true
+- NO (can answer from knowledge or from already-available page context) → useAgent: false
 
-Do NOT use the agent (useAgent: false) — AI can answer from its own knowledge:
-- "Search the capital of France" → false
-- "What are the best JavaScript frameworks?" → false
-- "How do I center a div?" → false
-- "Find me a pasta recipe" → false
-- "What's the weather in London?" → false (AI can answer from knowledge)
-- "Summarize this text" → false
-
-Rule of thumb: if the answer requires visiting a specific website or the user's personal account/data on a site → true. If an AI can just answer it → false.
-
-Return ONLY valid JSON with keys: useAgent (boolean), task (string), reason (short string).
-If useAgent is true, task must be a concrete, executable browser task description.
-If useAgent is false, task should be empty.
+Return ONLY valid JSON: { "useAgent": boolean, "task": string, "reason": string }
+If useAgent is true, task must be a concrete browser-automation instruction.
+If useAgent is false, task must be empty string "".
 
 User request: """${userText}"""
 `;
@@ -732,6 +743,7 @@ const streamGeminiNativeResponse = async (
 
         const resultStream = await chat.sendMessageStream({ message: messagePayload });
 
+        let receivedContent = false;
         for await (const chunk of resultStream) {
             const responseChunk = chunk as GenerateContentResponse;
             let text = "";
@@ -745,16 +757,25 @@ const streamGeminiNativeResponse = async (
             const newSources = extractGeminiSources(responseChunk.candidates?.[0]);
             if (newSources.length > 0) {
                 aggregatedSources = [...aggregatedSources, ...newSources];
-                // Deduplicate
                 aggregatedSources = Array.from(new Map(aggregatedSources.map(item => [item.uri, item])).values());
             }
 
+            if (text) receivedContent = true;
             onChunk(text, aggregatedSources);
         }
         onFinish();
 
     } catch (e) {
-        console.error("Gemini Native Error", e);
-        onError(e instanceof Error ? e : new Error(String(e)));
+        const errMsg = e instanceof Error ? e.message : String(e);
+        // Gemini SDK sometimes throws a JSON parse error on the final stream chunk after
+        // all content has already been delivered. Treat these as a clean finish.
+        const isStreamingArtifact = /incomplete json|json segment|unexpected end|unterminated/i.test(errMsg);
+        if (isStreamingArtifact) {
+            console.warn("Gemini stream ended with parse artifact (benign):", errMsg);
+            onFinish();
+        } else {
+            console.error("Gemini Native Error", e);
+            onError(e instanceof Error ? e : new Error(errMsg));
+        }
     }
 };

@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './App';
+import SidebarApp from './SidebarApp';
 import './index.css';
 import Prism from 'prismjs';
 
@@ -61,7 +61,7 @@ const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
     <ErrorBoundary>
-      <App mode="sidebar" />
+      <SidebarApp />
     </ErrorBoundary>
   </React.StrictMode>
 );

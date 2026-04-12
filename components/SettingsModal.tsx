@@ -56,7 +56,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     onToggleExtension, onCreateExtension, onDeleteExtension,
     onAddCustomShortcut, onDeleteCustomShortcut, onSetModel, onSetImageModel, onSetNanobrowserModel,
     onToggleNanobrowserVision, onResetLayout, onUpdateSidebarSetting,
-    tabs, setTabs, archivedTabs, setArchivedTabs, customInstructions, setCustomInstructions
+    tabs, setTabs, archivedTabs, setArchivedTabs, customInstructions, setCustomInstructions,
 }) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [activeTab, setActiveTab] = useState<'general' | 'personas' | 'instructions' | 'user'>('general');
@@ -213,28 +213,25 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         return 'text-white'; // White text for standard/dark accents
     };
 
+    const navTabs = [
+        { id: 'general',      label: 'General',      icon: <Box className="w-4 h-4" /> },
+        { id: 'personas',     label: 'Personas',     icon: <User className="w-4 h-4" /> },
+        { id: 'instructions', label: 'Instructions', icon: <FileText className="w-4 h-4" /> },
+        { id: 'user',         label: 'Profile',      icon: <User className="w-4 h-4" /> },
+    ];
+
     return (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] flex items-center justify-center p-4 animate-fade-in">
-            <div className="bg-zen-bg w-full max-w-4xl h-[80vh] rounded-3xl border border-zen-border shadow-deep flex overflow-hidden scale-100 animate-scale-in">
-
-                {/* Sidebar */}
+            <div className="bg-zen-bg w-full max-w-4xl h-[80vh] border border-zen-border shadow-deep overflow-hidden animate-scale-in rounded-3xl flex">
                 <div className="w-64 border-r border-zen-border bg-zen-surface/30 flex flex-col p-4">
                     <div className="text-2xl font-bold text-zen-text mb-8 px-2 flex items-center gap-2">
                         <Rocket className="w-6 h-6 text-zen-accent" />
                         Saturn
                     </div>
                     <nav className="flex-1 space-y-1">
-                        {[
-                            { id: 'general', label: 'General', icon: <Box className="w-4 h-4" /> },
-                            { id: 'personas', label: 'Personas', icon: <User className="w-4 h-4" /> },
-                            { id: 'instructions', label: 'Custom Instructions', icon: <FileText className="w-4 h-4" /> },
-                            { id: 'user', label: 'Profile', icon: <User className="w-4 h-4" /> }
-                        ].map(tab => (
-                            <button
-                                key={tab.id}
-                                onClick={() => setActiveTab(tab.id as any)}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${activeTab === tab.id ? `bg-zen-accent shadow-lg ${getActiveTextColor()}` : 'text-zen-muted hover:text-zen-text hover:bg-zen-surface'}`}
-                            >
+                        {navTabs.map(tab => (
+                            <button key={tab.id} onClick={() => setActiveTab(tab.id as any)}
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${activeTab === tab.id ? `bg-zen-accent shadow-lg ${getActiveTextColor()}` : 'text-zen-muted hover:text-zen-text hover:bg-zen-surface'}`}>
                                 {tab.icon}
                                 {tab.label}
                             </button>
@@ -252,8 +249,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                         </div>
                     </div>
                 </div>
-
-                {/* Main Content */}
                 <div className="flex-1 flex flex-col min-w-0">
                     <div className="flex items-center justify-between p-6 border-b border-zen-border">
                         <h2 className="text-xl font-bold text-zen-text capitalize">{activeTab} Settings</h2>
@@ -261,7 +256,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                             <X className="w-5 h-5" />
                         </button>
                     </div>
-
                     <div className="flex-1 overflow-y-auto p-8">
 
                         {/* TAB: GENERAL */}
@@ -881,7 +875,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                     </div>
                 </div>
             </div>
-        </div >
+        </div>
     );
 };
 
