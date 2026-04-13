@@ -281,22 +281,26 @@ summary,
 
 .saturn-brand-logo {
   filter: drop-shadow(0 0 22px rgba(var(--accent-color-rgb), 0.28));
+  transform-origin: center center;
+  animation: saturnLogoSpin 10s linear infinite;
+  opacity: 1;
 }
 
 .saturn-brand-core {
-  animation: gentleFloat 5s ease-in-out infinite;
-  transform-origin: center;
+  animation: none;
+  transform-origin: center center;
+  opacity: 1;
 }
 
 .saturn-brand-ring {
-  transform-origin: center;
-  animation: saturnOrbit 10s linear infinite;
+  transform-origin: center center;
+  animation: none;
+  opacity: 1;
 }
 
-.saturn-brand-logo:hover .saturn-brand-ring,
-.group:hover .saturn-brand-ring,
-.group\/logo:hover .saturn-brand-ring {
-  animation-duration: 6s;
+@keyframes saturnLogoSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 /* Ambient Background Mesh */
@@ -972,4 +976,3 @@ button, a, input, textarea, select {
 .organic-bar > div {
   border-radius: 999px;
 }
-

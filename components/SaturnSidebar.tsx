@@ -223,16 +223,10 @@ const SaturnSidebar: React.FC<SaturnSidebarProps> = ({
                 title="New Chat"
             >
                 <div className="relative shrink-0 flex items-center justify-center">
-                    <div className="absolute inset-0 bg-zen-accent/20 blur-lg rounded-full group-hover:bg-zen-accent/30 transition-colors" />
-                    <svg viewBox="0 0 100 100" className="saturn-brand-logo w-9 h-9 text-zen-accent group-hover:scale-110 transition-transform duration-500 ease-out relative z-10">
-                        <defs>
-                            <linearGradient id="saturn-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <stop offset="0%" stopColor="currentColor" />
-                                <stop offset="100%" stopColor="currentColor" stopOpacity="0.8" />
-                            </linearGradient>
-                        </defs>
-                        <circle cx="50" cy="50" r="18" fill="url(#saturn-grad)" className="saturn-brand-core" />
-                        <ellipse cx="50" cy="50" rx="38" ry="9" fill="none" stroke="currentColor" strokeWidth="6" className="saturn-brand-ring opacity-80" />
+                    <div className="absolute inset-0 bg-zen-accent/20 blur-lg rounded-full" />
+                    <svg viewBox="0 0 100 100" className="saturn-brand-logo w-9 h-9 text-zen-accent relative z-10">
+                        <circle cx="50" cy="50" r="18" fill="currentColor" className="saturn-brand-core" />
+                        <ellipse cx="50" cy="50" rx="38" ry="9" fill="none" stroke="currentColor" strokeWidth="6" className="saturn-brand-ring" />
                     </svg>
                 </div>
                 {isActuallyExpanded && (
