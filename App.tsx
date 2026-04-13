@@ -957,11 +957,11 @@ export default function App({ mode = 'full' }: AppProps) {
                                     <div className="max-w-[78rem] mx-auto w-full px-5 sm:px-8 pt-8 flex-1 flex flex-col min-h-full">
                                         {!activeTab?.messages.length ? (
                                             <div className="flex-1 flex flex-col items-center justify-center pb-40 animate-app-open">
-                                                <div className="mb-6 relative flex items-center justify-center group/logo animate-splash">
-                                                    <div className="absolute inset-0 bg-zen-accent/20 blur-3xl rounded-full animate-glow-ring" />
-                                                    <svg viewBox="0 0 100 100" className="saturn-brand-logo w-28 h-28 sm:w-36 sm:h-36 text-zen-accent opacity-90 relative z-10">
-                                                        <circle cx="50" cy="50" r="20" fill="currentColor" className="saturn-brand-core" />
-                                                        <ellipse cx="50" cy="50" rx="40" ry="10" fill="none" stroke="currentColor" strokeWidth="4" className="saturn-brand-ring" />
+                                                <div className="mb-8 relative flex items-center justify-center group">
+                                                    <div className="absolute inset-0 bg-zen-accent/20 blur-3xl rounded-full animate-pulse-slow" />
+                                                    <svg viewBox="0 0 100 100" className="w-36 h-36 text-zen-accent animate-spin-slow opacity-90 relative z-10 filter drop-shadow-[0_0_20px_rgba(var(--accent-color-rgb),0.6)]">
+                                                        <circle cx="50" cy="50" r="20" fill="currentColor" />
+                                                        <ellipse cx="50" cy="50" rx="40" ry="10" fill="none" stroke="currentColor" strokeWidth="4" transform="rotate(-15 50 50)" />
                                                     </svg>
                                                 </div>
                                                 <h1 className="font-fraunces text-4xl sm:text-6xl font-semibold mb-3 text-zen-text tracking-tight text-center drop-shadow-lg animate-text-reveal">Saturn</h1>
