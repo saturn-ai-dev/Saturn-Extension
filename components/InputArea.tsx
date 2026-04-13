@@ -337,10 +337,6 @@ const InputArea: React.FC<InputAreaProps> = ({ onSend, disabled, mode, setMode, 
                   style={{ minHeight: '56px' }}
                 />
               )}
-              <div className="flex items-center gap-2 px-2 pt-1 text-[11px] text-zen-muted/65">
-                <span className="inline-flex items-center gap-1 rounded-full bg-zen-bg/60 px-2 py-1 border border-zen-border/40">Enter to send</span>
-                <span className="inline-flex items-center gap-1 rounded-full bg-zen-bg/60 px-2 py-1 border border-zen-border/40">Shift + Enter for newline</span>
-              </div>
             </div>
 
             {/* Mode Dropdown & Send Right */}
