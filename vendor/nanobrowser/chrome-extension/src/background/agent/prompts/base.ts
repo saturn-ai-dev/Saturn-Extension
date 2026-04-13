@@ -32,7 +32,8 @@ abstract class BasePrompt {
 
     let formattedElementsText = '';
     if (rawElementsText !== '') {
-      const scrollInfo = `[Scroll info of current page] window.scrollY: ${browserState.scrollY}, document.body.scrollHeight: ${browserState.scrollHeight}, window.visualViewport.height: ${browserState.visualViewportHeight}, visual viewport height as percentage of scrollable distance: ${Math.round((browserState.visualViewportHeight / (browserState.scrollHeight - browserState.visualViewportHeight)) * 100)}%\n`;
+      const scrollDenominator = Math.max(1, browserState.scrollHeight - browserState.visualViewportHeight);
+      const scrollInfo = `[Scroll info of current page] window.scrollY: ${browserState.scrollY}, document.body.scrollHeight: ${browserState.scrollHeight}, window.visualViewport.height: ${browserState.visualViewportHeight}, visual viewport height as percentage of scrollable distance: ${Math.round((browserState.visualViewportHeight / scrollDenominator) * 100)}%\n`;
       logger.info(scrollInfo);
       const elementsText = wrapUntrustedContent(rawElementsText);
       formattedElementsText = `${scrollInfo}[Start of page]\n${elementsText}\n[End of page]\n`;
@@ -42,7 +43,7 @@ abstract class BasePrompt {
 
     let stepInfoDescription = '';
     if (context.stepInfo) {
-      stepInfoDescription = `Current step: ${context.stepInfo.stepNumber + 1}/${context.stepInfo.maxSteps}`;
+      stepInfoDescription = `Current step: ${context.stepInfo.stepNumber + 1}/${context.stepInfo.maxSteps}\n`;
     }
 
     const timeStr = new Date().toISOString().slice(0, 16).replace('T', ' '); // Format: YYYY-MM-DD HH:mm

@@ -56,12 +56,12 @@ export const llmProviderModelNames = {
 export const llmProviderParameters = {
   [ProviderTypeEnum.OpenAI]: {
     [AgentNameEnum.Planner]: {
-      temperature: 0.7,
-      topP: 0.9,
+      temperature: 0.35,
+      topP: 0.75,
     },
     [AgentNameEnum.Navigator]: {
-      temperature: 0.3,
-      topP: 0.85,
+      temperature: 0.2,
+      topP: 0.7,
     },
   },
   [ProviderTypeEnum.Anthropic]: {
@@ -76,22 +76,22 @@ export const llmProviderParameters = {
   },
   [ProviderTypeEnum.Gemini]: {
     [AgentNameEnum.Planner]: {
-      temperature: 0.7,
-      topP: 0.9,
+      temperature: 0.35,
+      topP: 0.75,
     },
     [AgentNameEnum.Navigator]: {
-      temperature: 0.3,
-      topP: 0.85,
+      temperature: 0.2,
+      topP: 0.7,
     },
   },
   [ProviderTypeEnum.Grok]: {
     [AgentNameEnum.Planner]: {
-      temperature: 0.7,
-      topP: 0.9,
+      temperature: 0.35,
+      topP: 0.75,
     },
     [AgentNameEnum.Navigator]: {
-      temperature: 0.3,
-      topP: 0.85,
+      temperature: 0.2,
+      topP: 0.7,
     },
   },
   [ProviderTypeEnum.Ollama]: {
@@ -106,22 +106,22 @@ export const llmProviderParameters = {
   },
   [ProviderTypeEnum.AzureOpenAI]: {
     [AgentNameEnum.Planner]: {
-      temperature: 0.7,
-      topP: 0.9,
+      temperature: 0.35,
+      topP: 0.75,
     },
     [AgentNameEnum.Navigator]: {
-      temperature: 0.3,
-      topP: 0.85,
+      temperature: 0.2,
+      topP: 0.7,
     },
   },
   [ProviderTypeEnum.OpenRouter]: {
     [AgentNameEnum.Planner]: {
-      temperature: 0.7,
-      topP: 0.9,
+      temperature: 0.35,
+      topP: 0.75,
     },
     [AgentNameEnum.Navigator]: {
-      temperature: 0.3,
-      topP: 0.85,
+      temperature: 0.2,
+      topP: 0.7,
     },
   },
   [ProviderTypeEnum.Groq]: {
@@ -136,22 +136,22 @@ export const llmProviderParameters = {
   },
   [ProviderTypeEnum.Cerebras]: {
     [AgentNameEnum.Planner]: {
-      temperature: 0.7,
-      topP: 0.9,
+      temperature: 0.35,
+      topP: 0.75,
     },
     [AgentNameEnum.Navigator]: {
-      temperature: 0.3,
-      topP: 0.85,
+      temperature: 0.2,
+      topP: 0.7,
     },
   },
   [ProviderTypeEnum.Llama]: {
     [AgentNameEnum.Planner]: {
-      temperature: 0.7,
-      topP: 0.9,
+      temperature: 0.35,
+      topP: 0.75,
     },
     [AgentNameEnum.Navigator]: {
-      temperature: 0.3,
-      topP: 0.85,
+      temperature: 0.2,
+      topP: 0.7,
     },
   },
 };

@@ -4,7 +4,7 @@ import MessageBubble from './components/MessageBubble';
 import {
   Tab, Message, Role, SearchMode, Attachment, Theme,
   DownloadItem, UserProfile, Extension, BrowserState,
-  HistoryItem, ThreadGroup, AgentRun, AgentEvent
+  HistoryItem, ThreadGroup, AgentRun, AgentEvent, type AgentProfileId
 } from './types';
 import {
   createNewTab, streamGeminiResponse, generateImage,
@@ -12,6 +12,8 @@ import {
 } from './services/geminiService';
 import { fetchGeminiModels, fetchOpenAIModels, getFallbackModelCatalog, type ModelOption } from './services/modelCatalogService';
 import { sendNanobrowserMessage } from './services/nanobrowserService';
+import { AGENT_PROFILES, DEFAULT_AGENT_PROFILE, getAgentProfile } from './services/agentProfiles';
+import { appendAgentEvent, createAgentEvent } from './services/agentRunService';
 import {
   Plus, History, Settings, Trash2, RotateCcw,
   ArrowUp, Paperclip, FileText, MessageSquare,
@@ -28,7 +30,7 @@ const DEFAULT_USER: UserProfile = {
   id: 'default', name: 'Guest', theme: 'red', avatarColor: 'bg-red-600',
   enabledExtensions: [], enabledSidebarApps: ['notes', 'calculator', 'agent', 'spotify', 'whatsapp', 'youtube', 'reddit', 'x'],
   customShortcuts: [], preferredModel: 'gemini-flash-latest', preferredImageModel: 'gemini-2.5-flash-image',
-  nanobrowserModel: 'gemini-2.5-flash', nanobrowserVision: true, sidebarPosition: 'left',
+  nanobrowserModel: 'gemini-2.5-flash', nanobrowserVision: true, nanobrowserProfile: DEFAULT_AGENT_PROFILE, sidebarPosition: 'left',
   sidebarAutoHide: false, sidebarShowStatus: true, sidebarGlassIntensity: 70, autoRenameChats: true
 };
 
@@ -378,15 +380,58 @@ const CalculatorWidget = () => {
 
 // ─── Agent widget ─────────────────────────────────────────────────────────────
 
-const AgentWidget = ({ run, onStart, onAbort }: { run?: AgentRun | null; onStart?: (t: string) => void; onAbort?: () => void }) => {
+const AgentWidget = ({
+  run,
+  profile,
+  onProfileChange,
+  onStart,
+  onAbort
+}: {
+  run?: AgentRun | null;
+  profile: AgentProfileId;
+  onProfileChange?: (profile: AgentProfileId) => void;
+  onStart?: (t: string, profile?: AgentProfileId) => void;
+  onAbort?: () => void;
+}) => {
   const [task, setTask] = useState('');
   const latestEvent = run?.events[run.events.length - 1];
   const isRunning = run?.status === 'running';
   const eventsEndRef = useRef<HTMLDivElement>(null);
+  const profileMeta = getAgentProfile(profile);
   useEffect(() => { eventsEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [run?.events]);
 
   return (
-    <div className="flex flex-col h-full p-3 gap-3">
+    <div className="flex flex-col h-full min-h-0 p-3 gap-3">
+      <div className="rounded-xl bg-zen-surface border border-zen-border/50 p-3 flex-shrink-0">
+        <div className="flex items-center justify-between gap-2 mb-3">
+          <div>
+            <div className="text-[11px] font-medium text-zen-muted">Agent Mode</div>
+            <div className="text-sm font-semibold text-zen-text">{profileMeta.label}</div>
+          </div>
+          <span className={`px-2.5 py-1 rounded-full border text-[10px] font-semibold ${profileMeta.badgeClass}`}>
+            {profileMeta.shortLabel}
+          </span>
+        </div>
+        <div className="grid grid-cols-1 gap-2 mb-3">
+          {AGENT_PROFILES.map(item => (
+            <button
+              key={item.id}
+              onClick={() => onProfileChange?.(item.id)}
+              disabled={isRunning}
+              className={`rounded-xl border px-3 py-2 text-left transition-all disabled:opacity-60 ${
+                item.id === profile
+                  ? 'bg-zen-bg border-zen-accent shadow-sm'
+                  : 'bg-zen-bg/40 border-zen-border hover:bg-zen-bg'
+              }`}
+            >
+              <div className="text-xs font-semibold text-zen-text">{item.label}</div>
+              <div className="mt-1 text-[10px] leading-4 text-zen-muted">{item.description}</div>
+            </button>
+          ))}
+        </div>
+        <div className="text-[10px] leading-4 text-zen-muted">{profileMeta.description}</div>
+      </div>
+
       {/* Task input */}
       <div className="rounded-xl bg-zen-surface border border-zen-border/50 p-3 flex-shrink-0">
         <div className="text-[11px] font-medium text-zen-muted mb-2">Task</div>
@@ -396,8 +441,20 @@ const AgentWidget = ({ run, onStart, onAbort }: { run?: AgentRun | null; onStart
           value={task}
           onChange={e => setTask(e.target.value)}
         />
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {profileMeta.suggestions.slice(0, 2).map(suggestion => (
+            <button
+              key={suggestion}
+              onClick={() => setTask(suggestion)}
+              disabled={isRunning}
+              className="rounded-full border border-zen-border bg-zen-bg/50 px-2.5 py-1 text-[10px] text-zen-muted transition-colors hover:text-zen-text hover:border-zen-accent/40 disabled:opacity-60"
+            >
+              {suggestion}
+            </button>
+          ))}
+        </div>
         <div className="mt-2 flex gap-2">
-          <button onClick={() => { if (task.trim()) onStart?.(task.trim()); }} disabled={isRunning}
+          <button onClick={() => { if (task.trim()) onStart?.(task.trim(), profile); }} disabled={isRunning}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${isRunning ? 'bg-zen-border text-zen-muted cursor-not-allowed' : 'bg-zen-accent text-white hover:bg-zen-accentHover'}`}>
             <Play className="w-3 h-3" /> Run
           </button>
@@ -412,19 +469,32 @@ const AgentWidget = ({ run, onStart, onAbort }: { run?: AgentRun | null; onStart
       </div>
 
       {/* Events log */}
-      <div className="flex-1 rounded-xl bg-zen-surface border border-zen-border/50 p-3 overflow-hidden flex flex-col">
+      <div className="flex-1 min-h-0 rounded-xl bg-zen-surface border border-zen-border/50 p-3 overflow-hidden flex flex-col">
         <div className="text-[11px] font-medium text-zen-muted mb-2">Log</div>
         {run?.error && (
           <div className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg p-2 mb-2">{run.error}</div>
         )}
-        <div className="flex-1 overflow-y-auto space-y-1.5 custom-scrollbar">
+        {latestEvent && (
+          <div className="mb-2 rounded-lg border border-zen-border/50 bg-zen-bg/50 p-2.5">
+            <div className="text-[10px] font-medium uppercase tracking-[0.14em] text-zen-muted">Latest</div>
+            <div className="mt-1 text-xs font-semibold text-zen-text">{latestEvent.actor} · {latestEvent.label || latestEvent.state}</div>
+            <div className="mt-1 text-xs leading-5 text-zen-muted">{latestEvent.details}</div>
+            <div className="mt-1 text-[10px] text-zen-muted/70">
+              {latestEvent.maxSteps > 0 ? `Step ${latestEvent.step + 1}/${latestEvent.maxSteps}` : 'Preparing run'} · {new Date(latestEvent.timestamp).toLocaleTimeString()}
+            </div>
+          </div>
+        )}
+        <div className="flex-1 min-h-0 overflow-y-auto space-y-1.5 custom-scrollbar pr-1">
           {(run?.events || []).length === 0 && (
             <div className="text-xs text-zen-muted/60 italic">No events yet.</div>
           )}
           {(run?.events || []).map(evt => (
             <div key={evt.id} className="border border-zen-border/40 rounded-lg p-2 bg-zen-bg/40 text-xs">
-              <div className="font-semibold text-zen-text">{evt.actor} · {evt.state}</div>
+              <div className="font-semibold text-zen-text">{evt.actor} · {evt.label || evt.state}</div>
               <div className="text-zen-muted mt-0.5">{evt.details}</div>
+              <div className="mt-1 text-[10px] text-zen-muted/60">
+                {evt.maxSteps > 0 ? `Step ${evt.step + 1}/${evt.maxSteps}` : 'Setup'} · {new Date(evt.timestamp).toLocaleTimeString()}
+              </div>
             </div>
           ))}
           <div ref={eventsEndRef} />
@@ -631,6 +701,17 @@ const SidebarSettings: React.FC<SidebarSettingsProps> = ({
               ))}
             </div>
 
+            <div className="text-[11px] font-medium text-zen-muted mt-4 mb-1">Agent Mode</div>
+            <div className="grid grid-cols-2 gap-2">
+              {AGENT_PROFILES.map(item => (
+                <button key={item.id} onClick={() => updateUser({ nanobrowserProfile: item.id })}
+                  className={`rounded-xl border p-2.5 text-left transition-all ${(currentUser.nanobrowserProfile || DEFAULT_AGENT_PROFILE) === item.id ? 'bg-zen-bg border-zen-accent' : 'bg-zen-surface border-zen-border hover:bg-zen-bg'}`}>
+                  <div className="text-xs font-bold text-zen-text">{item.label}</div>
+                  <div className="mt-1 text-[10px] leading-4 text-zen-muted">{item.description}</div>
+                </button>
+              ))}
+            </div>
+
             <div className="mt-2 divide-y divide-zen-border/30 rounded-xl bg-zen-surface border border-zen-border/50 px-3">
               <Row label="Agent Vision" sub="Send screenshots to the agent">
                 <Toggle value={currentUser.nanobrowserVision !== false}
@@ -783,6 +864,7 @@ export default function SidebarApp() {
       if (user.autoRenameChats === undefined) user.autoRenameChats = true;
       if (!user.nanobrowserModel) user.nanobrowserModel = 'gemini-2.5-flash';
       if (user.nanobrowserVision === undefined) user.nanobrowserVision = true;
+      if (!user.nanobrowserProfile) user.nanobrowserProfile = DEFAULT_AGENT_PROFILE;
       return user;
     } catch { return DEFAULT_USER; }
   });
@@ -949,10 +1031,7 @@ export default function SidebarApp() {
       if (message.type === 'NANO_AGENT_EVENT') {
         const event = message.event as AgentEvent;
         const runId = message.runId as string;
-        setAgentRun(prev => {
-          if (!prev || prev.id !== runId) return prev;
-          return { ...prev, events: [...prev.events, event] };
-        });
+        setAgentRun(prev => appendAgentEvent(prev, runId, event));
         return;
       }
 
@@ -1069,14 +1148,40 @@ export default function SidebarApp() {
   };
 
   // Agent
-  const handleStartAgent = async (task: string) => {
+  const handleStartAgent = async (task: string, profileOverride?: AgentProfileId, trigger: 'manual' | 'auto' = 'manual') => {
     if (!task.trim() || agentRun?.status === 'running') return;
     const runId = `nano-${Date.now()}`;
     const model = currentUser.nanobrowserModel || 'gemini-2.5-flash';
+    const profile = profileOverride || currentUser.nanobrowserProfile || DEFAULT_AGENT_PROFILE;
     const apiKeys = { gemini: localStorage.getItem('gemini_api_key') || '', openai: localStorage.getItem('openai_api_key') || '' };
-    setAgentRun({ id: runId, task, status: 'running', events: [{ id: `${runId}-start`, actor: 'system', state: 'task.starting', details: 'Starting agent…', step: 0, maxSteps: 0, timestamp: Date.now() }], startedAt: Date.now() });
+    setAgentRun({
+      id: runId,
+      task,
+      profile,
+      status: 'running',
+      events: [createAgentEvent({
+        runId,
+        actor: 'system',
+        state: 'task.starting',
+        details: `Starting ${profile} agent...`,
+        step: 0,
+        maxSteps: 0,
+        sequence: 0,
+      })],
+      startedAt: Date.now(),
+    });
     try {
-      const res = await sendNanobrowserMessage({ type: 'NANO_AGENT_START', runId, task, model, apiKeys, useVision: currentUser.nanobrowserVision !== false });
+      const res = await sendNanobrowserMessage({
+        type: 'NANO_AGENT_START',
+        runId,
+        task,
+        model,
+        apiKeys,
+        useVision: currentUser.nanobrowserVision !== false,
+        profile,
+        trigger,
+        pageContext: pageContext ? { url: pageContext.url, title: pageContext.title } : undefined
+      });
       if (!res.ok) setAgentRun(prev => prev?.id === runId ? { ...prev, status: 'error', error: res.error || 'Failed.' } : prev);
     } catch (e) {
       setAgentRun(prev => prev?.id === runId ? { ...prev, status: 'error', error: e instanceof Error ? e.message : String(e) } : prev);
@@ -1136,7 +1241,7 @@ export default function SidebarApp() {
       if ((decision.useAgent && decision.task) || (hardFallback && kw.test(trimmed))) {
         setTabs(prev => prev.map(t => t.id === tabId ? { ...t, messages: t.messages.map(m => m.id === botId ? { ...m, isStreaming: false, content: 'Starting agent… Switch to the Agent tab to see live status.' } : m) } : t));
         setActiveAppTab('agent');
-        await handleStartAgent(decision.task || trimmed);
+        await handleStartAgent(decision.task || trimmed, decision.profile, 'auto');
         return;
       }
     }
@@ -1282,7 +1387,17 @@ export default function SidebarApp() {
         {/* Agent */}
         {activeAppTab === 'agent' && (
           <div className="absolute inset-0 overflow-hidden">
-            <AgentWidget run={agentRun} onStart={handleStartAgent} onAbort={handleAbortAgent} />
+            <AgentWidget
+              run={agentRun}
+              profile={currentUser.nanobrowserProfile || DEFAULT_AGENT_PROFILE}
+              onProfileChange={(profile) => {
+                const updatedUser = { ...currentUser, nanobrowserProfile: profile };
+                setCurrentUser(updatedUser);
+                setUsers(prev => prev.map(x => x.id === updatedUser.id ? updatedUser : x));
+              }}
+              onStart={handleStartAgent}
+              onAbort={handleAbortAgent}
+            />
           </div>
         )}
 
@@ -1333,7 +1448,15 @@ export default function SidebarApp() {
         isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)}
         currentUser={currentUser} updateUser={updateUser}
         users={users}
-        onSwitchUser={(id: string) => { const u = users.find(x => x.id === id); if (u) { setCurrentUser(u); setCurrentTheme(u.theme); } }}
+        onSwitchUser={(id: string) => {
+          const u = users.find(x => x.id === id);
+          if (u) {
+            if (!u.nanobrowserProfile) u.nanobrowserProfile = DEFAULT_AGENT_PROFILE;
+            if (u.nanobrowserVision === undefined) u.nanobrowserVision = true;
+            setCurrentUser(u);
+            setCurrentTheme(u.theme);
+          }
+        }}
         onAddUser={(name: string) => { const u: UserProfile = { ...DEFAULT_USER, id: Date.now().toString(), name, avatarColor: 'bg-blue-600' }; setUsers(prev => [...prev, u]); setCurrentUser(u); setCurrentTheme(u.theme); }}
         currentTheme={currentTheme} setCurrentTheme={setCurrentTheme}
         customInstructions={customInstructions} setCustomInstructions={setCustomInstructions}

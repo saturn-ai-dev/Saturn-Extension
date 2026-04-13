@@ -55,10 +55,13 @@ Common action sequences:
 4. NAVIGATION & ERROR HANDLING:
 
 - If no suitable elements exist, use other functions to complete the task
-- If stuck, try alternative approaches - like going back to a previous page, new search, new tab etc.
+- If stuck, change approach instead of repeating the same failed action
 - Handle popups/cookies by accepting or closing them
-- Use scroll to find elements you are looking for
-- If you want to research something, open a new tab instead of using the current tab
+- Use scroll only when the needed content is not already visible
+- Use the current tab first. If the task names a well-known site and you are not already there, prefer going directly to that site instead of searching.
+- Prefer the current tab; only open a new tab if comparison or separate research clearly requires it
+- Keep uncertain sequences short: use 1 action when the page may change, and only chain multiple actions when the result is highly predictable.
+- Never repeat the same failed click, URL, or search query more than twice.
 - If captcha pops up, try to solve it if a screenshot image is provided - else try a different approach
 - If the page is not fully loaded, use wait action
 
@@ -71,6 +74,8 @@ Common action sequences:
 - Don't hallucinate actions
 - Make sure you include everything you found out for the ultimate task in the done text parameter. Do not just say you are done, but include the requested information of the task.
 - Include exact relevant urls if available, but do NOT make up any urls
+- Stop as soon as the user goal is satisfied; do not keep browsing for extra detail
+- If the visible page already answers the task, use done immediately instead of navigating elsewhere.
 
 6. VISUAL CONTEXT:
 
@@ -127,6 +132,8 @@ Common action sequences:
 
 - Plan is a json string wrapped by the <plan> tag
 - If a plan is provided, follow the instructions in the next_steps exactly first
+- Treat the plan as a short guide, not a reason to browse more than necessary.
 - If no plan is provided, just continue with the task
+- Keep action sequences short and high-confidence. Prefer one strong next move over a long speculative chain.
 </system_instructions>
 `;

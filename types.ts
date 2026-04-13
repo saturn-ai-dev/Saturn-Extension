@@ -27,6 +27,9 @@ export interface GeneratedMedia {
 }
 
 export type AgentRunStatus = 'idle' | 'running' | 'success' | 'error' | 'aborted';
+export type AgentProfileId = 'operator' | 'researcher' | 'scout';
+export type AgentEventKind = 'task' | 'step' | 'action' | 'system';
+export type AgentEventStatus = 'start' | 'ok' | 'fail' | 'cancel' | 'info';
 
 export interface AgentEvent {
   id: string;
@@ -36,11 +39,16 @@ export interface AgentEvent {
   step: number;
   maxSteps: number;
   timestamp: number;
+  sequence?: number;
+  kind?: AgentEventKind;
+  status?: AgentEventStatus;
+  label?: string;
 }
 
 export interface AgentRun {
   id: string;
   task: string;
+  profile?: AgentProfileId;
   status: AgentRunStatus;
   events: AgentEvent[];
   startedAt: number;
@@ -152,6 +160,7 @@ export interface UserProfile {
   preferredOpenAIModel?: string;
   nanobrowserModel?: string;
   nanobrowserVision?: boolean;
+  nanobrowserProfile?: AgentProfileId;
   sidebarPosition?: 'left' | 'right' | 'top' | 'bottom';
   sidebarAutoHide?: boolean;
   sidebarShowStatus?: boolean;

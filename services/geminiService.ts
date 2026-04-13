@@ -1,6 +1,6 @@
 import { GoogleGenAI, type GenerateContentResponse } from "@google/genai";
 import OpenAI from "openai";
-import { Message, Role, Source, SearchMode, GeneratedMedia, Extension } from "../types";
+import { Message, Role, Source, SearchMode, GeneratedMedia, Extension, type AgentProfileId } from "../types";
 
 // --- HELPERS ---
 
@@ -368,8 +368,16 @@ export const decideAgentUsage = async (
     userText: string,
     modelName: string,
     pageContext?: { url: string; title: string; hasContent: boolean }
-): Promise<{ useAgent: boolean; task: string; reason: string }> => {
-    const fallback = { useAgent: false, task: '', reason: 'default' };
+): Promise<{ useAgent: boolean; task: string; reason: string; profile: AgentProfileId }> => {
+    const fallback = { useAgent: false, task: '', reason: 'default', profile: 'operator' as AgentProfileId };
+    const parseDecision = (raw: string) => {
+        const trimmed = raw.trim();
+        const cleaned = trimmed
+            .replace(/^```json\s*/i, '')
+            .replace(/^```\s*/i, '')
+            .replace(/\s*```$/i, '');
+        return JSON.parse(cleaned);
+    };
 
     const pageContextBlock = pageContext
         ? `
@@ -408,9 +416,17 @@ Ask yourself: "Does completing this task require the AI to physically operate a 
 - YES → useAgent: true
 - NO (can answer from knowledge or from already-available page context) → useAgent: false
 
-Return ONLY valid JSON: { "useAgent": boolean, "task": string, "reason": string }
-If useAgent is true, task must be a concrete browser-automation instruction.
-If useAgent is false, task must be empty string "".
+PROFILE RULE:
+- profile must be "operator" for action-heavy tasks like clicking, navigating, signing in, filling forms, completing flows, or using account dashboards.
+- profile must be "researcher" for browser-based research, comparison, gathering facts from websites, or reading pages the assistant does not already have.
+
+TASK RULE:
+- If useAgent is true, rewrite the task as a short, concrete browser instruction with the user's end goal and no filler.
+- Preserve critical constraints from the user.
+- If useAgent is false, task must be empty string "".
+- If useAgent is false, profile must be "operator".
+
+Return ONLY valid JSON: { "useAgent": boolean, "task": string, "reason": string, "profile": "operator" | "researcher" }
 
 User request: """${userText}"""
 `;
@@ -431,11 +447,12 @@ User request: """${userText}"""
                 temperature: 0
             });
             const text = res.choices[0]?.message?.content?.trim() || '';
-            const parsed = JSON.parse(text);
+            const parsed = parseDecision(text);
             return {
                 useAgent: !!parsed.useAgent,
                 task: String(parsed.task || ''),
-                reason: String(parsed.reason || '')
+                reason: String(parsed.reason || ''),
+                profile: parsed.profile === 'researcher' ? 'researcher' : 'operator'
             };
         }
 
@@ -450,11 +467,12 @@ User request: """${userText}"""
             config: { responseModalities: ['TEXT'] }
         });
         const text = response.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
-        const parsed = JSON.parse(text);
+        const parsed = parseDecision(text);
         return {
             useAgent: !!parsed.useAgent,
             task: String(parsed.task || ''),
-            reason: String(parsed.reason || '')
+            reason: String(parsed.reason || ''),
+            profile: parsed.profile === 'researcher' ? 'researcher' : 'operator'
         };
     } catch (e) {
         return { ...fallback, reason: 'error' };

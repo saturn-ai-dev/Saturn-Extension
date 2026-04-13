@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, RefreshCw, Save, Trash2, GripVertical, Copy, Download, Clock, Play, Square, ExternalLink, Link2, Music2 } from 'lucide-react';
-import type { AgentRun } from '../types';
+import type { AgentRun, AgentProfileId } from '../types';
+import { AGENT_PROFILES, DEFAULT_AGENT_PROFILE, getAgentProfile } from '../services/agentProfiles';
 
 interface SidebarPanelProps {
     isOpen: boolean;
@@ -9,8 +10,10 @@ interface SidebarPanelProps {
     sidebarWidth: number;
     position?: 'left' | 'right';
     agentRun?: AgentRun | null;
-    onStartAgent?: (task: string) => void;
+    onStartAgent?: (task: string, profile?: AgentProfileId) => void;
     onAbortAgent?: () => void;
+    agentProfile?: AgentProfileId;
+    onSetAgentProfile?: (profile: AgentProfileId) => void;
 }
 
 const DEFAULT_SPOTIFY_URL = 'https://open.spotify.com/playlist/37i9dQZF1DX4WYpdgoIcn6';
@@ -287,24 +290,63 @@ const CalculatorWidget = () => {
 
 const AgentWidget = ({
     run,
+    profile,
+    onProfileChange,
     onStart,
     onAbort
 }: {
     run?: AgentRun | null;
-    onStart?: (task: string) => void;
+    profile: AgentProfileId;
+    onProfileChange?: (profile: AgentProfileId) => void;
+    onStart?: (task: string, profile?: AgentProfileId) => void;
     onAbort?: () => void;
 }) => {
     const [task, setTask] = useState('');
     const latestEvent = run?.events[run.events.length - 1];
     const isRunning = run?.status === 'running';
+    const eventsEndRef = useRef<HTMLDivElement>(null);
+    const profileMeta = getAgentProfile(profile);
+
+    useEffect(() => {
+        eventsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [run?.events]);
 
     const handleRun = () => {
         if (!task.trim()) return;
-        onStart?.(task.trim());
+        onStart?.(task.trim(), profile);
     };
 
     return (
-        <div className="flex flex-col h-full bg-zen-bg p-5 gap-4">
+        <div className="flex flex-col h-full min-h-0 bg-zen-bg p-5 gap-4">
+            <div className="p-4 rounded-2xl bg-zen-surface border border-zen-border/50 shadow-sm">
+                <div className="flex items-center justify-between gap-3 mb-3">
+                    <div>
+                        <div className="text-xs font-medium text-zen-muted mb-1">Agent mode</div>
+                        <div className="text-sm font-semibold text-zen-text">{profileMeta.label}</div>
+                    </div>
+                    <span className={`px-2.5 py-1 rounded-full border text-[10px] font-semibold ${profileMeta.badgeClass}`}>
+                        {profileMeta.shortLabel}
+                    </span>
+                </div>
+                <div className="grid grid-cols-1 gap-2">
+                    {AGENT_PROFILES.map(item => (
+                        <button
+                            key={item.id}
+                            onClick={() => onProfileChange?.(item.id)}
+                            disabled={isRunning}
+                            className={`rounded-xl border px-3 py-2 text-left transition-all disabled:opacity-60 ${
+                                item.id === profile
+                                    ? 'bg-zen-bg border-zen-accent shadow-sm'
+                                    : 'bg-zen-bg/40 border-zen-border hover:bg-zen-bg'
+                            }`}
+                        >
+                            <div className="text-xs font-semibold text-zen-text">{item.label}</div>
+                            <div className="mt-1 text-[10px] leading-4 text-zen-muted">{item.description}</div>
+                        </button>
+                    ))}
+                </div>
+            </div>
+
             <div className="p-4 rounded-2xl bg-zen-surface border border-zen-border/50 shadow-sm">
                 <div className="text-xs font-medium text-zen-muted mb-2">Task</div>
                 <textarea
@@ -313,6 +355,18 @@ const AgentWidget = ({
                     value={task}
                     onChange={(e) => setTask(e.target.value)}
                 />
+                <div className="mt-3 flex flex-wrap gap-2">
+                    {profileMeta.suggestions.slice(0, 2).map(suggestion => (
+                        <button
+                            key={suggestion}
+                            onClick={() => setTask(suggestion)}
+                            disabled={isRunning}
+                            className="rounded-full border border-zen-border bg-zen-bg/50 px-2.5 py-1 text-[10px] text-zen-muted transition-colors hover:text-zen-text hover:border-zen-accent/40 disabled:opacity-60"
+                        >
+                            {suggestion}
+                        </button>
+                    ))}
+                </div>
                 <div className="mt-3 flex items-center gap-2">
                     <button
                         onClick={handleRun}
@@ -333,16 +387,20 @@ const AgentWidget = ({
                 </div>
             </div>
 
-            <div className="p-4 rounded-2xl bg-zen-surface border border-zen-border/50 shadow-sm flex-1 overflow-hidden">
+            <div className="p-4 rounded-2xl bg-zen-surface border border-zen-border/50 shadow-sm flex-1 min-h-0 overflow-hidden flex flex-col">
                 <div className="text-xs font-medium text-zen-muted mb-2">Status</div>
                 <div className="text-sm font-semibold text-zen-text mb-2">
                     {run ? run.status.toUpperCase() : 'IDLE'}
                 </div>
                 {latestEvent && (
-                    <div className="text-xs text-zen-muted mb-3">
-                        <div className="font-semibold">{latestEvent.actor} · {latestEvent.state}</div>
+                    <div className="text-xs text-zen-muted mb-3 rounded-xl border border-zen-border/40 bg-zen-bg/50 p-3">
+                        <div className="font-semibold">{latestEvent.actor} · {latestEvent.label || latestEvent.state}</div>
                         <div className="mt-1">{latestEvent.details}</div>
-                        <div className="mt-1 opacity-70">Step {latestEvent.step + 1} / {latestEvent.maxSteps}</div>
+                        <div className="mt-1 opacity-70">
+                            {latestEvent.maxSteps > 0 ? `Step ${latestEvent.step + 1} / ${latestEvent.maxSteps}` : 'Preparing run'}
+                            {' · '}
+                            {new Date(latestEvent.timestamp).toLocaleTimeString()}
+                        </div>
                     </div>
                 )}
                 {run?.error && (
@@ -351,16 +409,20 @@ const AgentWidget = ({
                     </div>
                 )}
                 <div className="text-[11px] font-medium text-zen-muted mb-2">Log</div>
-                <div className="space-y-2 text-xs text-zen-muted max-h-[220px] overflow-y-auto custom-scrollbar">
-                    {(run?.events || []).slice(-10).map((evt) => (
+                <div className="flex-1 min-h-0 space-y-2 text-xs text-zen-muted overflow-y-auto custom-scrollbar pr-1">
+                    {(run?.events || []).map((evt) => (
                         <div key={evt.id} className="border border-zen-border/40 rounded-lg p-2 bg-zen-bg/40">
-                            <div className="font-semibold text-zen-text">{evt.actor} · {evt.state}</div>
+                            <div className="font-semibold text-zen-text">{evt.actor} · {evt.label || evt.state}</div>
                             <div className="opacity-80">{evt.details}</div>
+                            <div className="mt-1 text-[10px] opacity-60">
+                                {evt.maxSteps > 0 ? `Step ${evt.step + 1}/${evt.maxSteps}` : 'Setup'} · {new Date(evt.timestamp).toLocaleTimeString()}
+                            </div>
                         </div>
                     ))}
                     {!run?.events?.length && (
                         <div className="text-zen-muted/70">No events yet.</div>
                     )}
+                    <div ref={eventsEndRef} />
                 </div>
             </div>
         </div>
@@ -449,7 +511,7 @@ const SpotifyWidget = () => {
     );
 };
 
-const SidebarPanel: React.FC<SidebarPanelProps> = ({ isOpen, appId, onClose, sidebarWidth, position = 'left', agentRun, onStartAgent, onAbortAgent }) => {
+const SidebarPanel: React.FC<SidebarPanelProps> = ({ isOpen, appId, onClose, sidebarWidth, position = 'left', agentRun, onStartAgent, onAbortAgent, agentProfile = DEFAULT_AGENT_PROFILE, onSetAgentProfile }) => {
     const [key, setKey] = useState(0);
     const handleReload = () => setKey(prev => prev + 1);
     if (!appId) return null;
@@ -473,7 +535,7 @@ const SidebarPanel: React.FC<SidebarPanelProps> = ({ isOpen, appId, onClose, sid
         case 'agent':
             title = 'Agent';
             isNative = true;
-            content = <AgentWidget run={agentRun} onStart={onStartAgent} onAbort={onAbortAgent} />;
+            content = <AgentWidget run={agentRun} profile={agentProfile} onProfileChange={onSetAgentProfile} onStart={onStartAgent} onAbort={onAbortAgent} />;
             break;
         case 'spotify':
             title = 'Spotify';

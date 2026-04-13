@@ -14,10 +14,14 @@ import {
   type ProviderConfig,
   type ModelConfig,
 } from '@extension/storage';
+import { buildAgentTaskEnvelope, getAgentProfile } from './services/agentProfiles';
+import { createAgentEvent } from './services/agentRunService';
 
 const browserContext = new BrowserContext({});
 let currentExecutor: Executor | null = null;
 let currentRunId: string | null = null;
+const MAX_AGENT_RECOVERY_ATTEMPTS = 1;
+const AGENT_RECOVERY_DELAY_MS = 1500;
 
 chrome.runtime.onInstalled.addListener(() => {
   // Enables the sidebar to open when the extension icon is clicked
@@ -56,19 +60,15 @@ const getTargetTab = async (): Promise<chrome.tabs.Tab | undefined> => {
   return created;
 };
 
-const dispatchAgentEvent = (runId: string, event: { actor: string; state: string; details: string; step: number; maxSteps: number; timestamp: number; }) => {
+const dispatchAgentEvent = (
+  runId: string,
+  sequence: number,
+  event: { actor: string; state: string; details: string; step: number; maxSteps: number; timestamp: number },
+) => {
   chrome.runtime.sendMessage({
     type: 'NANO_AGENT_EVENT',
     runId,
-    event: {
-      id: `${runId}-${event.timestamp}-${event.step}`,
-      actor: event.actor,
-      state: event.state,
-      details: event.details,
-      step: event.step,
-      maxSteps: event.maxSteps,
-      timestamp: event.timestamp,
-    },
+    event: createAgentEvent({ runId, sequence, ...event }),
   });
 };
 
@@ -79,6 +79,11 @@ const dispatchAgentDone = (runId: string, status: 'success' | 'error' | 'aborted
 const dispatchAgentError = (runId: string, error: string) => {
   chrome.runtime.sendMessage({ type: 'NANO_AGENT_ERROR', runId, error });
 };
+
+const isTransientAgentIssue = (message: string) =>
+  /timeout|timed out|network|fetch|connection|socket|temporar|rate limit|overloaded|503|502|504|ERR_|ECONN|unavailable|deadline|stream/i.test(
+    message,
+  );
 
 // Listen for messages from the side panel or content scripts
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
@@ -94,12 +99,17 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       const task = message.task as string;
       const model = message.model as string;
       const apiKeys = message.apiKeys || {};
+      const profileId = message.profile;
+      const profile = getAgentProfile(profileId);
+      let eventSequence = 0;
+      const emitEvent = (event: { actor: string; state: string; details: string; step: number; maxSteps: number; timestamp: number }) =>
+        dispatchAgentEvent(runId, ++eventSequence, event);
 
       currentRunId = runId;
-      dispatchAgentEvent(runId, {
+      emitEvent({
         actor: 'system',
         state: 'task.starting',
-        details: 'Preparing agent environment...',
+        details: `Preparing ${profile.label.toLowerCase()} agent environment...`,
         step: 0,
         maxSteps: 0,
         timestamp: Date.now(),
@@ -107,6 +117,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
       const tab = await getTargetTab();
       if (!tab?.id) {
+        currentRunId = null;
         sendResponse({ ok: false, error: 'No active tab found for the agent.' });
         return;
       }
@@ -114,6 +125,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       const providerId = resolveProvider(model);
       const apiKey = providerId === ProviderTypeEnum.OpenAI ? apiKeys.openai : apiKeys.gemini;
       if (!apiKey) {
+        currentRunId = null;
         sendResponse({ ok: false, error: 'Missing API key for the selected Nanobrowser model.' });
         return;
       }
@@ -123,6 +135,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
       const providerConfig = await llmProviderStore.getProvider(providerId);
       if (!providerConfig) {
+        currentRunId = null;
         sendResponse({ ok: false, error: 'Failed to configure Nanobrowser provider.' });
         return;
       }
@@ -131,12 +144,12 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       const plannerLLM = navigatorLLM;
 
       const settings = await generalSettingsStore.getSettings();
-      dispatchAgentEvent(runId, {
+      emitEvent({
         actor: 'system',
         state: 'task.ready',
-        details: 'Tab attached, initializing executor...',
+        details: `Attached to "${tab.title || 'current tab'}". Initializing ${profile.label.toLowerCase()} agent...`,
         step: 0,
-        maxSteps: settings.maxSteps,
+        maxSteps: Math.min(settings.maxSteps, profile.runtime.maxSteps),
         timestamp: Date.now(),
       });
       browserContext.updateConfig({
@@ -148,60 +161,111 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       await injectBuildDomTreeScripts(tab.id);
 
       const useVision = message.useVision !== undefined ? message.useVision : settings.useVision;
-      currentExecutor = new Executor(task, runId, browserContext, navigatorLLM, {
-        plannerLLM,
-        agentOptions: {
-          maxSteps: settings.maxSteps,
-          maxFailures: settings.maxFailures,
-          maxActionsPerStep: settings.maxActionsPerStep,
-          useVision,
-          useVisionForPlanner: useVision,
-          planningInterval: settings.planningInterval,
+      const packagedTask = buildAgentTaskEnvelope({
+        task,
+        profile: profile.id,
+        trigger: message.trigger === 'auto' ? 'auto' : 'manual',
+        pageContext: {
+          url: message.pageContext?.url || tab.url || '',
+          title: message.pageContext?.title || tab.title || '',
         },
-        generalSettings: settings,
       });
+      let recoveryAttempts = 0;
 
-      currentExecutor.clearExecutionEvents();
-      currentExecutor.subscribeExecutionEvents(async (event) => {
-        dispatchAgentEvent(runId, {
-          actor: event.actor,
-          state: event.state,
-          details: event.data.details,
-          step: event.data.step,
-          maxSteps: event.data.maxSteps,
-          timestamp: event.timestamp,
-        });
-
-        if (event.state === ExecutionState.TASK_OK) {
-          dispatchAgentDone(runId, 'success', event.data.details);
-          await currentExecutor?.cleanup();
-          currentExecutor = null;
-          currentRunId = null;
+      const finalizeRun = async (status: 'success' | 'error' | 'aborted', result?: string, error?: string) => {
+        if (status === 'error') {
+          if (error) dispatchAgentError(runId, error);
+          else dispatchAgentDone(runId, status, result);
+        } else {
+          dispatchAgentDone(runId, status, result);
         }
-
-        if (event.state === ExecutionState.TASK_FAIL) {
-          dispatchAgentDone(runId, 'error', event.data.details);
-          await currentExecutor?.cleanup();
-          currentExecutor = null;
-          currentRunId = null;
-        }
-
-        if (event.state === ExecutionState.TASK_CANCEL) {
-          dispatchAgentDone(runId, 'aborted', event.data.details);
-          await currentExecutor?.cleanup();
-          currentExecutor = null;
-          currentRunId = null;
-        }
-      });
-
-      sendResponse({ ok: true });
-      currentExecutor.execute().catch(async (error) => {
-        const messageText = error instanceof Error ? error.message : String(error);
-        dispatchAgentError(runId, messageText);
         await currentExecutor?.cleanup();
         currentExecutor = null;
         currentRunId = null;
-      });
+      };
+
+      const createExecutor = () =>
+        new Executor(packagedTask, runId, browserContext, navigatorLLM, {
+          plannerLLM,
+          agentOptions: {
+            maxSteps: Math.min(settings.maxSteps, profile.runtime.maxSteps),
+            maxFailures: Math.min(settings.maxFailures, profile.runtime.maxFailures),
+            maxActionsPerStep: Math.min(settings.maxActionsPerStep, profile.runtime.maxActionsPerStep),
+            retryDelay: profile.runtime.retryDelay,
+            useVision,
+            useVisionForPlanner: useVision && profile.runtime.usePlannerVision,
+            planningInterval: Math.max(1, Math.min(settings.planningInterval, profile.runtime.planningInterval)),
+            planOnStart: profile.runtime.planOnStart,
+          },
+          generalSettings: settings,
+        });
+
+      const retryExecution = async (reason: string, step: number, maxSteps: number) => {
+        recoveryAttempts += 1;
+        emitEvent({
+          actor: 'system',
+          state: 'task.retrying',
+          details: `Transient issue detected (${reason}). Reconnecting and retrying once...`,
+          step,
+          maxSteps,
+          timestamp: Date.now(),
+        });
+        await currentExecutor?.cleanup();
+        currentExecutor = null;
+        await new Promise(resolve => setTimeout(resolve, AGENT_RECOVERY_DELAY_MS));
+        await browserContext.switchTab(tab.id);
+        await injectBuildDomTreeScripts(tab.id);
+        startExecution();
+      };
+
+      const startExecution = () => {
+        const executor = createExecutor();
+        currentExecutor = executor;
+        executor.clearExecutionEvents();
+        executor.subscribeExecutionEvents(async (event) => {
+          if (currentExecutor !== executor || currentRunId !== runId) return;
+
+          emitEvent({
+            actor: event.actor,
+            state: event.state,
+            details: event.data.details,
+            step: event.data.step,
+            maxSteps: event.data.maxSteps,
+            timestamp: event.timestamp,
+          });
+
+          if (event.state === ExecutionState.TASK_OK) {
+            await finalizeRun('success', event.data.details);
+            return;
+          }
+
+          if (event.state === ExecutionState.TASK_FAIL) {
+            if (recoveryAttempts < MAX_AGENT_RECOVERY_ATTEMPTS && isTransientAgentIssue(event.data.details)) {
+              await retryExecution(event.data.details, event.data.step, event.data.maxSteps);
+              return;
+            }
+            await finalizeRun('error', event.data.details);
+            return;
+          }
+
+          if (event.state === ExecutionState.TASK_CANCEL) {
+            await finalizeRun('aborted', event.data.details);
+          }
+        });
+
+        void executor.execute().catch(async (error) => {
+          if (currentExecutor !== executor || currentRunId !== runId) return;
+          const messageText = error instanceof Error ? error.message : String(error);
+          if (recoveryAttempts < MAX_AGENT_RECOVERY_ATTEMPTS && isTransientAgentIssue(messageText)) {
+            await retryExecution(messageText, 0, settings.maxSteps);
+            return;
+          }
+          await finalizeRun('error', undefined, messageText);
+        });
+      };
+
+      startExecution();
+      sendResponse({ ok: true });
     })().catch((error) => {
       const messageText = error instanceof Error ? error.message : String(error);
       if (currentRunId) {

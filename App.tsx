@@ -7,9 +7,11 @@ import MessageBubble from './components/MessageBubble';
 import InputArea from './components/InputArea';
 import SettingsModal from './components/SettingsModal';
 import AmbientPlayer from './components/AmbientPlayer';
-import { Tab, Message, Role, SearchMode, Attachment, Theme, Bookmark, DownloadItem, UserProfile, Extension, BrowserState, CustomShortcut, HistoryItem, ThreadGroup, AgentRun, AgentEvent, CustomMode, ModeModelMap } from './types';
+import { Tab, Message, Role, SearchMode, Attachment, Theme, Bookmark, DownloadItem, UserProfile, Extension, BrowserState, CustomShortcut, HistoryItem, ThreadGroup, AgentRun, AgentEvent, CustomMode, ModeModelMap, type AgentProfileId } from './types';
 import { createNewTab, streamGeminiResponse, generateImage, generateVideoWithModel, generateChatTitle, decideAgentUsage } from './services/geminiService';
 import { sendNanobrowserMessage } from './services/nanobrowserService';
+import { DEFAULT_AGENT_PROFILE } from './services/agentProfiles';
+import { appendAgentEvent, createAgentEvent } from './services/agentRunService';
 import { X } from 'lucide-react';
 
 const DEFAULT_USER: UserProfile = {
@@ -24,6 +26,7 @@ const DEFAULT_USER: UserProfile = {
     preferredImageModel: 'gemini-2.5-flash-image',
     nanobrowserModel: 'gemini-2.5-flash',
     nanobrowserVision: true,
+    nanobrowserProfile: DEFAULT_AGENT_PROFILE,
     sidebarPosition: 'left',
     sidebarAutoHide: false,
     sidebarShowStatus: true,
@@ -76,6 +79,7 @@ export default function App({ mode = 'full' }: AppProps) {
             if (user.autoRenameChats === undefined) user.autoRenameChats = true;
             if (!user.nanobrowserModel) user.nanobrowserModel = 'gemini-2.5-flash';
             if (user.nanobrowserVision === undefined) user.nanobrowserVision = true;
+            if (!user.nanobrowserProfile) user.nanobrowserProfile = DEFAULT_AGENT_PROFILE;
             return user;
         } catch { return DEFAULT_USER; }
     });
@@ -235,10 +239,7 @@ export default function App({ mode = 'full' }: AppProps) {
             if (message.type === 'NANO_AGENT_EVENT') {
                 const event = message.event as AgentEvent;
                 const runId = message.runId as string;
-                setAgentRun(prev => {
-                    if (!prev || prev.id !== runId) return prev;
-                    return { ...prev, events: [...prev.events, event] };
-                });
+                setAgentRun(prev => appendAgentEvent(prev, runId, event));
                 return;
             }
 
@@ -347,6 +348,7 @@ export default function App({ mode = 'full' }: AppProps) {
             if (!user.preferredImageModel) user.preferredImageModel = 'gemini-2.5-flash-image';
             if (!user.nanobrowserModel) user.nanobrowserModel = 'gemini-2.5-flash';
             if (user.nanobrowserVision === undefined) user.nanobrowserVision = true;
+            if (!user.nanobrowserProfile) user.nanobrowserProfile = DEFAULT_AGENT_PROFILE;
             setCurrentUser(user);
         }
     };
@@ -364,6 +366,8 @@ export default function App({ mode = 'full' }: AppProps) {
             preferredModel: 'gemini-flash-latest',
             preferredImageModel: 'gemini-2.5-flash-image',
             nanobrowserModel: 'gemini-2.5-flash',
+            nanobrowserVision: true,
+            nanobrowserProfile: DEFAULT_AGENT_PROFILE,
             sidebarPosition: 'left',
             sidebarAutoHide: false,
             sidebarShowStatus: true,
@@ -438,6 +442,12 @@ export default function App({ mode = 'full' }: AppProps) {
 
     const handleToggleNanobrowserVision = () => {
         const updatedUser = { ...currentUser, nanobrowserVision: !(currentUser.nanobrowserVision !== false) };
+        setCurrentUser(updatedUser);
+        setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
+    };
+
+    const handleSetNanobrowserProfile = (profile: AgentProfileId) => {
+        const updatedUser = { ...currentUser, nanobrowserProfile: profile };
         setCurrentUser(updatedUser);
         setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
     };
@@ -589,7 +599,7 @@ export default function App({ mode = 'full' }: AppProps) {
         setDraft({ text, timestamp: Date.now() });
     };
 
-    const handleStartAgent = async (task: string) => {
+    const handleStartAgent = async (task: string, profileOverride?: AgentProfileId, trigger: 'manual' | 'auto' = 'manual') => {
         const trimmed = task.trim();
         if (!trimmed) return;
         if (agentRun?.status === 'running') {
@@ -599,23 +609,28 @@ export default function App({ mode = 'full' }: AppProps) {
 
         const runId = `nano-${Date.now()}`;
         const model = currentUser.nanobrowserModel || currentUser.preferredModel || 'gemini-2.5-flash';
+        const profile = profileOverride || currentUser.nanobrowserProfile || DEFAULT_AGENT_PROFILE;
         const apiKeys = {
             gemini: localStorage.getItem('gemini_api_key') || '',
             openai: localStorage.getItem('openai_api_key') || ''
         };
+        const activeTab = tabs.find(tab => tab.id === activeTabId);
 
         const newRun: AgentRun = {
             id: runId,
             task: trimmed,
+            profile,
             status: 'running',
             events: [{
-                id: `${runId}-local-start`,
-                actor: 'system',
-                state: 'task.starting',
-                details: 'Starting agent...',
-                step: 0,
-                maxSteps: 0,
-                timestamp: Date.now()
+                ...createAgentEvent({
+                    runId,
+                    actor: 'system',
+                    state: 'task.starting',
+                    details: `Starting ${profile} agent...`,
+                    step: 0,
+                    maxSteps: 0,
+                    sequence: 0,
+                })
             }],
             startedAt: Date.now()
         };
@@ -629,6 +644,9 @@ export default function App({ mode = 'full' }: AppProps) {
                 model,
                 apiKeys,
                 useVision: currentUser.nanobrowserVision !== false,
+                profile,
+                trigger,
+                pageContext: activeTab?.browserState?.url ? { url: activeTab.browserState.url, title: activeTab.title } : undefined,
             });
             if (!response.ok) {
                 setAgentRun(prev => prev && prev.id === runId ? { ...prev, status: 'error', error: response.error || 'Failed to start agent.' } : prev);
@@ -708,7 +726,7 @@ export default function App({ mode = 'full' }: AppProps) {
                     if (isSidebarOpen) setIsSidebarOpen(false);
                 }
 
-                await handleStartAgent(taskToRun);
+                await handleStartAgent(taskToRun, agentDecision.profile, 'auto');
                 return;
             }
         }
@@ -883,6 +901,8 @@ export default function App({ mode = 'full' }: AppProps) {
                 agentRun={agentRun}
                 onStartAgent={handleStartAgent}
                 onAbortAgent={handleAbortAgent}
+                agentProfile={currentUser.nanobrowserProfile || DEFAULT_AGENT_PROFILE}
+                onSetAgentProfile={handleSetNanobrowserProfile}
             />
 
             <div

@@ -198,9 +198,10 @@ export default class MessageManager {
    */
   public addPlan(plan?: string, position?: number): void {
     if (plan) {
+      this.history.removeMessagesByType('plan');
       const cleanedPlan = filterExternalContent(plan, false);
       const msg = new AIMessage({ content: `<plan>${cleanedPlan}</plan>` });
-      this.addMessageWithTokens(msg, null, position);
+      this.addMessageWithTokens(msg, 'plan', position);
     }
   }
 

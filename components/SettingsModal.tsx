@@ -4,6 +4,7 @@ import { Theme, DownloadItem, UserProfile, Extension, CustomShortcut, Tab } from
 import { exportConversations, importConversations } from '../services/conversationService';
 import { generateOptimizedSystemInstructions } from '../services/geminiService';
 import { fetchGeminiModels, fetchOpenAIModels, getFallbackModelCatalog, type ModelOption } from '../services/modelCatalogService';
+import { AGENT_PROFILES, DEFAULT_AGENT_PROFILE } from '../services/agentProfiles';
 
 
 interface SettingsModalProps {
@@ -415,6 +416,19 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                                 >
                                                     <div className="text-sm font-bold text-zen-text">{model.name}</div>
                                                     <div className="text-xs text-zen-muted font-mono">{model.id}</div>
+                                                </button>
+                                            ))}
+                                        </div>
+                                        <div className="mb-2 text-xs font-medium text-zen-muted">Agent Mode</div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                                            {AGENT_PROFILES.map((profile) => (
+                                                <button
+                                                    key={profile.id}
+                                                    onClick={() => onUpdateSidebarSetting('nanobrowserProfile', profile.id)}
+                                                    className={`p-3 rounded-xl border text-left transition-all ${(currentUser.nanobrowserProfile || DEFAULT_AGENT_PROFILE) === profile.id ? 'bg-zen-bg border-zen-accent shadow-md' : 'bg-zen-bg/50 border-zen-border hover:bg-zen-bg'}`}
+                                                >
+                                                    <div className="text-sm font-bold text-zen-text">{profile.label}</div>
+                                                    <div className="mt-1 text-xs leading-5 text-zen-muted">{profile.description}</div>
                                                 </button>
                                             ))}
                                         </div>

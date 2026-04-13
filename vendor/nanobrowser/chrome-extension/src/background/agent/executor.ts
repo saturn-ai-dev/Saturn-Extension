@@ -154,7 +154,14 @@ export class Executor {
         }
 
         // Run planner periodically for guidance
-        if (this.planner && (context.nSteps % context.options.planningInterval === 0 || navigatorDone)) {
+        if (
+          this.planner &&
+          (
+            (context.nSteps === 0 && context.options.planOnStart) ||
+            (context.nSteps > 0 && context.nSteps % context.options.planningInterval === 0) ||
+            navigatorDone
+          )
+        ) {
           navigatorDone = false;
           latestPlanOutput = await this.runPlanner();
 
@@ -235,19 +242,12 @@ export class Executor {
   private async runPlanner(): Promise<AgentOutput<PlannerOutput> | null> {
     const context = this.context;
     try {
-      // Add current browser state to memory
-      let positionForPlan = 0;
-      if (this.tasks.length > 1 || this.context.nSteps > 0) {
-        await this.navigator.addStateMessageToMemory();
-        positionForPlan = this.context.messageManager.length() - 1;
-      } else {
-        positionForPlan = this.context.messageManager.length();
-      }
+      const plannerStateMessage = await this.navigatorPrompt.getUserMessage(this.context);
 
       // Execute planner
-      const planOutput = await this.planner.execute();
+      const planOutput = await this.planner.execute(plannerStateMessage);
       if (planOutput.result) {
-        this.context.messageManager.addPlan(JSON.stringify(planOutput.result), positionForPlan);
+        this.context.messageManager.addPlan(JSON.stringify(planOutput.result));
       }
       return planOutput;
     } catch (error) {

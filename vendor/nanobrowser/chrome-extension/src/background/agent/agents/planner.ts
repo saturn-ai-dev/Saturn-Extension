@@ -50,13 +50,17 @@ export class PlannerAgent extends BaseAgent<typeof plannerOutputSchema, PlannerO
     super(plannerOutputSchema, options, { ...extraOptions, id: 'planner' });
   }
 
-  async execute(): Promise<AgentOutput<PlannerOutput>> {
+  async execute(stateMessage?: HumanMessage): Promise<AgentOutput<PlannerOutput>> {
     try {
       this.context.emitEvent(Actors.PLANNER, ExecutionState.STEP_START, 'Planning...');
       // get all messages from the message manager, state message should be the last one
       const messages = this.context.messageManager.getMessages();
       // Use full message history except the first one
       const plannerMessages = [this.prompt.getSystemMessage(), ...messages.slice(1)];
+
+      if (stateMessage) {
+        plannerMessages.push(stateMessage);
+      }
 
       // Remove images from last message if vision is not enabled for planner but vision is enabled
       if (!this.context.options.useVisionForPlanner && this.context.options.useVision) {

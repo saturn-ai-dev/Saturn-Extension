@@ -45,6 +45,22 @@ export class MessageHistory {
     }
   }
 
+  removeMessagesByType(messageType: string): void {
+    const keptMessages: ManagedMessage[] = [];
+    let nextTotalTokens = 0;
+
+    for (const managedMessage of this.messages) {
+      if (managedMessage.metadata.message_type === messageType) {
+        continue;
+      }
+      keptMessages.push(managedMessage);
+      nextTotalTokens += managedMessage.metadata.tokens;
+    }
+
+    this.messages = keptMessages;
+    this.totalTokens = nextTotalTokens;
+  }
+
   /**
    * Removes the last message from the history if it is a human message.
    * This is used to remove the state message from the history.
