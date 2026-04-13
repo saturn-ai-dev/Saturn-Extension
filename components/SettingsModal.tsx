@@ -373,51 +373,61 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                             </div>
                                         </div>
                                         
-                                        <div className="mb-2 text-xs font-medium text-zen-muted">Gemini Models</div>
-                                        {geminiModelsError && <div className="mb-2 text-[11px] text-yellow-400">{geminiModelsError}</div>}
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
-                                            {geminiModels.map(model => (
-                                                <button
-                                                    key={model.id}
-                                                    onClick={() => onSetModel(model.id)}
-                                                    className={`p-3 rounded-xl border text-left transition-all ${currentUser.preferredModel === model.id || (!currentUser.preferredModel && model.id === 'gemini-flash-latest') ? 'bg-zen-bg border-zen-accent shadow-md' : 'bg-zen-bg/50 border-zen-border hover:bg-zen-bg'}`}
-                                                >
-                                                    <div className="text-sm font-bold text-zen-text">{model.name}</div>
-                                                    <div className="text-xs text-zen-muted font-mono">{model.id}</div>
-                                                </button>
-                                            ))}
-                                        </div>
-                                        {isLoadingGeminiModels && <div className="mb-6 text-[11px] text-zen-muted">Loading latest Gemini models...</div>}
-
-                                        <div className="mb-2 text-xs font-medium text-zen-muted">OpenAI Models</div>
-                                        {openaiModelsError && <div className="mb-2 text-[11px] text-yellow-400">{openaiModelsError}</div>}
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
-                                            {openaiModels.map(model => (
-                                                <button
-                                                    key={model.id}
-                                                    onClick={() => onSetModel(model.id)}
-                                                    className={`p-3 rounded-xl border text-left transition-all ${currentUser.preferredModel === model.id ? 'bg-zen-bg border-green-500 shadow-md' : 'bg-zen-bg/50 border-zen-border hover:bg-zen-bg'}`}
-                                                >
-                                                    <div className="text-sm font-bold text-zen-text">{model.name}</div>
-                                                    <div className="text-xs text-zen-muted font-mono">{model.id}</div>
-                                                </button>
-                                            ))}
-                                        </div>
-                                        {isLoadingOpenAIModels && <div className="mb-6 text-[11px] text-zen-muted">Loading latest OpenAI models...</div>}
+                                        <div className="mb-2 text-xs font-medium text-zen-muted">Primary AI Model</div>
+                                        {(geminiModelsError || openaiModelsError) && (
+                                            <div className="mb-2 text-[11px] text-yellow-400">
+                                                {geminiModelsError || openaiModelsError}
+                                            </div>
+                                        )}
+                                        <select
+                                            value={currentUser.preferredModel || 'gemini-flash-latest'}
+                                            onChange={(e) => onSetModel(e.target.value)}
+                                            className="w-full mb-3 bg-zen-bg border border-zen-border rounded-xl px-4 py-3 outline-none focus:border-zen-accent text-sm text-zen-text"
+                                        >
+                                            {!!currentUser.preferredModel && ![...geminiModels, ...openaiModels].some(m => m.id === currentUser.preferredModel) && (
+                                                <option value={currentUser.preferredModel}>{currentUser.preferredModel} (current)</option>
+                                            )}
+                                            <optgroup label="Gemini Models">
+                                                {geminiModels.map(model => (
+                                                    <option key={`gem-${model.id}`} value={model.id}>
+                                                        {model.name} - {model.id}
+                                                    </option>
+                                                ))}
+                                            </optgroup>
+                                            <optgroup label="OpenAI Models">
+                                                {openaiModels.map(model => (
+                                                    <option key={`oai-${model.id}`} value={model.id}>
+                                                        {model.name} - {model.id}
+                                                    </option>
+                                                ))}
+                                            </optgroup>
+                                        </select>
+                                        {(isLoadingGeminiModels || isLoadingOpenAIModels) && <div className="mb-6 text-[11px] text-zen-muted">Loading latest model list...</div>}
 
                                         <div className="mb-2 text-xs font-medium text-zen-muted">Nanobrowser Agent Model</div>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
-                                            {[...geminiModels, ...openaiModels].map(model => (
-                                                <button
-                                                    key={model.id}
-                                                    onClick={() => onSetNanobrowserModel(model.id)}
-                                                    className={`p-3 rounded-xl border text-left transition-all ${currentUser.nanobrowserModel === model.id || (!currentUser.nanobrowserModel && model.id === 'gemini-2.5-flash') ? 'bg-zen-bg border-zen-accent shadow-md' : 'bg-zen-bg/50 border-zen-border hover:bg-zen-bg'}`}
-                                                >
-                                                    <div className="text-sm font-bold text-zen-text">{model.name}</div>
-                                                    <div className="text-xs text-zen-muted font-mono">{model.id}</div>
-                                                </button>
-                                            ))}
-                                        </div>
+                                        <select
+                                            value={currentUser.nanobrowserModel || 'gemini-2.5-flash'}
+                                            onChange={(e) => onSetNanobrowserModel(e.target.value)}
+                                            className="w-full mb-6 bg-zen-bg border border-zen-border rounded-xl px-4 py-3 outline-none focus:border-zen-accent text-sm text-zen-text"
+                                        >
+                                            {!!currentUser.nanobrowserModel && ![...geminiModels, ...openaiModels].some(m => m.id === currentUser.nanobrowserModel) && (
+                                                <option value={currentUser.nanobrowserModel}>{currentUser.nanobrowserModel} (current)</option>
+                                            )}
+                                            <optgroup label="Gemini Models">
+                                                {geminiModels.map(model => (
+                                                    <option key={`nano-gem-${model.id}`} value={model.id}>
+                                                        {model.name} - {model.id}
+                                                    </option>
+                                                ))}
+                                            </optgroup>
+                                            <optgroup label="OpenAI Models">
+                                                {openaiModels.map(model => (
+                                                    <option key={`nano-oai-${model.id}`} value={model.id}>
+                                                        {model.name} - {model.id}
+                                                    </option>
+                                                ))}
+                                            </optgroup>
+                                        </select>
                                         <div className="flex items-center justify-between p-4 rounded-xl bg-zen-bg/30 border border-zen-border/50 mb-3">
                                             <div>
                                                 <div className="text-sm font-bold text-zen-text">Agent Vision</div>
@@ -475,18 +485,20 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                                 </div>
                                             </div>
                                         ) : (
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                            <select
+                                                value={currentUser.preferredImageModel || 'gemini-2.5-flash-image'}
+                                                onChange={(e) => onSetImageModel(e.target.value)}
+                                                className="w-full bg-zen-bg border border-zen-border rounded-xl px-4 py-3 outline-none focus:border-zen-accent text-sm text-zen-text"
+                                            >
+                                                {!!currentUser.preferredImageModel && !geminiImageModels.some(m => m.id === currentUser.preferredImageModel) && (
+                                                    <option value={currentUser.preferredImageModel}>{currentUser.preferredImageModel} (current)</option>
+                                                )}
                                                 {geminiImageModels.map(model => (
-                                                    <button
-                                                        key={model.id}
-                                                        onClick={() => onSetImageModel(model.id)}
-                                                        className={`p-3 rounded-xl border text-left transition-all ${currentUser.preferredImageModel === model.id || (!currentUser.preferredImageModel && model.id === 'gemini-2.5-flash-image') ? 'bg-zen-bg border-zen-accent shadow-md' : 'bg-zen-bg/50 border-zen-border hover:bg-zen-bg'}`}
-                                                    >
-                                                        <div className="text-sm font-bold text-zen-text">{model.name}</div>
-                                                        <div className="text-xs text-zen-muted font-mono">{model.id}</div>
-                                                    </button>
+                                                    <option key={`img-${model.id}`} value={model.id}>
+                                                        {model.name} - {model.id}
+                                                    </option>
                                                 ))}
-                                            </div>
+                                            </select>
                                         )}
                                     </div>
                                 </div>
