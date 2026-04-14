@@ -8,7 +8,9 @@ import InputArea from './components/InputArea';
 import SettingsModal from './components/SettingsModal';
 import AmbientPlayer from './components/AmbientPlayer';
 import { Tab, Message, Role, SearchMode, Attachment, Theme, Bookmark, DownloadItem, UserProfile, Extension, BrowserState, CustomShortcut, HistoryItem, ThreadGroup, AgentRun, AgentEvent, CustomMode, ModeModelMap } from './types';
-import { createNewTab, streamGeminiResponse, generateImage, generateVideoWithModel, generateChatTitle, decideAgentUsage } from './services/geminiService';
+import { createNewTab, streamGeminiResponse, generateImage, generateVideoWithModel, generateChatTitle, decideAgentUsage, decideOpenUIUsage } from './services/geminiService';
+import { composeSaturnOpenUiInstructions } from './services/openuiService';
+import { separateOpenUIContent } from './services/openuiContent';
 import { sendNanobrowserMessage } from './services/nanobrowserService';
 import { X } from 'lucide-react';
 
@@ -645,13 +647,15 @@ export default function App({ mode = 'full' }: AppProps) {
     };
 
 
-    const handleSendMessage = async (text: string, attachments?: Attachment[], modeOverride?: SearchMode) => {
+    const handleSendMessage = async (text: string, attachments?: Attachment[], modeOverride?: SearchMode, forceOpenUI?: boolean) => {
         const currentTabId = activeTabId;
         const effectiveMode = modeOverride || searchMode;
-        const trimmedText = text.trim();
+        const parsedOpenUI = separateOpenUIContent(text || '');
+        const visibleText = parsedOpenUI.content;
+        const trimmedText = visibleText.trim();
         const isUrl = /^(http(s)?:\/\/)|(www\.)|([-a-zA-Z0-9@:%._\+~#=]{2,256}\.(com|org|net|edu|gov|io|ai|co|uk|ca|de|jp|fr|au)\b)/i.test(trimmedText) && !trimmedText.includes(' ');
 
-        if (isUrl && !attachments && effectiveMode === 'normal') {
+        if (!forceOpenUI && isUrl && !attachments && effectiveMode === 'normal') {
             handleNavigate(trimmedText);
             return;
         }
@@ -672,7 +676,7 @@ export default function App({ mode = 'full' }: AppProps) {
 
         setTabs(prev => prev.map(tab => {
             if (tab.id === currentTabId) {
-                const displayTitle = text ? (text.slice(0, 30) + (text.length > 30 ? '...' : '')) : 'Media Generation';
+                const displayTitle = trimmedText ? (trimmedText.slice(0, 30) + (trimmedText.length > 30 ? '...' : '')) : 'Media Generation';
                 // Set temporary title immediately for feedback
                 const title = tab.messages.length === 0 ? displayTitle : tab.title;
                 return { ...tab, title, messages: [...tab.messages, userMsg] };
@@ -688,7 +692,7 @@ export default function App({ mode = 'full' }: AppProps) {
         const currentTab = tabs.find(t => t.id === currentTabId);
         const history = currentTab ? [...currentTab.messages, userMsg] : [userMsg];
 
-        if (effectiveMode !== 'image' && effectiveMode !== 'video' && effectiveMode !== 'simple' && trimmedText) {
+        if (!forceOpenUI && effectiveMode !== 'image' && effectiveMode !== 'video' && effectiveMode !== 'simple' && trimmedText) {
             const agentDecision = await decideAgentUsage(trimmedText, currentUser.preferredModel || 'gemini-flash-latest');
             console.log('[AgentRouter]', agentDecision);
             const fallbackHeuristic = agentDecision.reason === 'error' || agentDecision.reason === 'no_keys';
@@ -711,6 +715,43 @@ export default function App({ mode = 'full' }: AppProps) {
                 await handleStartAgent(taskToRun);
                 return;
             }
+        }
+
+        const openUiDecision = forceOpenUI || parsedOpenUI.contextString
+            ? { useOpenUI: true, reason: forceOpenUI ? 'forced' : 'tagged' }
+            : await decideOpenUIUsage(trimmedText, currentUser.preferredModel || 'gemini-flash-latest');
+
+        if (openUiDecision.useOpenUI) {
+            setTabs(prev => prev.map(tab => tab.id === currentTabId ? {
+                ...tab,
+                messages: tab.messages.map(m => m.id === botMsgId ? { ...m, artifactType: 'openui' } : m)
+            } : tab));
+
+            const activeExtensionIds = currentUser.enabledExtensions || [];
+            const activeExtensions = allExtensions.filter(ext => activeExtensionIds.includes(ext.id));
+            const openUiInstructions = composeSaturnOpenUiInstructions(customInstructions);
+
+            await streamGeminiResponse(
+                history,
+                effectiveMode,
+                activeExtensions,
+                currentUser.preferredModel || 'gemini-flash-latest',
+                openUiInstructions,
+                (textChunk, sources) => {
+                    setTabs(prev => prev.map(tab => tab.id === currentTabId ? { ...tab, messages: tab.messages.map(msg => msg.id === botMsgId ? { ...msg, content: msg.content + textChunk, sources: sources || msg.sources } : msg) } : tab));
+                },
+                () => {
+                    setTabs(prev => {
+                        const updatedTabs = prev.map(tab => tab.id === currentTabId ? { ...tab, messages: tab.messages.map(msg => msg.id === botMsgId ? { ...msg, isStreaming: false } : msg) } : tab);
+                        return updatedTabs;
+                    });
+                },
+                (error) => {
+                    setTabs(prev => prev.map(tab => tab.id === currentTabId ? { ...tab, messages: tab.messages.map(msg => msg.id === botMsgId ? { ...msg, content: msg.content + `\n\n*[Error: ${error.message}]*`, isStreaming: false } : msg) } : tab));
+                },
+                { disableSearch: true, openUiMode: true }
+            );
+            return;
         }
 
         if (effectiveMode === 'simple') {
@@ -975,6 +1016,11 @@ export default function App({ mode = 'full' }: AppProps) {
                                                         onDownload={(i) => setDownloads(prev => [i, ...prev])}
                                                         onNavigate={handleNavigate}
                                                         onEdit={handleEditMessage}
+                                                        onFollowUp={(nextText, forceOpenUI) => handleSendMessage(nextText, undefined, 'direct', forceOpenUI)}
+                                                        onPersistContent={(nextContent) => setTabs(prev => prev.map(tab => tab.id === activeTabId ? {
+                                                            ...tab,
+                                                            messages: tab.messages.map(item => item.id === msg.id ? { ...item, content: nextContent } : item)
+                                                        } : tab))}
                                                     />
                                                 ))}
                                                 <div ref={messagesEndRef} />

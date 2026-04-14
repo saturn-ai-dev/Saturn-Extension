@@ -5,6 +5,8 @@ import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import { Message, Role, DownloadItem } from '../types';
+import OpenUIArtifact from './OpenUIArtifact';
+import { isLikelyOpenUILang, separateOpenUIContent } from '../services/openuiContent';
 import { User, Globe, ExternalLink, Sparkles, Volume2, Download, FileText, Play, X, Youtube, FileType, Copy, Check, Music, Video, Terminal, RotateCcw, Pencil } from 'lucide-react';
 // @ts-ignore
 import { jsPDF } from 'jspdf';
@@ -14,6 +16,8 @@ interface MessageBubbleProps {
   onDownload?: (item: DownloadItem) => void;
   onNavigate?: (url: string) => void;
   onEdit?: (text: string) => void;
+  onFollowUp?: (text: string, forceOpenUI?: boolean) => void;
+  onPersistContent?: (content: string) => void;
 }
 
 const getYoutubeId = (url: string | undefined) => {
@@ -261,13 +265,13 @@ interface GeneratedFile {
     data: string;
 }
 
-const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onDownload, onNavigate, onEdit }) => {
+const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onDownload, onNavigate, onEdit, onFollowUp, onPersistContent }) => {
   const isUser = message.role === Role.USER;
   const [isCopied, setIsCopied] = useState(false);
 
   // Process content to extract hidden files, UI widgets, etc.
   const { cleanContent, files, widgets } = useMemo(() => {
-      let text = message.content || "";
+      let text = separateOpenUIContent(message.content || "").content;
       
       // Extract Files
       const fileRegex = /\$\$\$FILE:::(.+?):::(.+?)\$\$\$(.+?)\$\$\$END_FILE\$\$\$/gs;
@@ -348,6 +352,9 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onDownload, onNa
   };
 
   if (message.iframeUrl) return null;
+  const isOpenUIArtifact = message.artifactType === 'openui' && !isUser;
+  const canRenderOpenUIArtifact = isOpenUIArtifact && (message.isStreaming || isLikelyOpenUILang(message.content || ''));
+  const shouldRenderStandardBubble = cleanContent || (!isUser && !cleanContent && !message.attachment && !message.generatedMedia);
 
   const renderAttachment = () => {
       if (!message.attachment) return null;
@@ -442,108 +449,122 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onDownload, onNa
              </div>
           )}
 
-          {(cleanContent || (!isUser && !cleanContent && !message.attachment && !message.generatedMedia)) && (
+          {canRenderOpenUIArtifact ? (
+            <div
+              style={{ borderRadius: '6px 20px 20px 20px' }}
+              className="chat-message-card px-4 sm:px-5 py-3.5 relative w-full border transition-colors duration-200 select-text cursor-text text-zen-text interactive-card"
+            >
+              <OpenUIArtifact
+                content={message.content}
+                isStreaming={message.isStreaming}
+                onFollowUp={onFollowUp}
+                onNavigate={onNavigate}
+                onEdit={onEdit}
+                onPersistContent={onPersistContent}
+              />
+            </div>
+          ) : shouldRenderStandardBubble ? (
             <div
               style={{ borderRadius: isUser ? '20px 20px 6px 20px' : '6px 20px 20px 20px' }}
               className={`chat-message-card px-4 sm:px-5 py-3.5 text-[15px] leading-7 relative w-full sm:w-fit border transition-colors duration-200 select-text cursor-text ${isUser ? 'chat-message-card-user text-zen-text' : 'text-zen-text interactive-card'}`}
             >
-                {isUser ? (
+              {isUser ? (
                 <>
-                    <p className="whitespace-pre-wrap font-normal text-[15px] leading-7 select-text cursor-text">{cleanContent}</p>
-                    <div className="flex gap-2 mt-3 pt-2 border-t border-zen-border/30 opacity-0 group-hover/message:opacity-100 focus-within:opacity-100 transition-opacity justify-end">
-                        <button onClick={() => onEdit?.(cleanContent)} className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-zen-muted hover:text-zen-text hover:bg-zen-surface transition-colors text-xs font-bold" title="Edit Prompt">
-                            <Pencil className="w-3.5 h-3.5" />
-                            <span>Edit</span>
-                        </button>
-                        <button onClick={handleCopyText} className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-zen-muted hover:text-zen-text hover:bg-zen-surface transition-colors text-xs font-bold" title="Copy Text">
-                            <Copy className="w-3.5 h-3.5" />
-                            <span>{isCopied ? 'Copied' : 'Copy'}</span>
-                        </button>
-                    </div>
+                  <p className="whitespace-pre-wrap font-normal text-[15px] leading-7 select-text cursor-text">{cleanContent}</p>
+                  <div className="flex gap-2 mt-3 pt-2 border-t border-zen-border/30 opacity-0 group-hover/message:opacity-100 focus-within:opacity-100 transition-opacity justify-end">
+                    <button onClick={() => onEdit?.(cleanContent)} className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-zen-muted hover:text-zen-text hover:bg-zen-surface transition-colors text-xs font-bold" title="Edit Prompt">
+                      <Pencil className="w-3.5 h-3.5" />
+                      <span>Edit</span>
+                    </button>
+                    <button onClick={handleCopyText} className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-zen-muted hover:text-zen-text hover:bg-zen-surface transition-colors text-xs font-bold" title="Copy Text">
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>{isCopied ? 'Copied' : 'Copy'}</span>
+                    </button>
+                  </div>
                 </>
-                ) : (
+              ) : (
                 <div className={`markdown-content w-full select-text ${message.isStreaming ? 'opacity-90' : 'opacity-100'}`}>
-                    {cleanContent ? (
+                  {cleanContent ? (
                     <>
-                        <ReactMarkdown
-                            remarkPlugins={[remarkGfm, remarkMath]}
-                            rehypePlugins={[rehypeKatex]}
-                            components={{
-                                h1: H1,
-                                h2: H2,
-                                h3: H3,
-                                h4: H4,
-                                p: P,
-                                ul: UL,
-                                ol: OL,
-                                li: LI,
-                                strong: Strong,
-                                hr: HR,
-                                a: (props) => <LinkRenderer {...props} onNavigate={onNavigate} />,
-                                table: TableRenderer,
-                                thead: TableHeadRenderer,
-                                tbody: TableBodyRenderer,
-                                tr: TableRowRenderer,
-                                th: TableHeaderCellRenderer,
-                                td: TableCellRenderer,
-                                blockquote: BlockquoteRenderer,
-                                pre: PreRenderer,
-                                code: CodeRenderer,
-                                math: ({ value }) => <span className="katex-html">{value}</span>,
-                                inlineMath: ({ value }) => <span className="katex-html">{value}</span>
-                            }}
-                        >
-                            {cleanContent}
-                        </ReactMarkdown>
-                        {message.isStreaming && <span className="inline-block w-2 h-5 bg-zen-accent ml-1 animate-pulse align-middle rounded-full shadow-[0_0_10px_var(--accent-color)]"></span>}
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm, remarkMath]}
+                        rehypePlugins={[rehypeKatex]}
+                        components={{
+                          h1: H1,
+                          h2: H2,
+                          h3: H3,
+                          h4: H4,
+                          p: P,
+                          ul: UL,
+                          ol: OL,
+                          li: LI,
+                          strong: Strong,
+                          hr: HR,
+                          a: (props) => <LinkRenderer {...props} onNavigate={onNavigate} />,
+                          table: TableRenderer,
+                          thead: TableHeadRenderer,
+                          tbody: TableBodyRenderer,
+                          tr: TableRowRenderer,
+                          th: TableHeaderCellRenderer,
+                          td: TableCellRenderer,
+                          blockquote: BlockquoteRenderer,
+                          pre: PreRenderer,
+                          code: CodeRenderer,
+                          math: ({ value }) => <span className="katex-html">{value}</span>,
+                          inlineMath: ({ value }) => <span className="katex-html">{value}</span>
+                        }}
+                      >
+                        {cleanContent}
+                      </ReactMarkdown>
+                      {message.isStreaming && <span className="inline-block w-2 h-5 bg-zen-accent ml-1 animate-pulse align-middle rounded-full shadow-[0_0_10px_var(--accent-color)]"></span>}
                     </>
-                    ) : (
+                  ) : (
                     <div className="flex items-center gap-2 text-zen-muted py-2 select-none">
-                        <div className="typing-dot"></div>
-                        <div className="typing-dot"></div>
-                        <div className="typing-dot"></div>
-                        <span className="text-xs font-medium tracking-wider ml-1 animate-pulse">THINKING</span>
+                      <div className="typing-dot"></div>
+                      <div className="typing-dot"></div>
+                      <div className="typing-dot"></div>
+                      <span className="text-xs font-medium tracking-wider ml-1 animate-pulse">THINKING</span>
                     </div>
-                    )}
+                  )}
                 </div>
-                )}
+              )}
 
-                {/* WIDGETS RENDERING */}
-                {!isUser && widgets.length > 0 && (
-                    <div className="mt-4 space-y-3 select-none">
-                        {widgets.map((w, i) => (
-                            <div key={i} className="animate-fade-in">
-                                {w.type === 'BUTTON' && (
-                                    <button className="w-full py-3 px-4 bg-zen-surface border border-zen-border rounded-xl hover:bg-zen-accent hover:text-white hover:border-transparent transition-all font-bold text-sm shadow-sm active:scale-95">
-                                        {w.content}
-                                    </button>
-                                )}
-                                {w.type === 'INFO' && (
-                                    <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl text-blue-200 text-sm flex items-start gap-3">
-                                        <div className="mt-0.5"><Sparkles className="w-4 h-4" /></div>
-                                        <div>{w.content}</div>
-                                    </div>
-                                )}
-                                {w.type === 'INPUT' && (
-                                    <div className="flex gap-2">
-                                        <input type="text" placeholder={w.content} className="flex-1 bg-zen-bg border border-zen-border rounded-xl px-4 py-2 text-sm focus:border-zen-accent outline-0" />
-                                        <button className="px-4 py-2 bg-zen-text text-zen-bg rounded-xl font-bold text-sm hover:bg-zen-accent hover:text-white transition-colors">Send</button>
-                                    </div>
-                                )}
-                            </div>
-                        ))}
+              {/* WIDGETS RENDERING */}
+              {!isUser && widgets.length > 0 && (
+                <div className="mt-4 space-y-3 select-none">
+                  {widgets.map((w, i) => (
+                    <div key={i} className="animate-fade-in">
+                      {w.type === 'BUTTON' && (
+                        <button className="w-full py-3 px-4 bg-zen-surface border border-zen-border rounded-xl hover:bg-zen-accent hover:text-white hover:border-transparent transition-all font-bold text-sm shadow-sm active:scale-95">
+                          {w.content}
+                        </button>
+                      )}
+                      {w.type === 'INFO' && (
+                        <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl text-blue-200 text-sm flex items-start gap-3">
+                          <div className="mt-0.5"><Sparkles className="w-4 h-4" /></div>
+                          <div>{w.content}</div>
+                        </div>
+                      )}
+                      {w.type === 'INPUT' && (
+                        <div className="flex gap-2">
+                          <input type="text" placeholder={w.content} className="flex-1 bg-zen-bg border border-zen-border rounded-xl px-4 py-2 text-sm focus:border-zen-accent outline-0" />
+                          <button className="px-4 py-2 bg-zen-text text-zen-bg rounded-xl font-bold text-sm hover:bg-zen-accent hover:text-white transition-colors">Send</button>
+                        </div>
+                      )}
                     </div>
-                )}
+                  ))}
+                </div>
+              )}
 
-                {!isUser && cleanContent && !message.isStreaming && (
-                    <div className="flex gap-2 mt-4 pt-2 border-t border-zen-border/30 transition-opacity duration-300 animate-fade-in-up select-none">
-                        <button onClick={handleSpeak} className="flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] bg-zen-surface border border-zen-border/70 text-zen-muted hover:text-zen-text hover:border-zen-accent/60 hover:bg-zen-surface/90 transition-all text-xs font-semibold active:scale-95" title="Read Aloud"><Volume2 className="w-4 h-4" /><span className="hidden sm:inline">Read</span></button>
-                        <button onClick={handleCopyText} className="flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] bg-zen-surface border border-zen-border/70 text-zen-muted hover:text-zen-text hover:border-zen-accent/60 hover:bg-zen-surface/90 transition-all text-xs font-semibold active:scale-95" title="Copy"><Copy className="w-4 h-4" /><span className="hidden sm:inline">{isCopied ? 'Copied' : 'Copy'}</span></button>
-                        <button onClick={handleDownloadPdf} className="flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] bg-zen-surface border border-zen-border/70 text-zen-muted hover:text-zen-text hover:border-zen-accent/60 hover:bg-zen-surface/90 transition-all text-xs font-semibold active:scale-95" title="Export PDF"><FileText className="w-4 h-4" /><span className="hidden sm:inline">PDF</span></button>
-                    </div>
-                )}
+              {!isUser && cleanContent && !message.isStreaming && (
+                <div className="flex gap-2 mt-4 pt-2 border-t border-zen-border/30 transition-opacity duration-300 animate-fade-in-up select-none">
+                  <button onClick={handleSpeak} className="flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] bg-zen-surface border border-zen-border/70 text-zen-muted hover:text-zen-text hover:border-zen-accent/60 hover:bg-zen-surface/90 transition-all text-xs font-semibold active:scale-95" title="Read Aloud"><Volume2 className="w-4 h-4" /><span className="hidden sm:inline">Read</span></button>
+                  <button onClick={handleCopyText} className="flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] bg-zen-surface border border-zen-border/70 text-zen-muted hover:text-zen-text hover:border-zen-accent/60 hover:bg-zen-surface/90 transition-all text-xs font-semibold active:scale-95" title="Copy"><Copy className="w-4 h-4" /><span className="hidden sm:inline">{isCopied ? 'Copied' : 'Copy'}</span></button>
+                  <button onClick={handleDownloadPdf} className="flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] bg-zen-surface border border-zen-border/70 text-zen-muted hover:text-zen-text hover:border-zen-accent/60 hover:bg-zen-surface/90 transition-all text-xs font-semibold active:scale-95" title="Export PDF"><FileText className="w-4 h-4" /><span className="hidden sm:inline">PDF</span></button>
+                </div>
+              )}
             </div>
-          )}
+          ) : null}
 
           {!isUser && message.sources && message.sources.length > 0 && (
             <div className="mt-5 w-full pt-3 border-t border-zen-border/20">

@@ -56,6 +56,7 @@ export interface Message {
   timestamp: number;
   sources?: Source[];
   isStreaming?: boolean;
+  artifactType?: 'openui';
   attachment?: Attachment; // Deprecated, kept for backward compatibility
   attachments?: Attachment[]; // New: support multiple attachments
   generatedMedia?: GeneratedMedia;

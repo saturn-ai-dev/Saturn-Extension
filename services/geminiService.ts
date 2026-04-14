@@ -1,6 +1,7 @@
 import { GoogleGenAI, type GenerateContentResponse } from "@google/genai";
 import OpenAI from "openai";
 import { Message, Role, Source, SearchMode, GeneratedMedia, Extension } from "../types";
+import { separateOpenUIContent } from "./openuiContent";
 
 // --- HELPERS ---
 
@@ -342,7 +343,7 @@ export const generateChatTitle = async (history: Message[]): Promise<string> => 
         if (!firstMessage) return "New Chat";
         const ai = getGeminiAI();
         const prompt = `Your sole task is to generate a short, specific title (3-6 words) for this user message:
-"${firstMessage.content.slice(0, 500)}"
+"${separateOpenUIContent(firstMessage.content || '').content.slice(0, 500)}"
 Return ONLY the title text. Do not suggest options. Do not include conversational filler like "Here is a title". Do not use quotes or markdown.`;
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash-lite',
@@ -460,6 +461,43 @@ User request: """${userText}"""
         return { ...fallback, reason: 'error' };
     }
 };
+
+export const decideOpenUIUsage = async (
+    userText: string,
+    modelName: string
+): Promise<{ useOpenUI: boolean; reason: string }> => {
+    const text = (userText || '').trim();
+    if (!text) {
+        return { useOpenUI: false, reason: 'empty' };
+    }
+
+    const openUICodePattern = /(^|\n)\s*(root\s*=|[A-Za-z_][\w]*\s*=\s*(Stack|Card|CardHeader|TextContent|MarkDownRenderer|Callout|Button|Buttons|Input|TextArea|SelectItem|Select|FormControl|Form|Col|Table|TabItem|Tabs|Tag|TagBlock|Separator|Image|ImageBlock|ListItem|ListBlock)\s*\()/i;
+    if (openUICodePattern.test(text) || /<context>[\s\S]*<\/context>\s*$/i.test(text)) {
+        return { useOpenUI: true, reason: 'looks_like_openui' };
+    }
+
+    // Avoid hijacking normal Q&A into OpenUI mode.
+    const informationalQuery = /\b(explain|summarize|summarise|define|why|what|who|when|where|latest|news|price|compare|debug|fix|review)\b/i;
+    const appNoun = /\b(app|dashboard|form|table|calculator|wizard|interface|panel|settings|quiz|survey|planner|kanban|spreadsheet|prototype|mockup|tool|widget)\b/i;
+    const appVerb = /\b(build|create|make|generate|design|craft|prototype|wireframe|mock\s*up|compose|assemble)\b/i;
+    const appIntent = /\b(interactive|editable|sortable|filterable|drag[- ]?and[- ]?drop|openui|interactive ui)\b/i;
+    const explicitUiRequest = /\b(build|create|make|generate|design)\s+(an?\s+)?(interactive\s+)?(ui|app|dashboard|form|panel|prototype)\b/i;
+
+    if (informationalQuery.test(text) && !appNoun.test(text) && !appIntent.test(text)) {
+        return { useOpenUI: false, reason: 'informational_query' };
+    }
+
+    if (
+        explicitUiRequest.test(text) ||
+        (appVerb.test(text) && appNoun.test(text)) ||
+        appIntent.test(text) ||
+        /^(calculator|form|dashboard|quiz|survey|planner|kanban|spreadsheet)$/i.test(text)
+    ) {
+        return { useOpenUI: true, reason: `interactive_request:${modelName || 'default'}` };
+    }
+
+    return { useOpenUI: false, reason: 'default' };
+};
 const getExtensionInstructions = (extensions: Extension[]): string => {
     if (!extensions || extensions.length === 0) return "";
     // Format clearly so the model recognizes these as distinct behavioral modifiers
@@ -467,6 +505,11 @@ const getExtensionInstructions = (extensions: Extension[]): string => {
         `[EXTENSION ${i + 1}: ${ext.name}]\nBEHAVIOR/INSTRUCTION: ${ext.instruction}\n` +
         (ext.widgets ? `WIDGETS_AVAILABLE: You can use special tokens to render widgets. Tokens: ${ext.widgets.map(w => `$$$UI:${w.type}:::${w.content}$$$`).join(', ')}` : "")
     ).join("\n\n");
+};
+
+type StreamOptions = {
+    disableSearch?: boolean;
+    openUiMode?: boolean;
 };
 
 const convertHistoryToApi = (history: Message[]) => {
@@ -503,18 +546,38 @@ export const streamGeminiResponse = async (
     customInstructions: string | undefined,
     onChunk: (text: string, sources?: Source[]) => void,
     onFinish: () => void,
-    onError: (error: Error) => void
+    onError: (error: Error) => void,
+    options?: StreamOptions
 ) => {
     const isOpenAI = modelName.startsWith('gpt') || modelName.includes('o1') || modelName.includes('o3'); // crude check, but effective given the set
 
     if (isOpenAI) {
-        return streamOpenAIResponse(history, mode, activeExtensions, modelName, customInstructions, onChunk, onFinish, onError);
+        return streamOpenAIResponse(history, mode, activeExtensions, modelName, customInstructions, onChunk, onFinish, onError, options);
     } else {
-        return streamGeminiNativeResponse(history, mode, activeExtensions, modelName, customInstructions, onChunk, onFinish, onError);
+        return streamGeminiNativeResponse(history, mode, activeExtensions, modelName, customInstructions, onChunk, onFinish, onError, options);
     }
 };
 
-const getCommonSystemInstruction = (mode: SearchMode, activeExtensions: Extension[], customInstructions?: string) => {
+const getCommonSystemInstruction = (
+    mode: SearchMode,
+    activeExtensions: Extension[],
+    customInstructions?: string,
+    openUiMode?: boolean
+) => {
+    if (openUiMode) {
+        // Stronger system instruction to reduce formatting drift and ensure we only emit OpenUI Lang.
+        // NOTE: We intentionally do not add markdown/code fences or any other wrapper text.
+        const base = customInstructions?.trim();
+        return base || `
+You are Saturn's OpenUI app generator.
+CRITICAL OUTPUT RULES:
+- Output ONLY valid OpenUI Lang (no markdown, no code fences, no XML/HTML, no JSON wrappers).
+- Do not include any explanatory text, titles, or preambles.
+- The entire response must be OpenUI Lang syntax and must be directly parseable by the OpenUI Renderer.
+- Never write "Sure" or "Here you go".
+If you cannot satisfy the request, still output a minimal but valid OpenUI Lang tree (and nothing else).`.trim();
+    }
+
     let instruction = mode === 'direct'
         ? "Answer concisely. Verify facts."
         : "You are Saturn, an advanced AI assistant. Verify facts.";
@@ -595,16 +658,17 @@ const streamOpenAIResponse = async (
     customInstructions: string | undefined,
     onChunk: (text: string, sources?: Source[]) => void,
     onFinish: () => void,
-    onError: (error: Error) => void
+    onError: (error: Error) => void,
+    options?: StreamOptions
 ) => {
     try {
         const openai = getOpenAI();
-        let systemMsg = getCommonSystemInstruction(mode, activeExtensions, customInstructions);
+        let systemMsg = getCommonSystemInstruction(mode, activeExtensions, customInstructions, options?.openUiMode);
         let externalSources: Source[] = [];
 
         // --- PERFORM SEARCH (Grounding) if applicable ---
         // If mode is normal/pro (search enabled) and not direct, we try to fetch context
-        if (mode !== 'direct' && mode !== 'simple' && mode !== 'image' && mode !== 'video') {
+        if (!options?.disableSearch && mode !== 'direct' && mode !== 'simple' && mode !== 'image' && mode !== 'video') {
             const lastUserMsg = history[history.length - 1];
             if (lastUserMsg && lastUserMsg.role === Role.USER) {
 
@@ -662,6 +726,7 @@ const streamOpenAIResponse = async (
             model: modelName,
             messages: messages,
             stream: true,
+            temperature: options?.openUiMode ? 0 : undefined,
         });
 
         let sentSources = false;
@@ -699,7 +764,8 @@ const streamGeminiNativeResponse = async (
     customInstructions: string | undefined,
     onChunk: (text: string, sources?: Source[]) => void,
     onFinish: () => void,
-    onError: (error: Error) => void
+    onError: (error: Error) => void,
+    options?: StreamOptions
 ) => {
     try {
         const ai = getGeminiAI();
@@ -715,19 +781,21 @@ const streamGeminiNativeResponse = async (
         const previousMessages = history.slice(0, -1);
         const apiHistory = convertHistoryToApi(previousMessages);
 
-        let systemInstruction = getCommonSystemInstruction(mode, activeExtensions, customInstructions);
+        let systemInstruction = getCommonSystemInstruction(mode, activeExtensions, customInstructions, options?.openUiMode);
 
         // Add Gemini-specific tool instructions if needed
-        const tools: any[] = [{ googleSearch: {} }];
-        if (mode !== 'direct') tools.push({ codeExecution: {} });
+        const useSearchTools = !options?.disableSearch && !options?.openUiMode;
+        const tools: any[] = useSearchTools ? [{ googleSearch: {} }] : [];
+        if (useSearchTools && mode !== 'direct') tools.push({ codeExecution: {} });
 
         let model = modelName || "gemini-2.5-flash";
-        if (mode === 'fast' || mode === 'direct') model = "gemini-flash-lite-latest";
+        // For OpenUI generation, do not force a specific Gemini "pro" model; use the default/passed model.
+        if (!options?.openUiMode && (mode === 'fast' || mode === 'direct')) model = "gemini-flash-lite-latest";
 
         const chat = ai.chats.create({
             model: model,
             history: apiHistory,
-            config: { tools, systemInstruction }
+            config: { tools, systemInstruction, temperature: options?.openUiMode ? 0 : undefined }
         });
 
         // Construct current message

@@ -8,10 +8,12 @@ import {
 } from './types';
 import {
   createNewTab, streamGeminiResponse, generateImage,
-  generateVideoWithModel, generateChatTitle, decideAgentUsage
+  generateVideoWithModel, generateChatTitle, decideAgentUsage, decideOpenUIUsage
 } from './services/geminiService';
 import { fetchGeminiModels, fetchOpenAIModels, getFallbackModelCatalog, type ModelOption } from './services/modelCatalogService';
 import { sendNanobrowserMessage } from './services/nanobrowserService';
+import { composeSaturnOpenUiInstructions } from './services/openuiService';
+import { separateOpenUIContent } from './services/openuiContent';
 import {
   Plus, History, Settings, Trash2, RotateCcw,
   ArrowUp, Paperclip, FileText, MessageSquare,
@@ -1089,9 +1091,12 @@ export default function SidebarApp() {
   };
 
   // Send message
-  const handleSendMessage = async (text: string, attachments?: Attachment[]) => {
+  const handleSendMessage = async (text: string, attachments?: Attachment[], modeOverride?: SearchMode, forceOpenUI?: boolean) => {
     const tabId = activeTabId;
-    const trimmed = text.trim();
+    const effectiveMode = modeOverride || searchMode;
+    const parsedOpenUI = separateOpenUIContent(text || '');
+    const visibleText = parsedOpenUI.content;
+    const trimmed = visibleText.trim();
 
     if (!isIncognito && trimmed)
       setGlobalHistory(prev => [{ id: `s-${Date.now()}`, title: trimmed.slice(0, 60), url: `query://${trimmed}`, timestamp: Date.now(), type: 'search' }, ...prev].slice(0, 500));
@@ -1099,7 +1104,7 @@ export default function SidebarApp() {
     const userMsg: Message = { id: Date.now().toString(), role: Role.USER, content: text, timestamp: Date.now(), attachments };
     setTabs(prev => prev.map(t => {
       if (t.id !== tabId) return t;
-      const title = t.messages.length === 0 ? (text.slice(0, 30) + (text.length > 30 ? '…' : '')) : t.title;
+      const title = t.messages.length === 0 ? (trimmed.slice(0, 30) + (trimmed.length > 30 ? '…' : '')) : t.title;
       return { ...t, title, messages: [...t.messages, userMsg] };
     }));
 
@@ -1124,7 +1129,7 @@ export default function SidebarApp() {
       : '';
     const effectiveInstructions = (customInstructions || '') + pageContextBlock;
 
-    if (searchMode !== 'image' && searchMode !== 'video' && searchMode !== 'simple' && trimmed) {
+    if (!forceOpenUI && effectiveMode !== 'image' && effectiveMode !== 'video' && effectiveMode !== 'simple' && trimmed) {
       const routerPageCtx = pageContext
         ? { url: pageContext.url, title: pageContext.title, hasContent: pageContext.hasContent }
         : undefined;
@@ -1141,7 +1146,29 @@ export default function SidebarApp() {
       }
     }
 
-    if (searchMode === 'image') {
+    const openUiDecision = forceOpenUI || parsedOpenUI.contextString
+      ? { useOpenUI: true, reason: forceOpenUI ? 'forced' : 'tagged' }
+      : await decideOpenUIUsage(trimmed, currentUser.preferredModel || 'gemini-flash-latest');
+
+    if (openUiDecision.useOpenUI) {
+      const exts = customExtensions.filter(e => (currentUser.enabledExtensions || []).includes(e.id));
+      const openUiInstructions = composeSaturnOpenUiInstructions(customInstructions);
+      setTabs(prev => prev.map(t => t.id === tabId ? { ...t, messages: t.messages.map(m => m.id === botId ? { ...m, artifactType: 'openui' } : m) } : t));
+      await streamGeminiResponse(
+        history,
+        effectiveMode,
+        exts,
+        currentUser.preferredModel || 'gemini-flash-latest',
+        openUiInstructions,
+        (chunk, sources) => setTabs(prev => prev.map(t => t.id === tabId ? { ...t, messages: t.messages.map(m => m.id === botId ? { ...m, content: m.content + chunk, sources: sources || m.sources } : m) } : t)),
+        () => setTabs(prev => prev.map(t => t.id === tabId ? { ...t, messages: t.messages.map(m => m.id === botId ? { ...m, isStreaming: false } : m) } : t)),
+        (err) => setTabs(prev => prev.map(t => t.id === tabId ? { ...t, messages: t.messages.map(m => m.id === botId ? { ...m, content: m.content + `\n\n*[Error: ${err.message}]*`, isStreaming: false } : m) } : t)),
+        { disableSearch: true, openUiMode: true }
+      );
+      return;
+    }
+
+    if (effectiveMode === 'image') {
       try {
         const imgModel = currentUser.preferredModel?.startsWith('gpt') ? 'chatgpt-image-latest' : (currentUser.preferredImageModel || 'gemini-2.5-flash-image');
         const result = await generateImage(text, imgModel);
@@ -1149,7 +1176,7 @@ export default function SidebarApp() {
       } catch (e) {
         setTabs(prev => prev.map(t => t.id === tabId ? { ...t, messages: t.messages.map(m => m.id === botId ? { ...m, isStreaming: false, content: `Error: ${e instanceof Error ? e.message : e}` } : m) } : t));
       }
-    } else if (searchMode === 'video') {
+    } else if (effectiveMode === 'video') {
       try {
         const result = await generateVideoWithModel(text, currentUser.preferredModel);
         setTabs(prev => prev.map(t => t.id === tabId ? { ...t, messages: t.messages.map(m => m.id === botId ? { ...m, isStreaming: false, generatedMedia: result } : m) } : t));
@@ -1158,7 +1185,7 @@ export default function SidebarApp() {
       }
     } else {
       const exts = customExtensions.filter(e => (currentUser.enabledExtensions || []).includes(e.id));
-      await streamGeminiResponse(history, searchMode, exts, currentUser.preferredModel || 'gemini-flash-latest', effectiveInstructions,
+      await streamGeminiResponse(history, effectiveMode, exts, currentUser.preferredModel || 'gemini-flash-latest', effectiveInstructions,
         (chunk, sources) => setTabs(prev => prev.map(t => t.id === tabId ? { ...t, messages: t.messages.map(m => m.id === botId ? { ...m, content: m.content + chunk, sources: sources || m.sources } : m) } : t)),
         () => setTabs(prev => prev.map(t => t.id === tabId ? { ...t, messages: t.messages.map(m => m.id === botId ? { ...m, isStreaming: false } : m) } : t)),
         (err) => setTabs(prev => prev.map(t => t.id === tabId ? { ...t, messages: t.messages.map(m => m.id === botId ? { ...m, content: m.content + `\n\n*[Error: ${err.message}]*`, isStreaming: false } : m) } : t))
@@ -1271,6 +1298,11 @@ export default function SidebarApp() {
                     onDownload={item => setDownloads(prev => [item, ...prev])}
                     onNavigate={url => window.open(url, '_blank')}
                     onEdit={text => setDraft({ text, timestamp: Date.now() })}
+                    onFollowUp={(nextText, forceOpenUI) => handleSendMessage(nextText, undefined, 'direct', forceOpenUI)}
+                    onPersistContent={(nextContent) => setTabs(prev => prev.map(t => t.id === activeTabId ? {
+                      ...t,
+                      messages: t.messages.map(item => item.id === msg.id ? { ...item, content: nextContent } : item)
+                    } : t))}
                   />
                 ))}
                 <div ref={messagesEndRef} />
