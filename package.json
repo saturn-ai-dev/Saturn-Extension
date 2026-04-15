@@ -20,6 +20,8 @@
     "@langchain/ollama": "0.2.4",
     "@langchain/openai": "0.6.16",
     "@langchain/xai": "^0.1.0",
+    "@openuidev/lang-core": "^0.2.2",
+    "@openuidev/react-lang": "^0.2.1",
     "@tailwindcss/typography": "^0.5.19",
     "@types/react-syntax-highlighter": "^15.5.13",
     "jsonrepair": "^3.13.1",
