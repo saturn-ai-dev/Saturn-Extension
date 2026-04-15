@@ -1028,8 +1028,8 @@ export default function App({ mode = 'full' }: AppProps) {
                                         )}
                                     </div>
                                 </div>
-                                <div className="chat-compose-dock absolute bottom-0 left-0 right-0 p-4 sm:p-6 pb-6 sm:pb-10 z-20 pointer-events-none">
-                                    <div className="pointer-events-auto max-w-[78rem] mx-auto">
+                                <div className="chat-compose-dock absolute bottom-0 left-0 right-0 pt-4 pb-6 sm:pb-10 z-20 pointer-events-none">
+                                    <div className="pointer-events-auto max-w-[78rem] mx-auto px-5 sm:px-8">
                                         <InputArea
                                             onSend={(text, attach) => handleSendMessage(text, attach)}
                                             disabled={activeTab?.messages[activeTab.messages.length - 1]?.isStreaming || false}

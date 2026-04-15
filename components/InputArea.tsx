@@ -250,8 +250,8 @@ const InputArea: React.FC<InputAreaProps> = ({ onSend, disabled, mode, setMode, 
           `}
           style={{
             boxShadow: isFocused
-              ? '0 0 0 1px rgba(var(--accent-color-rgb),0.2), 0 22px 58px -34px rgba(var(--accent-color-rgb),0.65), 0 16px 34px -28px rgba(0,0,0,0.7)'
-              : '0 18px 48px -34px rgba(0,0,0,0.7)'
+              ? '0 0 0 1px rgba(var(--accent-color-rgb),0.34), 0 0 20px -8px rgba(var(--accent-color-rgb),0.55), 0 16px 36px -24px rgba(0,0,0,0.7)'
+              : '0 14px 32px -26px rgba(0,0,0,0.68)'
           }}
         >
           {isDragging && (
