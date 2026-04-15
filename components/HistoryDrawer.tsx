@@ -234,7 +234,7 @@ const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
 
                             {(expandedGroups.has(group.id) || searchTerm) && (
                                 <div className="pl-4 space-y-2 relative">
-                                    <div className="absolute left-[1.1rem] top-0 bottom-0 w-px bg-gradient-to-b from-zen-border/50 to-transparent"></div>
+                                    <div className="absolute left-[1.1rem] top-0 bottom-0 w-px bg-zen-border/40"></div>
                                     <div className="pl-6 space-y-3">
                                         {grouped[group.id]?.map(tab => (
                                             <HistoryItem

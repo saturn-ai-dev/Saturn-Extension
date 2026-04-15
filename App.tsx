@@ -868,14 +868,6 @@ export default function App({ mode = 'full' }: AppProps) {
                         {}
             }
         >
-            {!customBackdrop && currentTheme !== 'blackbox' && currentTheme !== 'galaxy' && (
-                <div className="mesh-bg">
-                    <div className={`mesh-blob w-[600px] h-[600px] top-[-200px] left-[-200px] ${currentTheme === 'charcoal-cosmic' ? 'bg-orange-600/15' : 'bg-zen-accent/20'
-                        }`}></div>
-                    <div className={`mesh-blob w-[500px] h-[500px] bottom-[-100px] right-[-100px] ${currentTheme === 'charcoal-cosmic' ? 'bg-purple-900/20' : 'bg-blue-500/10'
-                        }`} style={{ animationDelay: '5s' }}></div>
-                </div>
-            )}
             {!customBackdrop && starField}
             {(customBackdrop || currentTheme === 'galaxy') && <div className="absolute inset-0 bg-black/30 backdrop-blur-[1px] pointer-events-none z-0" />}
 

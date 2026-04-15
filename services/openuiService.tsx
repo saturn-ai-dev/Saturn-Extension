@@ -37,8 +37,8 @@ const MARKDOWN_COMPONENTS = {
       {children}
     </a>
   ),
-  ul: ({ children }: any) => <ul className="my-2 pl-5 space-y-1 list-disc marker:text-zen-accent">{children}</ul>,
-  ol: ({ children }: any) => <ol className="my-2 pl-5 space-y-1 list-decimal marker:text-zen-accent">{children}</ol>,
+  ul: ({ children }: any) => <ul className="my-2 pl-5 space-y-1.5 list-disc marker:text-zen-accent">{children}</ul>,
+  ol: ({ children }: any) => <ol className="my-2 pl-5 space-y-1.5 list-decimal marker:text-zen-accent">{children}</ol>,
   li: ({ children }: any) => <li>{children}</li>,
   strong: ({ children }: any) => <strong className="font-semibold text-zen-text">{children}</strong>,
   blockquote: ({ children }: any) => (
@@ -49,11 +49,11 @@ const MARKDOWN_COMPONENTS = {
   hr: () => <hr className="my-4 border-zen-border/50" />,
   code: ({ inline, children }: any) =>
     inline ? (
-      <code className="rounded-md border border-zen-border/60 bg-zen-surface px-1.5 py-0.5 font-mono text-[0.85em] text-zen-accent">
+      <code className="rounded-md border border-zen-border/60 bg-zen-surface/70 px-1.5 py-0.5 font-mono text-[0.85em] text-zen-accent">
         {children}
       </code>
     ) : (
-      <pre className="my-3 overflow-x-auto rounded-xl border border-zen-border/50 bg-[#0d1117] p-4 font-mono text-sm text-gray-200">
+      <pre className="my-3 overflow-x-auto rounded-xl border border-zen-border/60 bg-zen-bg/75 p-4 font-mono text-sm text-zen-text/90">
         <code>{children}</code>
       </pre>
     ),
@@ -62,9 +62,9 @@ const MARKDOWN_COMPONENTS = {
       <table className="min-w-full border-collapse text-sm">{children}</table>
     </div>
   ),
-  thead: ({ children }: any) => <thead className="bg-zen-surface text-zen-muted">{children}</thead>,
-  tbody: ({ children }: any) => <tbody className="divide-y divide-zen-border/20">{children}</tbody>,
-  tr: ({ children }: any) => <tr className="hover:bg-zen-surface/40">{children}</tr>,
+  thead: ({ children }: any) => <thead className="bg-zen-surface/70 text-zen-muted">{children}</thead>,
+  tbody: ({ children }: any) => <tbody className="divide-y divide-zen-border/30">{children}</tbody>,
+  tr: ({ children }: any) => <tr className="hover:bg-zen-surface/45 transition-colors">{children}</tr>,
   th: ({ children }: any) => <th className="px-4 py-3 text-left font-semibold text-zen-text">{children}</th>,
   td: ({ children }: any) => <td className="px-4 py-3 align-top text-zen-text/85">{children}</td>,
 };
@@ -278,9 +278,9 @@ export const Card = defineComponent({
     const variant = (props.variant as string) || 'card';
     const width = (props.width as string) || 'standard';
     const className = cx(
-      'rounded-3xl border p-5 shadow-sm backdrop-blur-sm',
-      variant === 'sunk' && 'bg-black/20 border-white/10',
-      variant === 'card' && 'bg-gradient-to-br from-zen-surface via-zen-surface to-zen-bg/90 border-zen-border/60 shadow-[0_24px_60px_-42px_rgba(var(--accent-color-rgb),0.8)]',
+      'rounded-3xl border p-5 shadow-sm backdrop-blur-sm transition-colors',
+      variant === 'sunk' && 'bg-zen-bg/55 border-zen-border/70',
+      variant === 'card' && 'bg-zen-surface/85 border-zen-border/65 shadow-[0_20px_48px_-36px_rgba(var(--accent-color-rgb),0.45)]',
       variant === 'clear' && 'border-transparent bg-transparent shadow-none',
       width === 'full' && 'w-full',
       width !== 'full' && 'w-full',
@@ -295,9 +295,9 @@ export const CardHeader = defineComponent({
   props: CardHeaderSchema,
   description: 'Heading block for a card or section.',
   component: ({ props }) => (
-    <div className="mb-2">
+    <div className="mb-3">
       <div className="text-lg font-semibold tracking-tight text-zen-text">{props.title}</div>
-      {props.subtitle ? <div className="mt-1 text-sm leading-6 text-zen-muted">{props.subtitle}</div> : null}
+      {props.subtitle ? <div className="mt-1 text-sm leading-6 text-zen-muted/90">{props.subtitle}</div> : null}
     </div>
   ),
 });
@@ -337,8 +337,8 @@ export const MarkDownRenderer = defineComponent({
       <div
         className={cx(
           'rounded-2xl',
-          variant === 'card' && 'border border-zen-border/60 bg-zen-surface/80 p-4',
-          variant === 'sunk' && 'border border-white/5 bg-black/20 p-4',
+          variant === 'card' && 'border border-zen-border/65 bg-zen-surface/80 p-4',
+          variant === 'sunk' && 'border border-zen-border/55 bg-zen-bg/60 p-4',
         )}
       >
         <MarkdownView text={props.textMarkdown || ''} />
@@ -356,12 +356,12 @@ export const Callout = defineComponent({
     const variant = (props.variant as string) || 'info';
     const toneClass =
       variant === 'success'
-        ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-200'
+        ? 'bg-emerald-500/10 border-emerald-500/30 text-zen-text'
         : variant === 'warning'
-          ? 'bg-amber-500/10 border-amber-500/20 text-amber-100'
+          ? 'bg-amber-500/10 border-amber-500/30 text-zen-text'
           : variant === 'error'
-            ? 'bg-red-500/10 border-red-500/20 text-red-100'
-            : 'bg-sky-500/10 border-sky-500/20 text-sky-100';
+            ? 'bg-red-500/10 border-red-500/30 text-zen-text'
+            : 'bg-sky-500/10 border-sky-500/30 text-zen-text';
     const Icon = variant === 'success' ? Sparkles : variant === 'warning' ? AlertTriangle : Info;
 
     return (
@@ -369,7 +369,7 @@ export const Callout = defineComponent({
         <Icon className="mt-0.5 h-4 w-4 shrink-0" />
         <div className="min-w-0">
           {props.title ? <div className="mb-1 font-semibold">{props.title}</div> : null}
-          <div className="text-sm leading-6 opacity-95">{props.text}</div>
+          <div className="text-sm leading-6 text-zen-text/90">{props.text}</div>
         </div>
       </div>
     );
@@ -392,7 +392,7 @@ export const Button = defineComponent({
         ? 'bg-zen-surface text-zen-text border border-zen-border/70 hover:border-zen-accent/40'
         : variant === 'tertiary'
           ? 'bg-transparent text-zen-text border border-transparent hover:border-zen-border/70 hover:bg-zen-surface/60'
-          : 'bg-zen-text text-white hover:bg-zen-accent';
+          : 'bg-zen-accent text-white border border-transparent hover:opacity-95';
     const sizeClass =
       size === 'extra-small'
         ? 'px-2 py-1 text-[11px]'
@@ -402,12 +402,22 @@ export const Button = defineComponent({
             ? 'px-4 py-3 text-sm'
             : 'px-4 py-2 text-sm';
 
+    const disabledStyle: React.CSSProperties = isStreaming
+      ? {
+          backgroundColor: 'color-mix(in srgb, var(--border-color) 65%, transparent)',
+          borderColor: 'color-mix(in srgb, var(--border-color) 85%, transparent)',
+          color: 'var(--muted-color)',
+          opacity: 1,
+        }
+      : {};
+
     return (
       <button
         type="button"
         disabled={isStreaming}
         onClick={() => triggerAction(props.label, formName, props.action as any)}
-        className={cx('inline-flex items-center justify-center rounded-xl font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50', variantClass, sizeClass)}
+        style={disabledStyle}
+        className={cx('inline-flex items-center justify-center rounded-xl font-semibold transition-colors disabled:cursor-not-allowed', variantClass, sizeClass)}
       >
         {props.label}
       </button>
@@ -588,7 +598,7 @@ export const Form = defineComponent({
     return (
       <FormValidationContext.Provider value={formValidation}>
         <FormNameContext.Provider value={props.name}>
-          <div className="space-y-4 rounded-2xl border border-zen-border/60 bg-zen-surface/80 p-4">
+          <div className="space-y-4 rounded-2xl border border-zen-border/65 bg-zen-surface/80 p-4">
             {renderNode(props.fields)}
             {renderNode(props.buttons)}
           </div>
@@ -615,9 +625,9 @@ export const Table = defineComponent({
     const rowCount = Math.max(...columns.map((col) => (Array.isArray(col.data) ? col.data.length : 0)), 0);
 
     return (
-      <div className="overflow-hidden rounded-2xl border border-zen-border/60">
-        <table className="min-w-full border-collapse text-sm">
-          <thead className="bg-zen-surface text-zen-muted">
+      <div className="overflow-x-auto rounded-2xl border border-zen-border/65 bg-zen-surface/45">
+        <table className="w-full min-w-[560px] table-fixed border-collapse text-sm">
+          <thead className="bg-zen-surface/85 text-zen-muted">
             <tr>
               {columns.map((col, idx) => (
                 <th key={idx} className="px-4 py-3 text-left font-semibold">
@@ -626,9 +636,9 @@ export const Table = defineComponent({
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-zen-border/20">
+          <tbody className="divide-y divide-zen-border/30">
             {Array.from({ length: rowCount }).map((_, rowIndex) => (
-              <tr key={rowIndex} className="hover:bg-zen-surface/40">
+              <tr key={rowIndex} className="hover:bg-zen-surface/55 transition-colors">
                 {columns.map((col, colIndex) => {
                   const cell = Array.isArray(col.data) ? col.data[rowIndex] : '';
                   return (
@@ -674,17 +684,18 @@ export const Tabs = defineComponent({
 
     return (
       <div className="space-y-3">
-        <div className="flex flex-wrap gap-2 rounded-2xl border border-zen-border/50 bg-zen-surface/80 p-2">
+        <div className="flex flex-wrap gap-2 rounded-2xl border border-zen-border/65 bg-zen-surface/80 p-2">
           {items.map((item) => (
             <button
               key={item.value}
               type="button"
               onClick={() => setActive(item.value)}
+              style={item.value === active ? { color: 'var(--bg-color)' } : undefined}
               className={cx(
                 'rounded-xl px-3 py-1.5 text-sm font-medium transition-colors',
                 item.value === active
-                  ? 'bg-zen-text text-white'
-                  : 'bg-transparent text-zen-muted hover:bg-zen-bg hover:text-zen-text',
+                  ? 'bg-zen-text'
+                  : 'bg-transparent text-zen-muted hover:bg-zen-bg/70 hover:text-zen-text',
               )}
             >
               {item.trigger}
@@ -705,13 +716,13 @@ export const Tag = defineComponent({
     const tone = (props.tone as string) || 'neutral';
     const toneClass =
       tone === 'success'
-        ? 'bg-emerald-500/15 text-emerald-200 border-emerald-500/20'
+        ? 'bg-emerald-500/15 text-zen-text border-emerald-500/30'
         : tone === 'warning'
-          ? 'bg-amber-500/15 text-amber-100 border-amber-500/20'
+          ? 'bg-amber-500/15 text-zen-text border-amber-500/30'
           : tone === 'danger'
-            ? 'bg-red-500/15 text-red-100 border-red-500/20'
+            ? 'bg-red-500/15 text-zen-text border-red-500/30'
             : tone === 'info'
-              ? 'bg-sky-500/15 text-sky-100 border-sky-500/20'
+              ? 'bg-sky-500/15 text-zen-text border-sky-500/30'
               : 'bg-zen-border/20 text-zen-text border-zen-border/40';
 
     return <span className={cx('inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium', toneClass)}>{props.text}</span>;
@@ -748,7 +759,7 @@ export const Image = defineComponent({
   props: ImageSchema,
   description: 'Responsive image with optional caption.',
   component: ({ props }) => (
-    <figure className="overflow-hidden rounded-2xl border border-zen-border/60 bg-black/20">
+    <figure className="overflow-hidden rounded-2xl border border-zen-border/60 bg-zen-bg/40">
       <img src={props.src} alt={props.alt || ''} className="block w-full object-cover" />
       {props.caption ? <figcaption className="px-3 py-2 text-xs text-zen-muted">{props.caption}</figcaption> : null}
     </figure>

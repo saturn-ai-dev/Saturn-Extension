@@ -191,12 +191,13 @@ const SaturnSidebar: React.FC<SaturnSidebarProps> = ({
             className={`glass-elevated fixed ${position === 'left' ? 'left-3' : 'right-3'} top-3 bottom-3 rounded-[24px] flex flex-col py-4 z-50 transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) select-none group/sidebar ${isResizing ? 'transition-none' : ''}`}
             style={{ 
                 width: isActuallyExpanded ? `${width}px` : '55px',
+                backgroundColor: 'color-mix(in srgb, var(--bg-color) 82%, var(--surface-strong) 18%)',
                 backdropFilter: `blur(${glassIntensity}px)`,
                 WebkitBackdropFilter: `blur(${glassIntensity}px)`
             }}
         >
              {/* Glass Overlay for Depth */}
-             <div className="absolute inset-0 rounded-[24px] bg-gradient-to-b from-white/5 to-transparent pointer-events-none" />
+             <div className="absolute inset-0 rounded-[24px] bg-white/[0.02] pointer-events-none" />
 
              {/* Drag Handle */}
              <div 

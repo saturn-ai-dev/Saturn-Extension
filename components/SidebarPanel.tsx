@@ -74,7 +74,7 @@ const NotesWidget = () => {
     return (
         <div className="flex flex-col h-full bg-zen-bg p-5">
             <div className="flex-1 relative group">
-                <div className="absolute -inset-0.5 bg-gradient-to-br from-zen-accent/20 to-transparent rounded-xl blur opacity-50 group-hover:opacity-100 transition-opacity" />
+                <div className="absolute -inset-0.5 bg-zen-accent/12 rounded-xl blur opacity-50 group-hover:opacity-100 transition-opacity" />
                 <textarea className="relative w-full h-full bg-zen-surface border border-zen-border rounded-xl p-4 text-sm text-zen-text focus:outline-none focus:border-zen-accent focus:ring-1 focus:ring-zen-accent/50 resize-none font-mono leading-relaxed shadow-inner" placeholder="// Scratchpad initialized..." value={note} onChange={(e) => setNote(e.target.value)} />
             </div>
             <div className="mt-3 flex justify-between items-center text-[11px] font-medium text-zen-muted bg-zen-surface/50 p-2 rounded-lg border border-zen-border/50">

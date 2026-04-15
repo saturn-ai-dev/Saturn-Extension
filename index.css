@@ -162,9 +162,7 @@ body,
 body {
   background-color: var(--bg-color);
   color: var(--text-color);
-  background-image:
-    radial-gradient(circle at top, rgba(var(--accent-color-rgb), 0.14), transparent 30%),
-    radial-gradient(circle at bottom right, rgba(255, 255, 255, 0.05), transparent 26%);
+  background-image: none;
   transition: background-color 0.5s cubic-bezier(0.16, 1, 0.3, 1), color 0.3s ease;
   text-rendering: optimizeLegibility;
   letter-spacing: -0.01em;
@@ -191,9 +189,7 @@ summary,
 
 /* Advanced Glass Blur */
 .glass-panel {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 22%),
-    var(--surface-color);
+  background: var(--surface-color);
   backdrop-filter: blur(26px) saturate(180%);
   -webkit-backdrop-filter: blur(26px) saturate(180%);
   border: 1px solid var(--border-color);
@@ -210,16 +206,12 @@ summary,
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 18%, transparent 82%, rgba(0, 0, 0, 0.18)),
-    linear-gradient(135deg, rgba(var(--accent-color-rgb), 0.06), transparent 28%);
+  background: none;
   z-index: 0;
 }
 
 .glass-elevated {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 20%),
-    var(--surface-strong);
+  background: var(--surface-strong);
   border: 1px solid color-mix(in srgb, var(--border-color) 82%, rgba(255, 255, 255, 0.06));
   box-shadow: var(--panel-shadow);
   backdrop-filter: blur(30px) saturate(165%);
@@ -246,9 +238,7 @@ summary,
 
 .chat-message-card {
   position: relative;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.012)),
-    rgba(255, 255, 255, 0.02);
+  background: rgba(255, 255, 255, 0.02);
   border: 1px solid rgba(255, 255, 255, 0.06);
   box-shadow: 0 24px 55px -38px rgba(0, 0, 0, 0.72);
   backdrop-filter: blur(14px);
@@ -256,9 +246,7 @@ summary,
 }
 
 .chat-message-card-user {
-  background:
-    linear-gradient(180deg, rgba(var(--accent-color-rgb), 0.16), rgba(var(--accent-color-rgb), 0.08)),
-    rgba(255, 255, 255, 0.025);
+  background: rgba(var(--accent-color-rgb), 0.14);
   border-color: rgba(var(--accent-color-rgb), 0.22);
   box-shadow: 0 22px 55px -36px rgba(var(--accent-color-rgb), 0.35);
 }
@@ -389,7 +377,7 @@ summary,
   transform: translateY(-50%);
   width: 80px;
   height: 1px;
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.8), transparent);
+  background: rgba(255, 255, 255, 0.35);
   right: 0;
   /* Trailing behind */
 }
@@ -712,7 +700,7 @@ textarea,
   left: -100%;
   width: 50%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  background: rgba(255, 255, 255, 0.22);
   animation: progressShimmer 2s ease-in-out infinite;
 }
 

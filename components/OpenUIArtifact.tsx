@@ -95,12 +95,12 @@ const OpenUIArtifact: React.FC<OpenUIArtifactProps> = ({
             <span className="text-xs font-medium tracking-wider ml-1 animate-pulse">THINKING</span>
           </div>
         ) : (
-          <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-100">
-            <div className="flex items-center gap-2 font-semibold">
+          <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-zen-text">
+            <div className="flex items-center gap-2 font-semibold text-zen-text">
               <AlertTriangle className="h-4 w-4" />
               Interactive UI fallback
             </div>
-            <div className="mt-1 text-amber-100/90">
+            <div className="mt-1 text-zen-text/85">
               The model response was not valid OpenUI syntax. Showing plain content instead.
             </div>
           </div>
@@ -110,13 +110,13 @@ const OpenUIArtifact: React.FC<OpenUIArtifactProps> = ({
       {errors.length > 0 && (
         <div className="mt-4 space-y-2">
           {errors.map((error, idx) => (
-            <div key={`${error.code}-${idx}`} className="rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm">
-              <div className="flex items-center gap-2 font-semibold text-red-200">
+            <div key={`${error.code}-${idx}`} className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-sm">
+              <div className="flex items-center gap-2 font-semibold text-zen-text">
                 <AlertTriangle className="h-4 w-4" />
                 {error.component || error.code}
               </div>
-              <div className="mt-1 text-red-100/90">{error.message}</div>
-              {error.hint && <div className="mt-2 text-xs text-red-100/70">{error.hint}</div>}
+              <div className="mt-1 text-zen-text/90">{error.message}</div>
+              {error.hint && <div className="mt-2 text-xs text-zen-text/70">{error.hint}</div>}
             </div>
           ))}
         </div>

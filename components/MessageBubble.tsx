@@ -451,8 +451,8 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onDownload, onNa
 
           {canRenderOpenUIArtifact ? (
             <div
-              style={{ borderRadius: '6px 20px 20px 20px' }}
-              className="chat-message-card px-4 sm:px-5 py-3.5 relative w-full border transition-colors duration-200 select-text cursor-text text-zen-text interactive-card"
+              style={{ borderRadius: '32px' }}
+              className="chat-message-card p-5 relative w-full border transition-colors duration-200 select-text cursor-text text-zen-text interactive-card"
             >
               <OpenUIArtifact
                 content={message.content}
