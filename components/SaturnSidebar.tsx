@@ -151,19 +151,19 @@ const SaturnSidebar: React.FC<SaturnSidebarProps> = ({
         <button
             onClick={onClick}
             className={`
-                h-10 rounded-xl flex items-center transition-all duration-300 relative group shrink-0
+                h-10 rounded-xl flex items-center transition-all duration-300 relative group shrink-0 interactive-btn
                 ${isActuallyExpanded ? 'w-full px-3 gap-3 justify-start' : 'w-10 justify-center'}
                 ${isActive
-                    ? 'bg-zen-accent/10 text-zen-accent shadow-[inset_0_0_0_1px_rgba(var(--accent-color-rgb),0.22),0_18px_35px_-28px_rgba(var(--accent-color-rgb),0.7)]'
-                    : `hover:bg-zen-text/5 ${color} hover:text-zen-text`
+                    ? 'bg-zen-accent/10 text-zen-accent shadow-[inset_0_0_0_1px_rgba(var(--accent-color-rgb),0.15),0_18px_35px_-28px_rgba(var(--accent-color-rgb),0.5)]'
+                    : `hover:bg-zen-text/5 ${color} hover:text-zen-text hover-lift`
                 }
                 ${className}
             `}
             title={!isActuallyExpanded ? title : undefined}
         >
-            {/* Active Indicator Line */}
+            {/* Active Indicator Line with glow */}
             {isActive && (
-                <div className={`absolute ${position === 'left' ? 'left-0' : 'right-0'} w-1 h-5 bg-zen-accent rounded-full`} />
+                <div className={`absolute ${position === 'left' ? 'left-0' : 'right-0'} w-1 h-5 bg-zen-accent rounded-full shadow-[0_0_10px_var(--accent-color)]`} />
             )}
             
             <div className="flex items-center justify-center w-5 h-5 shrink-0 transition-transform duration-300 group-hover:scale-110">
@@ -171,13 +171,13 @@ const SaturnSidebar: React.FC<SaturnSidebarProps> = ({
             </div>
 
             {isActuallyExpanded && (
-                <span className={`text-sm font-medium whitespace-nowrap overflow-hidden text-ellipsis transition-all duration-300 ${isActive ? 'opacity-100 translate-x-0' : 'opacity-80 group-hover:opacity-100 group-hover:translate-x-0.5'}`}>
+                <span className={`text-sm font-semibold whitespace-nowrap overflow-hidden text-ellipsis transition-all duration-300 ${isActive ? 'opacity-100 translate-x-0 text-zen-text' : 'opacity-70 group-hover:opacity-100 group-hover:translate-x-0.5 text-zen-muted'}`}>
                     {title}
                 </span>
             )}
             
             {!isActuallyExpanded && (
-                <div className={`absolute ${position === 'left' ? 'left-full ml-3' : 'right-full mr-3'} px-3 py-2 bg-zen-bg/95 backdrop-blur-md border border-zen-border/50 rounded-xl text-[11px] font-semibold opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 ${position === 'left' ? 'translate-x-[-10px]' : 'translate-x-[10px]'} group-hover:translate-x-0 whitespace-nowrap z-[100] text-zen-text shadow-2xl ring-1 ring-black/5`}>
+                <div className={`absolute ${position === 'left' ? 'left-full ml-3' : 'right-full mr-3'} px-4 py-2.5 bg-zen-bg/95 backdrop-blur-xl border border-zen-border/50 rounded-xl text-sm font-semibold opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 ${position === 'left' ? 'translate-x-[-8px]' : 'translate-x-[8px]'} group-hover:translate-x-0 whitespace-nowrap z-[100] text-zen-text shadow-xl ring-1 ring-black/5`}>
                     {title}
                 </div>
             )}
@@ -223,9 +223,9 @@ const SaturnSidebar: React.FC<SaturnSidebarProps> = ({
                 onClick={onNewTab}
                 title="New Chat"
             >
-                <div className="relative shrink-0 flex items-center justify-center">
-                    <div className="absolute inset-0 bg-zen-accent/20 blur-lg rounded-full" />
-                    <svg viewBox="0 0 100 100" className="saturn-brand-logo w-9 h-9 text-zen-accent relative z-10">
+                <div className="relative shrink-0 flex items-center justify-center group-hover/logo:animate-gentle-float transition-transform duration-500">
+                    <div className="absolute inset-0 bg-zen-accent/20 blur-lg rounded-full group-hover/logo:bg-zen-accent/30 transition-colors duration-300" />
+                    <svg viewBox="0 0 100 100" className="saturn-brand-logo w-9 h-9 text-zen-accent relative z-10 group-hover/logo:scale-105 transition-transform duration-300">
                         <circle cx="50" cy="50" r="18" fill="currentColor" className="saturn-brand-core" />
                         <ellipse cx="50" cy="50" rx="38" ry="9" fill="none" stroke="currentColor" strokeWidth="6" className="saturn-brand-ring" />
                     </svg>

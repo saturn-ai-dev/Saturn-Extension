@@ -245,18 +245,18 @@ const InputArea: React.FC<InputAreaProps> = ({ onSend, disabled, mode, setMode, 
           onDrop={handleDrop}
           onPaste={handlePaste}
           className={`
-            chat-input-shell relative rounded-[28px] border flex flex-col transition-[border-color,box-shadow,transform] duration-300
-            ${isDragging ? 'border-zen-accent/60 border-dashed' : isFocused ? 'border-zen-text/20' : 'border-zen-border/60'}
+            chat-input-shell relative rounded-[28px] border flex flex-col transition-all duration-300 hover-lift
+            ${isDragging ? 'border-zen-accent/60 border-dashed bg-zen-accent/5' : isFocused ? 'border-zen-accent/40' : 'border-zen-border/40 hover:border-zen-border/70'}
           `}
           style={{
             boxShadow: isFocused
-              ? '0 0 0 1px rgba(var(--accent-color-rgb),0.34), 0 0 20px -8px rgba(var(--accent-color-rgb),0.55), 0 16px 36px -24px rgba(0,0,0,0.7)'
-              : '0 14px 32px -26px rgba(0,0,0,0.68)'
+              ? '0 0 0 1px rgba(var(--accent-color-rgb),0.34), 0 0 25px -8px rgba(var(--accent-color-rgb),0.5), 0 20px 45px -30px rgba(0,0,0,0.7)'
+              : '0 14px 32px -26px rgba(0,0,0,0.68), 0 0 0 1px rgba(255,255,255,0.03)'
           }}
         >
           {isDragging && (
-            <div className="absolute inset-3 rounded-[22px] border border-dashed border-zen-accent/60 bg-zen-accent/5 flex items-center justify-center pointer-events-none z-20">
-              <div className="px-4 py-2 rounded-full bg-zen-bg/80 text-sm font-medium text-zen-text border border-zen-accent/30 shadow-lg">
+            <div className="absolute inset-3 rounded-[22px] border-2 border-dashed border-zen-accent/60 bg-zen-accent/5 flex items-center justify-center pointer-events-none z-20">
+              <div className="px-5 py-2.5 rounded-full bg-zen-bg/90 backdrop-blur-sm text-sm font-semibold text-zen-text border border-zen-accent/40 shadow-lg hover-glow">
                 Drop files to attach
               </div>
             </div>
@@ -264,15 +264,15 @@ const InputArea: React.FC<InputAreaProps> = ({ onSend, disabled, mode, setMode, 
 
           {attachments.length > 0 && (
             <div className="mx-4 mt-4 mb-1">
-              <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
+              <div className="flex gap-3 overflow-x-auto pb-2 custom-scrollbar">
                 {attachments.map((att, idx) => (
-                  <div key={idx} className="relative group/preview animate-scale-in flex-shrink-0">
+                  <div key={idx} className="relative group/preview animate-scale-in flex-shrink-0 hover-lift">
                     {renderPreview(att)}
                     <button
                       onClick={() => removeAttachment(idx)}
-                      className="absolute -top-1.5 -right-1.5 bg-zen-surface text-zen-text rounded-full p-0.5 border border-white/20 hover:bg-red-500 hover:text-white hover:border-red-500 transition-all shadow-md opacity-0 group-hover/preview:opacity-100"
+                      className="absolute -top-2 -right-2 bg-zen-surface/90 backdrop-blur-sm text-zen-text rounded-full p-1.5 border border-white/20 hover:bg-red-500 hover:text-white hover:border-red-500 transition-all shadow-lg opacity-0 group-hover/preview:opacity-100 focus:opacity-100"
                     >
-                      <X className="w-3 h-3" />
+                      <X className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 ))}
@@ -293,7 +293,7 @@ const InputArea: React.FC<InputAreaProps> = ({ onSend, disabled, mode, setMode, 
               />
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="p-2.5 rounded-2xl hover:bg-zen-bg/70 hover:text-zen-text transition-colors"
+                className="p-2.5 rounded-2xl hover:bg-zen-bg/60 hover:text-zen-text border border-transparent hover:border-zen-border/30 transition-all interactive-btn hover-lift shadow-sm"
                 title="Attach File"
                 disabled={mode === 'image' || mode === 'video'}
               >
@@ -302,7 +302,7 @@ const InputArea: React.FC<InputAreaProps> = ({ onSend, disabled, mode, setMode, 
               {onGetContext && (
                 <button
                   onClick={onGetContext}
-                  className="p-2.5 rounded-2xl hover:bg-zen-bg/70 hover:text-zen-text transition-colors"
+                  className="p-2.5 rounded-2xl hover:bg-zen-bg/60 hover:text-zen-text border border-transparent hover:border-zen-border/30 transition-all interactive-btn hover-lift shadow-sm"
                   title="Add Current Page Content"
                   disabled={disabled}
                 >
@@ -351,33 +351,33 @@ const InputArea: React.FC<InputAreaProps> = ({ onSend, disabled, mode, setMode, 
               <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={() => setShowModeDropdown(!showModeDropdown)}
-                className="flex items-center gap-2 px-3.5 py-2 rounded-full bg-zen-bg/70 hover:bg-zen-bg text-zen-text border border-zen-border/40 hover:border-zen-border transition-[background,border-color,transform] duration-150 text-xs font-medium min-w-[98px] justify-between hover:-translate-y-0.5"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-zen-bg/60 hover:bg-zen-bg text-zen-text border border-zen-border/40 hover:border-zen-border/70 transition-all duration-200 text-sm font-semibold min-w-[100px] justify-between interactive-btn hover-lift shadow-sm"
                 >
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2.5">
                     {currentMode.icon}
                     <span>{currentMode.label}</span>
                   </div>
-                  <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${showModeDropdown ? 'rotate-180' : ''}`} />
+                  <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 ${showModeDropdown ? 'rotate-180' : ''}`} />
                 </button>
 
                 {showModeDropdown && (
-                  <div className="absolute bottom-full right-0 mb-2 w-56 glass-elevated rounded-[20px] shadow-xl animate-dropdown-open z-[60] origin-bottom-right p-2 space-y-1">
+                  <div className="absolute bottom-full right-0 mb-2 w-60 glass-elevated rounded-[20px] shadow-xl animate-dropdown-open z-[60] origin-bottom-right p-2 space-y-1 border border-zen-border/50">
                     {modes.map((m) => {
                       const mDisabled = isModeDisabled(m.id);
                       return (
                       <button
                         key={m.id}
                         onClick={() => { if (!mDisabled) { setMode(m.id); setShowModeDropdown(false); } }}
-                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-[12px] text-left transition-[background,color] duration-150 ${mDisabled ? 'opacity-40 cursor-not-allowed' : ''} ${mode === m.id ? 'bg-zen-bg text-zen-text' : 'text-zen-muted hover:text-zen-text hover:bg-zen-bg/50'}`}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-[14px] text-left transition-all duration-200 hover-lift ${mDisabled ? 'opacity-40 cursor-not-allowed' : ''} ${mode === m.id ? 'bg-zen-accent/10 text-zen-text border border-zen-accent/30' : 'text-zen-muted hover:text-zen-text hover:bg-zen-bg/60'}`}
                       >
-                        <div className="flex items-center justify-center w-4 h-4 shrink-0">
+                        <div className="flex items-center justify-center w-5 h-5 shrink-0">
                           {m.icon}
                         </div>
                         <div className="flex-1">
-                          <div className="text-xs font-medium">{m.label}</div>
-                          <div className={`text-[10px] ${m.desc.includes('Exhausted') || m.desc.includes('Unavailable') ? 'text-red-400' : 'text-zen-muted/60'}`}>{m.desc}</div>
+                          <div className="text-sm font-semibold">{m.label}</div>
+                          <div className={`text-[11px] ${m.desc.includes('Exhausted') || m.desc.includes('Unavailable') ? 'text-red-400' : 'text-zen-muted/70'}`}>{m.desc}</div>
                         </div>
-                        {mode === m.id && <Check className="w-3 h-3 text-zen-accent" />}
+                        {mode === m.id && <div className="w-2 h-2 rounded-full bg-zen-accent shadow-[0_0_8px_var(--accent-color)]" />}
                       </button>
                     );
                     })}
@@ -389,7 +389,7 @@ const InputArea: React.FC<InputAreaProps> = ({ onSend, disabled, mode, setMode, 
               <button
                 onClick={handleSend}
                 disabled={(!input.trim() && attachments.length === 0) || disabled}
-                className={`p-3.5 rounded-[18px] transition-all duration-300 flex-shrink-0 ${(input.trim() || attachments.length > 0) && !disabled ? 'bg-zen-text text-zen-bg hover:bg-zen-accent hover:text-white shadow-[0_18px_40px_-22px_rgba(var(--accent-color-rgb),0.9)] transform hover:-translate-y-0.5 active:translate-y-0 active:scale-95' : 'bg-zen-surface text-zen-muted cursor-not-allowed border border-zen-border'}`}
+                className={`p-3.5 rounded-[20px] transition-all duration-300 flex-shrink-0 interactive-btn hover-lift ${(input.trim() || attachments.length > 0) && !disabled ? 'bg-zen-text text-zen-bg hover:bg-zen-accent hover:text-white shadow-[0_18px_40px_-22px_rgba(var(--accent-color-rgb),0.9)]' : 'bg-zen-surface/80 text-zen-muted cursor-not-allowed border border-zen-border/40'}`}
               >
                 {disabled ? (
                   <div className="w-5 h-5 animate-spin">

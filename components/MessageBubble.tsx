@@ -64,15 +64,15 @@ const LinkRenderer = ({ href, children, onNavigate }: any) => {
 
 // Custom Markdown Components
 const H1 = ({ children, ...props }: any) => (
-  <h1 className="text-[1.75rem] font-semibold tracking-tight mb-6 pb-2 border-b border-zen-border/50 text-zen-text mt-4" {...props}>{children}</h1>
+  <h1 className="text-[1.75rem] font-bold tracking-tight mb-6 pb-2 border-b border-zen-border/50 text-zen-text mt-4 font-[family:var(--font-display)]" {...props}>{children}</h1>
 );
 
 const H2 = ({ children, ...props }: any) => (
-  <h2 className="text-[1.45rem] font-semibold tracking-tight mb-4 mt-8 text-zen-text" {...props}>{children}</h2>
+  <h2 className="text-[1.45rem] font-semibold tracking-tight mb-4 mt-8 text-zen-text font-[family:var(--font-display)]" {...props}>{children}</h2>
 );
 
 const H3 = ({ children, ...props }: any) => (
-  <h3 className="text-xl font-semibold tracking-tight mb-3 mt-6 text-zen-text/90" {...props}>{children}</h3>
+  <h3 className="text-xl font-semibold tracking-tight mb-3 mt-6 text-zen-text/90 font-[family:var(--font-display)]" {...props}>{children}</h3>
 );
 
 const H4 = ({ children, ...props }: any) => (
@@ -80,7 +80,7 @@ const H4 = ({ children, ...props }: any) => (
 );
 
 const P = ({ children, ...props }: any) => (
-  <p className="mb-3 leading-7 text-zen-text/92 last:mb-0" {...props}>{children}</p>
+  <p className="mb-4 leading-7 text-zen-text/95 tracking-wide" {...props}>{children}</p>
 );
 
 const UL = ({ children, ...props }: any) => (
@@ -134,7 +134,7 @@ const TableCellRenderer = ({ children }: any) => (
 );
 
 const BlockquoteRenderer = ({ children }: any) => (
-    <blockquote className="border-l-2 border-zen-accent/30 pl-5 py-2 my-5 italic text-zen-muted/80">
+    <blockquote className="border-l-2 border-zen-accent/30 pl-5 py-2 my-5 italic text-zen-muted/80 not-italic:font-[family:var(--font-display)]">
         {children}
     </blockquote>
 );
@@ -396,7 +396,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onDownload, onNa
       <div className={`flex gap-3 sm:gap-4 max-w-[92%] lg:max-w-[84%] w-full ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
 
         <div
-          className={`w-8 h-8 flex items-center justify-center flex-shrink-0 mt-1 rounded-2xl ${isUser ? 'bg-zen-surface/80 text-zen-muted border border-zen-border/50' : 'bg-zen-text/10 text-zen-text border border-white/5 shadow-[0_14px_34px_-26px_rgba(var(--accent-color-rgb),0.9)]'}`}
+          className={`w-9 h-9 flex items-center justify-center flex-shrink-0 mt-1.5 rounded-2xl ${isUser ? 'bg-zen-surface/80 text-zen-muted border border-zen-border/50 shadow-md' : 'bg-zen-accent/10 text-zen-accent border border-zen-accent/20 shadow-[0_14px_34px_-26px_rgba(var(--accent-color-rgb),0.5)]'}`}
         >
           {isUser ? <User className="w-4 h-4" /> : (
              <svg viewBox="0 0 100 100" className="saturn-brand-logo w-4 h-4">
@@ -465,19 +465,19 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onDownload, onNa
             </div>
           ) : shouldRenderStandardBubble ? (
             <div
-              style={{ borderRadius: isUser ? '20px 20px 6px 20px' : '6px 20px 20px 20px' }}
-              className={`chat-message-card px-4 sm:px-5 py-3.5 text-[15px] leading-7 relative w-full sm:w-fit border transition-colors duration-200 select-text cursor-text ${isUser ? 'chat-message-card-user text-zen-text' : 'text-zen-text interactive-card'}`}
+              style={{ borderRadius: isUser ? '24px 24px 8px 24px' : '8px 24px 24px 24px' }}
+              className={`chat-message-card px-5 sm:px-6 py-4 text-[15px] leading-7 relative w-full sm:w-fit border transition-all duration-200 select-text cursor-text hover-lift interactive-card ${isUser ? 'chat-message-card-user text-zen-text bg-zen-surface/50 border-zen-border/30' : 'text-zen-text border-zen-border/20 bg-zen-surface/30 shadow-lg'}`}
             >
               {isUser ? (
                 <>
-                  <p className="whitespace-pre-wrap font-normal text-[15px] leading-7 select-text cursor-text">{cleanContent}</p>
-                  <div className="flex gap-2 mt-3 pt-2 border-t border-zen-border/30 opacity-0 group-hover/message:opacity-100 focus-within:opacity-100 transition-opacity justify-end">
-                    <button onClick={() => onEdit?.(cleanContent)} className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-zen-muted hover:text-zen-text hover:bg-zen-surface transition-colors text-xs font-bold" title="Edit Prompt">
-                      <Pencil className="w-3.5 h-3.5" />
+                  <p className="whitespace-pre-wrap font-normal text-[15px] leading-7 select-text cursor-text font-body">{cleanContent}</p>
+                  <div className="flex gap-2 mt-4 pt-3 border-t border-zen-border/20 opacity-0 group-hover/message:opacity-100 focus-within:opacity-100 transition-all duration-300 justify-end">
+                    <button onClick={() => onEdit?.(cleanContent)} className="flex items-center gap-2 px-3 py-2 rounded-xl text-zen-muted hover:text-zen-text hover:bg-zen-surface/80 hover-lift transition-all text-sm font-semibold" title="Edit Prompt">
+                      <Pencil className="w-4 h-4" />
                       <span>Edit</span>
                     </button>
-                    <button onClick={handleCopyText} className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-zen-muted hover:text-zen-text hover:bg-zen-surface transition-colors text-xs font-bold" title="Copy Text">
-                      <Copy className="w-3.5 h-3.5" />
+                    <button onClick={handleCopyText} className="flex items-center gap-2 px-3 py-2 rounded-xl text-zen-muted hover:text-zen-text hover:bg-zen-surface/80 hover-lift transition-all text-sm font-semibold" title="Copy Text">
+                      <Copy className="w-4 h-4" />
                       <span>{isCopied ? 'Copied' : 'Copy'}</span>
                     </button>
                   </div>
@@ -557,10 +557,10 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onDownload, onNa
               )}
 
               {!isUser && cleanContent && !message.isStreaming && (
-                <div className="flex gap-2 mt-4 pt-2 border-t border-zen-border/30 transition-opacity duration-300 animate-fade-in-up select-none">
-                  <button onClick={handleSpeak} className="flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] bg-zen-surface border border-zen-border/70 text-zen-muted hover:text-zen-text hover:border-zen-accent/60 hover:bg-zen-surface/90 transition-all text-xs font-semibold active:scale-95" title="Read Aloud"><Volume2 className="w-4 h-4" /><span className="hidden sm:inline">Read</span></button>
-                  <button onClick={handleCopyText} className="flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] bg-zen-surface border border-zen-border/70 text-zen-muted hover:text-zen-text hover:border-zen-accent/60 hover:bg-zen-surface/90 transition-all text-xs font-semibold active:scale-95" title="Copy"><Copy className="w-4 h-4" /><span className="hidden sm:inline">{isCopied ? 'Copied' : 'Copy'}</span></button>
-                  <button onClick={handleDownloadPdf} className="flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] bg-zen-surface border border-zen-border/70 text-zen-muted hover:text-zen-text hover:border-zen-accent/60 hover:bg-zen-surface/90 transition-all text-xs font-semibold active:scale-95" title="Export PDF"><FileText className="w-4 h-4" /><span className="hidden sm:inline">PDF</span></button>
+                <div className="flex gap-2 mt-5 pt-3 border-t border-zen-border/20 transition-all duration-300 animate-fade-in-up select-none">
+                  <button onClick={handleSpeak} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-zen-surface/60 border border-zen-border/30 text-zen-muted hover:text-zen-text hover:border-zen-accent/50 hover:bg-zen-surface/90 hover-lift transition-all text-sm font-semibold active:scale-95" title="Read Aloud"><Volume2 className="w-4 h-4" /><span className="hidden sm:inline">Read</span></button>
+                  <button onClick={handleCopyText} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-zen-surface/60 border border-zen-border/30 text-zen-muted hover:text-zen-text hover:border-zen-accent/50 hover:bg-zen-surface/90 hover-lift transition-all text-sm font-semibold active:scale-95" title="Copy"><Copy className="w-4 h-4" /><span className="hidden sm:inline">{isCopied ? 'Copied' : 'Copy'}</span></button>
+                  <button onClick={handleDownloadPdf} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-zen-surface/60 border border-zen-border/30 text-zen-muted hover:text-zen-text hover:border-zen-accent/50 hover:bg-zen-surface/90 hover-lift transition-all text-sm font-semibold active:scale-95" title="Export PDF"><FileText className="w-4 h-4" /><span className="hidden sm:inline">PDF</span></button>
                 </div>
               )}
             </div>

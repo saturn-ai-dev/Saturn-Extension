@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { X, Shield, Globe, PaintBucket, Droplet, Sun, Upload, Image as ImageIcon, Smartphone, Box, Rocket, Sparkles, Download, FileText, Video, Puzzle, Trash2, Plus, User, Link, Monitor, Key, ExternalLink, Check, FileUp, FileDown, Loader2 } from 'lucide-react';
+import { X, Shield, Globe, PaintBucket, Droplet, Sun, Upload, Image as ImageIcon, Smartphone, Box, Rocket, Sparkles, Download, FileText, Video, Puzzle, Trash2, Plus, User, Link, Monitor, Key, ExternalLink, Check, FileUp, FileDown, Loader2, Mail, HelpCircle } from 'lucide-react';
 import { Theme, DownloadItem, UserProfile, Extension, CustomShortcut, Tab } from '../types';
 import { exportConversations, importConversations } from '../services/conversationService';
 import { generateOptimizedSystemInstructions } from '../services/geminiService';
@@ -313,21 +313,21 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
                         {/* TAB: GENERAL */}
                         {activeTab === 'general' && (
-                            <div className="space-y-10 max-w-2xl">
+                            <div className="space-y-12 max-w-2xl">
 
                                 {/* API Key Section */}
                                 <div>
-                                    <h3 className="text-sm font-medium text-zen-muted mb-5 pl-1">Connection</h3>
-                                    <div className="space-y-4">
-                                        <div className="p-5 rounded-2xl bg-zen-surface border border-zen-border/50 shadow-sm">
+                                    <h3 className="text-base font-semibold text-zen-text mb-6 pl-1 font-display">Connection</h3>
+                                    <div className="space-y-5">
+                                        <div className="p-6 rounded-2xl bg-zen-surface/50 border border-zen-border/30 shadow-lg hover-lift transition-all">
                                             <div className="flex items-center gap-4 mb-4">
-                                                <div className="p-3 rounded-xl bg-yellow-500/10 text-yellow-500"><Key className="w-5 h-5" /></div>
+                                                <div className="p-3 rounded-xl bg-yellow-500/10 text-yellow-500 shadow-inner"><Key className="w-5 h-5" /></div>
                                                 <div className="flex-1">
-                                                    <div className="text-sm font-bold text-zen-text">Gemini API Key</div>
-                                                    <div className="text-xs text-zen-muted">Required for Gemini features</div>
+                                                    <div className="text-base font-semibold text-zen-text">Gemini API Key</div>
+                                                    <div className="text-sm text-zen-muted">Required for Gemini features</div>
                                                 </div>
-                                                <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-xs font-bold text-zen-accent hover:underline flex items-center gap-1">
-                                                    Get Key <ExternalLink className="w-3 h-3" />
+                                                <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-sm font-semibold text-zen-accent hover:underline flex items-center gap-1 hover-lift transition-all">
+                                                    Get Key <ExternalLink className="w-4 h-4" />
                                                 </a>
                                             </div>
                                             <input
@@ -335,19 +335,19 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                                 value={apiKey}
                                                 onChange={(e) => handleSaveKey(e.target.value)}
                                                 placeholder="Paste your Gemini API key here..."
-                                                className="w-full bg-zen-bg border border-zen-border rounded-xl px-4 py-3 outline-none focus:border-zen-accent text-sm font-mono text-zen-text placeholder-zen-muted/50"
+                                                className="w-full bg-zen-bg/80 border border-zen-border/40 rounded-xl px-4 py-3.5 outline-none focus:border-zen-accent focus:ring-2 focus:ring-zen-accent/20 text-sm font-mono text-zen-text placeholder-zen-muted/50 transition-all"
                                             />
                                         </div>
 
-                                        <div className="p-5 rounded-2xl bg-zen-surface border border-zen-border/50 shadow-sm">
+                                        <div className="p-6 rounded-2xl bg-zen-surface/50 border border-zen-border/30 shadow-lg hover-lift transition-all">
                                             <div className="flex items-center gap-4 mb-4">
-                                                <div className="p-3 rounded-xl bg-green-500/10 text-green-500"><Key className="w-5 h-5" /></div>
+                                                <div className="p-3 rounded-xl bg-green-500/10 text-green-500 shadow-inner"><Key className="w-5 h-5" /></div>
                                                 <div className="flex-1">
-                                                    <div className="text-sm font-bold text-zen-text">OpenAI API Key</div>
-                                                    <div className="text-xs text-zen-muted">Required for OpenAI features</div>
+                                                    <div className="text-base font-semibold text-zen-text">OpenAI API Key</div>
+                                                    <div className="text-sm text-zen-muted">Required for OpenAI features</div>
                                                 </div>
-                                                <a href="https://platform.openai.com/api-keys" target="_blank" rel="noreferrer" className="text-xs font-bold text-zen-accent hover:underline flex items-center gap-1">
-                                                    Get Key <ExternalLink className="w-3 h-3" />
+                                                <a href="https://platform.openai.com/api-keys" target="_blank" rel="noreferrer" className="text-sm font-semibold text-zen-accent hover:underline flex items-center gap-1 hover-lift transition-all">
+                                                    Get Key <ExternalLink className="w-4 h-4" />
                                                 </a>
                                             </div>
                                             <input
@@ -355,7 +355,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                                 value={openaiKey}
                                                 onChange={(e) => handleSaveOpenAIKey(e.target.value)}
                                                 placeholder="Paste your OpenAI API key here..."
-                                                className="w-full bg-zen-bg border border-zen-border rounded-xl px-4 py-3 outline-none focus:border-zen-accent text-sm font-mono text-zen-text placeholder-zen-muted/50"
+                                                className="w-full bg-zen-bg/80 border border-zen-border/40 rounded-xl px-4 py-3.5 outline-none focus:border-zen-accent focus:ring-2 focus:ring-zen-accent/20 text-sm font-mono text-zen-text placeholder-zen-muted/50 transition-all"
                                             />
                                         </div>
                                     </div>
@@ -702,7 +702,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                                     alert((error as Error).message);
                                                 }
                                             }}
-                                            className="p-5 rounded-2xl bg-zen-surface border border-zen-border/50 shadow-sm hover:border-zen-accent transition-colors flex items-center gap-4">
+                                            className="p-5 rounded-2xl bg-zen-surface border border-zen-border/50 shadow-sm hover:border-zen-accent hover-lift transition-all flex items-center gap-4">
                                             <div className="p-3 rounded-xl bg-green-500/10 text-green-400"><FileUp className="w-5 h-5" /></div>
                                             <div>
                                                 <div className="text-sm font-bold text-zen-text">Import Conversations</div>
@@ -711,13 +711,45 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                         </button>
                                         <button
                                             onClick={() => exportConversations([...tabs, ...archivedTabs])}
-                                            className="p-5 rounded-2xl bg-zen-surface border border-zen-border/50 shadow-sm hover:border-zen-accent transition-colors flex items-center gap-4">
+                                            className="p-5 rounded-2xl bg-zen-surface border border-zen-border/50 shadow-sm hover:border-zen-accent hover-lift transition-all flex items-center gap-4">
                                             <div className="p-3 rounded-xl bg-blue-500/10 text-blue-400"><FileDown className="w-5 h-5" /></div>
                                             <div>
                                                 <div className="text-sm font-bold text-zen-text">Export Conversations</div>
                                                 <div className="text-xs text-zen-muted">Save to a .json file</div>
                                             </div>
                                         </button>
+                                    </div>
+                                </div>
+
+                                {/* Support & Contact */}
+                                <div>
+                                    <h3 className="text-sm font-medium text-zen-muted mb-5 pl-1">Support</h3>
+                                    <div className="space-y-4">
+                                        <button
+                                            onClick={() => window.open('https://mail.google.com/mail/?view=cm&fs=1&to=teamsaturn2025@gmail.com&su=Saturn%20Extension%20Feedback', '_blank')}
+                                            className="w-full p-5 rounded-2xl bg-zen-surface border border-zen-border/50 shadow-sm hover:border-zen-accent hover-lift transition-all flex items-center gap-4"
+                                        >
+                                            <div className="p-3 rounded-xl bg-zen-accent/10 text-zen-accent"><Mail className="w-5 h-5" /></div>
+                                            <div className="flex-1 text-left">
+                                                <div className="text-sm font-bold text-zen-text">Contact Us</div>
+                                                <div className="text-xs text-zen-muted">Send feedback or get help at teamsaturn2025@gmail.com</div>
+                                            </div>
+                                            <ExternalLink className="w-4 h-4 text-zen-muted" />
+                                        </button>
+                                        
+                                        <a
+                                            href="https://github.com/anomalyco/saturn/issues"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="w-full p-5 rounded-2xl bg-zen-surface border border-zen-border/50 shadow-sm hover:border-zen-accent hover-lift transition-all flex items-center gap-4"
+                                        >
+                                            <div className="p-3 rounded-xl bg-purple-500/10 text-purple-400"><HelpCircle className="w-5 h-5" /></div>
+                                            <div className="flex-1 text-left">
+                                                <div className="text-sm font-bold text-zen-text">Report an Issue</div>
+                                                <div className="text-xs text-zen-muted">Found a bug? Let us know on GitHub</div>
+                                            </div>
+                                            <ExternalLink className="w-4 h-4 text-zen-muted" />
+                                        </a>
                                     </div>
                                 </div>
                             </div>
