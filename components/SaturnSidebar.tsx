@@ -17,6 +17,7 @@ interface SaturnSidebarProps {
     autoHide?: boolean;
     showStatus?: boolean;
     glassIntensity?: number;
+    userName?: string;
 }
 
 // Custom Logos
@@ -64,7 +65,8 @@ const SaturnSidebar: React.FC<SaturnSidebarProps> = ({
     position = 'left',
     autoHide = false,
     showStatus = true,
-    glassIntensity = 70
+    glassIntensity = 70,
+    userName = 'Saturn User'
 }) => {
 
     const apps = [
@@ -84,6 +86,7 @@ const SaturnSidebar: React.FC<SaturnSidebarProps> = ({
     const [isResizing, setIsResizing] = useState(false);
     const [lastExpandedWidth, setLastExpandedWidth] = useState(240);
     const [isHovered, setIsHovered] = useState(false);
+    const userInitial = (userName.trim().charAt(0) || 'S').toUpperCase();
     
     // Auto-hide logic: collapse when not hovered, but only if autoHide is enabled
     // and we are not currently resizing
@@ -239,46 +242,54 @@ const SaturnSidebar: React.FC<SaturnSidebarProps> = ({
             </div>
 
             {/* Content Container */}
-            <div className={`flex-1 flex flex-col gap-1.5 overflow-y-auto overflow-x-hidden no-scrollbar app-no-drag py-2 ${isActuallyExpanded ? 'px-3' : 'items-center'}`}>
-                
-                <IconButton onClick={onNewTab} title="New Chat" className="mb-2 bg-zen-accent/5" color="text-zen-accent">
-                    <Plus className="w-5 h-5" />
-                </IconButton>
-
-                {/* Section Divider with Label */}
-                {(displayedApps.length > 0 || customShortcuts.length > 0) && (
-                    <div className="w-full flex items-center gap-2 my-3 px-1">
-                        <div className="h-px flex-1 bg-zen-border/30" />
-                        {isActuallyExpanded && <span className="text-[11px] font-medium text-zen-muted/60">Tools</span>}
-                        <div className="h-px flex-1 bg-zen-border/30" />
-                    </div>
-                )}
-
-                {displayedApps.map(app => (
-                    <IconButton
-                        key={app.id}
-                        onClick={() => onOpenApp(app.id)}
-                        isActive={activeApp === app.id}
-                        title={app.label}
-                    >
-                        {app.icon}
+            <div className={`flex-1 flex flex-col overflow-y-auto overflow-x-hidden no-scrollbar app-no-drag py-2 ${isActuallyExpanded ? 'px-3' : 'items-center'}`}>
+                <div className="flex w-full flex-col gap-1.5">
+                    <IconButton onClick={onNewTab} title="New Chat" className="bg-zen-accent/5" color="text-zen-accent">
+                        <Plus className="w-5 h-5" />
                     </IconButton>
-                ))}
 
-                {customShortcuts.map(sc => (
-                    <IconButton
-                        key={sc.id}
-                        onClick={() => onOpenApp(sc.id)}
-                        title={sc.label}
-                    >
-                        <span className="text-base">{sc.emoji}</span>
-                    </IconButton>
-                ))}
+                <div className="w-full px-1 my-3">
+                    <div className="h-px bg-zen-border/20" />
+                </div>
+
+                    {(displayedApps.length > 0 || customShortcuts.length > 0) && (
+                        <div className="flex flex-col gap-1.5">
+                            {isActuallyExpanded && (
+                                <div className="w-full px-3 pb-1">
+                                    <span className="text-[10px] font-bold uppercase tracking-[0.22em] text-zen-muted/55">Tools</span>
+                                </div>
+                            )}
+                            
+                            {displayedApps.map(app => (
+                                <IconButton
+                                    key={app.id}
+                                    onClick={() => onOpenApp(app.id)}
+                                    isActive={activeApp === app.id}
+                                    title={app.label}
+                                >
+                                    {app.icon}
+                                </IconButton>
+                            ))}
+
+                            {customShortcuts.map(sc => (
+                                <IconButton
+                                    key={sc.id}
+                                    onClick={() => onOpenApp(sc.id)}
+                                    title={sc.label}
+                                >
+                                    <span className="text-base">{sc.emoji}</span>
+                                </IconButton>
+                            ))}
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* Bottom Actions */}
-            <div className={`flex flex-col gap-1.5 mt-auto pt-4 app-no-drag ${isActuallyExpanded ? 'px-3' : 'px-2 items-center'}`}>
-                <div className="h-px w-full bg-zen-border/30 mb-2" />
+            <div className={`flex flex-col gap-1.5 mt-auto pt-4 app-no-drag ${isActuallyExpanded ? 'px-3 pb-1' : 'px-2 items-center pb-1'}`}>
+                <div className="w-full px-1 mb-2">
+                    <div className="h-px bg-zen-border/20" />
+                </div>
                 
                 <IconButton
                     onClick={onToggleHistory}
@@ -295,17 +306,15 @@ const SaturnSidebar: React.FC<SaturnSidebarProps> = ({
                     <Settings className="w-[18px] h-[18px] transition-transform duration-500 group-hover:rotate-90" />
                 </IconButton>
 
-                {/* Profile / Status Mini-Indicator */}
                 {isActuallyExpanded && showStatus && (
-                    <div className="mt-4 p-2.5 bg-zen-text/5 rounded-2xl flex items-center gap-3 border border-zen-border/20 animate-in fade-in zoom-in-95 duration-300">
-                        <div className="w-8 h-8 rounded-xl bg-zen-accent/20 flex items-center justify-center text-zen-accent font-bold text-xs shadow-inner">
-                            S
-                        </div>
-                        <div className="flex flex-col overflow-hidden">
-                            <span className="text-[11px] font-bold text-zen-text truncate">Saturn User</span>
-                            <div className="flex items-center gap-1">
-                                <div className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
-                                <span className="text-[9px] text-zen-muted font-medium">Synced and ready</span>
+                    <div className="mt-4 w-full">
+                        <div className="p-3 bg-zen-text/5 rounded-2xl flex items-center gap-3 border border-zen-border/10 shadow-[0_18px_35px_-32px_rgba(0,0,0,0.8)]">
+                            <div className="w-9 h-9 rounded-xl bg-zen-accent/20 flex items-center justify-center text-zen-accent font-bold text-xs shadow-inner">
+                                {userInitial}
+                            </div>
+                            <div className="flex flex-col overflow-hidden">
+                                <span className="text-xs font-bold text-zen-text truncate">{userName}</span>
+                                <span className="text-[10px] text-zen-muted font-medium">Workspace profile</span>
                             </div>
                         </div>
                     </div>

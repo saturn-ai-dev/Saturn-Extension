@@ -128,6 +128,23 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     const [newShortcutEmoji, setNewShortcutEmoji] = useState('🔗');
     const [isAddingShortcut, setIsAddingShortcut] = useState(false);
 
+    // State for Report Issue modal
+    const [showReportModal, setShowReportModal] = useState(false);
+    const [reportMessage, setReportMessage] = useState('');
+    const [reportType, setReportType] = useState<'bug' | 'feature' | 'feedback'>('bug');
+    const [isSendingReport, setIsSendingReport] = useState(false);
+
+    const handleSendReport = () => {
+        if (!reportMessage.trim()) return;
+        setIsSendingReport(true);
+        const subject = encodeURIComponent(reportType === 'bug' ? '[Bug Report]' : reportType === 'feature' ? '[Feature Request]' : '[Feedback]');
+        const body = encodeURIComponent(`Type: ${reportType.toUpperCase()}\n\nMessage:\n${reportMessage}\n\n---\nSent from Saturn Extension`);
+        window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=teamsaturn2025@gmail.com&su=${subject}&body=${body}`, '_blank');
+        setIsSendingReport(false);
+        setShowReportModal(false);
+        setReportMessage('');
+    };
+
     const handleSaveKey = (val: string) => {
         setApiKey(val);
         localStorage.setItem('gemini_api_key', val);
@@ -732,26 +749,66 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                             <div className="p-3 rounded-xl bg-zen-accent/10 text-zen-accent"><Mail className="w-5 h-5" /></div>
                                             <div className="flex-1 text-left">
                                                 <div className="text-sm font-bold text-zen-text">Contact Us</div>
-                                                <div className="text-xs text-zen-muted">Send feedback or get help at teamsaturn2025@gmail.com</div>
+                                                <div className="text-xs text-zen-muted">Send feedback or get help</div>
                                             </div>
                                             <ExternalLink className="w-4 h-4 text-zen-muted" />
                                         </button>
                                         
-                                        <a
-                                            href="https://github.com/anomalyco/saturn/issues"
-                                            target="_blank"
-                                            rel="noopener noreferrer"
+                                        <button
+                                            onClick={() => setShowReportModal(true)}
                                             className="w-full p-5 rounded-2xl bg-zen-surface border border-zen-border/50 shadow-sm hover:border-zen-accent hover-lift transition-all flex items-center gap-4"
                                         >
                                             <div className="p-3 rounded-xl bg-purple-500/10 text-purple-400"><HelpCircle className="w-5 h-5" /></div>
                                             <div className="flex-1 text-left">
                                                 <div className="text-sm font-bold text-zen-text">Report an Issue</div>
-                                                <div className="text-xs text-zen-muted">Found a bug? Let us know on GitHub</div>
+                                                <div className="text-xs text-zen-muted">Found a bug? Let us know</div>
                                             </div>
                                             <ExternalLink className="w-4 h-4 text-zen-muted" />
-                                        </a>
+                                        </button>
                                     </div>
                                 </div>
+
+                                {/* Report Issue Modal */}
+                                {showReportModal && (
+                                    <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[110] flex items-center justify-center p-4 animate-fade-in">
+                                        <div className="bg-zen-bg w-full max-w-lg border border-zen-border shadow-deep rounded-3xl animate-scale-in overflow-hidden">
+                                            <div className="flex items-center justify-between p-6 border-b border-zen-border">
+                                                <h2 className="text-xl font-bold text-zen-text font-display">Report an Issue</h2>
+                                                <button onClick={() => setShowReportModal(false)} className="p-2 hover:bg-zen-surface rounded-full text-zen-muted hover:text-zen-text transition-colors">
+                                                    <X className="w-5 h-5" />
+                                                </button>
+                                            </div>
+                                            <div className="p-6 space-y-5">
+                                                <div className="flex gap-2">
+                                                    {(['bug', 'feature', 'feedback'] as const).map(type => (
+                                                        <button
+                                                            key={type}
+                                                            onClick={() => setReportType(type)}
+                                                            className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all ${reportType === type ? 'bg-zen-accent text-white shadow-lg' : 'bg-zen-surface text-zen-muted hover:text-zen-text border border-zen-border/50'}`}
+                                                        >
+                                                            {type.charAt(0).toUpperCase() + type.slice(1)}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                                <textarea
+                                                    value={reportMessage}
+                                                    onChange={(e) => setReportMessage(e.target.value)}
+                                                    placeholder={reportType === 'bug' ? 'Describe the bug and what you were doing when it happened...' : reportType === 'feature' ? 'Describe the feature you would like to see...' : 'Share your feedback with us...'}
+                                                    className="w-full h-40 bg-zen-surface/50 border border-zen-border/30 rounded-xl px-4 py-3 outline-none focus:border-zen-accent focus:ring-2 focus:ring-zen-accent/20 text-zen-text placeholder-zen-muted/50 resize-none transition-all"
+                                                    autoFocus
+                                                />
+                                                <button
+                                                    onClick={handleSendReport}
+                                                    disabled={!reportMessage.trim() || isSendingReport}
+                                                    className="w-full py-3.5 bg-zen-accent text-white font-bold rounded-xl hover:bg-zen-accent/90 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
+                                                >
+                                                    {isSendingReport ? <Loader2 className="w-5 h-5 animate-spin" /> : <Mail className="w-5 h-5" />}
+                                                    Send via Email
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
 
