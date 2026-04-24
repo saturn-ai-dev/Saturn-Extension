@@ -15,7 +15,7 @@ import { sendNanobrowserMessage } from './services/nanobrowserService';
 import { composeSaturnOpenUiInstructions } from './services/openuiService';
 import { separateOpenUIContent } from './services/openuiContent';
 import {
-  Plus, History, Settings, Trash2, RotateCcw,
+  Plus, History, Settings, Trash2, RotateCcw, Search,
   ArrowUp, Paperclip, FileText, MessageSquare,
   Bot, StickyNote, Calculator, ChevronDown, Check,
   Zap, Globe, BrainCircuit, Target, Image as ImageIcon, Video,
@@ -162,7 +162,7 @@ const CompactInput: React.FC<CompactInputProps> = ({ onSend, disabled, mode, set
       )}
 
       {/* Main input row */}
-      <div className={`chat-input-shell flex items-end gap-1.5 rounded-[22px] px-2.5 py-2 transition-all duration-200 ${isFocused ? 'border-zen-accent/45 shadow-[0_0_0_1px_rgba(var(--accent-color-rgb),0.12),0_18px_40px_-28px_rgba(var(--accent-color-rgb),0.45)]' : 'hover:border-zen-border/80'}`}>
+      <div className={`chat-input-shell flex items-end gap-1.5 rounded-[16px] px-2.5 py-2 transition-all duration-200 ${isFocused ? 'border-zen-accent/45 shadow-[0_0_0_1px_rgba(var(--accent-color-rgb),0.12),0_18px_40px_-28px_rgba(var(--accent-color-rgb),0.45)]' : 'hover:border-zen-border/80'}`}>
         {/* Left buttons */}
         <div className="flex items-center gap-0.5 pb-1">
           <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileSelect} multiple accept="*/*" />
@@ -207,7 +207,7 @@ const CompactInput: React.FC<CompactInputProps> = ({ onSend, disabled, mode, set
             </button>
 
             {showModeDropdown && (
-              <div className="absolute bottom-full right-0 mb-2 w-44 glass-elevated rounded-2xl shadow-2xl overflow-hidden z-50 p-1 animate-scale-in origin-bottom-right">
+              <div className="absolute bottom-full right-0 mb-2 w-44 glass-elevated rounded-[16px] shadow-2xl overflow-hidden z-50 p-1 animate-scale-in origin-bottom-right">
                 {MODES.map(m => (
                   <button key={m.id} onClick={() => { setMode(m.id); setShowModeDropdown(false); }}
                     className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left transition-all text-xs ${mode === m.id ? 'bg-zen-bg text-zen-text' : 'text-zen-muted hover:text-zen-text hover:bg-zen-bg/50'}`}>
@@ -549,8 +549,8 @@ const SidebarSettings: React.FC<SidebarSettingsProps> = ({
   return (
     <div className="absolute inset-0 z-50 bg-zen-bg flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-zen-border flex-shrink-0">
-        <div className="flex items-center gap-2 text-zen-text font-bold text-sm">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-zen-border flex-shrink-0 bg-zen-surface/35">
+        <div className="flex items-center gap-2 text-zen-text font-semibold text-sm">
           <Settings className="w-4 h-4 text-zen-accent" /> Settings
         </div>
         <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-zen-surface text-zen-muted hover:text-zen-text transition-colors">
@@ -562,7 +562,7 @@ const SidebarSettings: React.FC<SidebarSettingsProps> = ({
       <div className="flex border-b border-zen-border flex-shrink-0">
         {tabs.map(tab => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-            className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 text-[11px] font-medium transition-colors relative ${activeTab === tab.id ? 'text-zen-accent' : 'text-zen-muted hover:text-zen-text'}`}>
+            className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 text-[11px] font-medium transition-colors relative ${activeTab === tab.id ? 'text-zen-accent bg-zen-surface/25' : 'text-zen-muted hover:text-zen-text hover:bg-zen-surface/20'}`}>
             {tab.icon}
             <span>{tab.label}</span>
             {activeTab === tab.id && <span className="absolute bottom-0 left-2 right-2 h-0.5 bg-zen-accent rounded-full" />}
@@ -644,20 +644,25 @@ const SidebarSettings: React.FC<SidebarSettingsProps> = ({
               </Row>
             </div>
 
-            <div className="text-[11px] font-medium text-zen-muted mt-4 mb-1">Theme</div>
-            <div className="flex gap-2 flex-wrap">
-              {[
-                { id: 'red', color: 'bg-red-600' },
-                { id: 'blue', color: 'bg-blue-600' },
-                { id: 'charcoal-cosmic', color: 'bg-orange-500' },
-                { id: 'galaxy', color: 'bg-fuchsia-600' },
-                { id: 'blackbox', color: 'bg-gray-900 border border-gray-700' },
-                { id: 'glass', color: 'bg-cyan-500' },
-                { id: 'light', color: 'bg-gray-200 border border-gray-300' },
-              ].map(t => (
-                <button key={t.id} onClick={() => { setCurrentTheme(t.id as Theme); updateUser({ theme: t.id as Theme }); }}
-                  className={`w-8 h-8 rounded-full transition-all shadow ${t.color} ${currentTheme === t.id ? 'scale-110 ring-2 ring-white ring-offset-1 ring-offset-zen-bg' : 'opacity-60 hover:opacity-100'}`} />
-              ))}
+            <div className="text-[11px] font-medium text-zen-muted mt-4 mb-1">Visual System</div>
+            <div className="rounded-xl border border-zen-border/50 bg-zen-bg/50 p-3">
+              <div className="app-topbar-label mb-2 !text-[8px]">Saturn Accent Themes</div>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { id: 'red', color: 'bg-[#d96b43]' },
+                  { id: 'blue', color: 'bg-[#5f8cff]' },
+                  { id: 'glass', color: 'bg-[#57c4be]' },
+                  { id: 'charcoal-cosmic', color: 'bg-[#ff8c4a]' },
+                  { id: 'galaxy', color: 'bg-[#d48cff]' },
+                  { id: 'blackbox', color: 'bg-[#f1ede5]' },
+                  { id: 'incognito', color: 'bg-[#8a7f75]' },
+                  { id: 'light', color: 'bg-[#e7dbcb] border border-[#b59f8c]' },
+                ].map(t => (
+                  <button key={t.id} onClick={() => { setCurrentTheme(t.id as Theme); updateUser({ theme: t.id as Theme }); }}
+                    className={`w-8 h-8 rounded-full transition-all shadow ${t.color} ${currentTheme === t.id ? 'scale-110 ring-2 ring-white ring-offset-1 ring-offset-zen-bg' : 'opacity-65 hover:opacity-100'}`} />
+                ))}
+              </div>
+              <div className="text-[11px] text-zen-muted leading-5 mt-3">Same layout, same typography, different accent atmosphere.</div>
             </div>
           </>
         )}
@@ -804,6 +809,7 @@ export default function SidebarApp() {
   const [currentTheme, setCurrentTheme] = useState<Theme>(currentUser.theme);
   const [isIncognito, setIsIncognito] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [historySearch, setHistorySearch] = useState('');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [activeAppTab, setActiveAppTab] = useState<AppTab>('chat');
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -1195,7 +1201,15 @@ export default function SidebarApp() {
 
   const activeTab = tabs.find(t => t.id === activeTabId);
   const isStreaming = activeTab?.messages[activeTab.messages.length - 1]?.isStreaming || false;
-  const historyItems = useMemo(() => [...archivedTabs].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)), [archivedTabs]);
+  const historyItems = useMemo(() => {
+    const query = historySearch.trim().toLowerCase();
+    return [...archivedTabs]
+      .filter(tab => {
+        if (!query) return true;
+        return tab.title.toLowerCase().includes(query) || tab.messages.some(msg => msg.text.toLowerCase().includes(query));
+      })
+      .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  }, [archivedTabs, historySearch]);
 
   const updateUser = (patch: Partial<UserProfile>) => {
     const u = { ...currentUser, ...patch };
@@ -1211,29 +1225,32 @@ export default function SidebarApp() {
   ];
 
   return (
-    <div className="app-shell relative flex flex-col h-[100dvh] bg-zen-bg text-zen-text font-sans overflow-hidden">
+    <div className="app-shell relative flex h-[100dvh] flex-col overflow-hidden bg-zen-bg text-zen-text font-sans">
 
       {/* ── Header ── */}
-      <div className="glass-elevated flex items-center justify-between px-3 py-2 border-b border-zen-border flex-shrink-0">
+      <div className="glass-elevated m-2 mb-0 flex flex-shrink-0 items-center justify-between rounded-[18px] border border-zen-border/55 px-3 py-2.5">
         <div className="flex items-center gap-2 min-w-0">
           <svg viewBox="0 0 100 100" className="saturn-brand-logo w-5 h-5 text-zen-accent flex-shrink-0">
             <circle cx="50" cy="50" r="20" fill="currentColor" className="saturn-brand-core" />
             <ellipse cx="50" cy="50" rx="40" ry="10" fill="none" stroke="currentColor" strokeWidth="4" className="saturn-brand-ring" />
           </svg>
-          <span className="font-bold text-sm text-zen-text tracking-tight">Saturn</span>
+          <div className="flex flex-col min-w-0">
+            <span className="font-medium text-sm text-zen-text tracking-[0]">Saturn</span>
+            <span className="app-topbar-label !text-[8px]">Panel</span>
+          </div>
           {activeAppTab === 'chat' && activeTab && activeTab.messages.length > 0 && (
             <span className="text-zen-muted text-xs truncate max-w-[100px] opacity-70">{activeTab.title}</span>
           )}
         </div>
         <div className="flex items-center gap-0.5">
-          <button onClick={handleNewThread} title="New thread" className="p-1.5 rounded-lg hover:bg-zen-bg text-zen-muted hover:text-zen-text transition-colors">
+          <button onClick={handleNewThread} title="New thread" className="grid h-8 w-8 place-items-center rounded-[10px] text-zen-muted transition-colors hover:bg-zen-bg hover:text-zen-text">
             <Plus className="w-4 h-4" />
           </button>
           <button onClick={() => setIsHistoryOpen(v => !v)} title="Thread history"
-            className={`p-1.5 rounded-lg transition-colors ${isHistoryOpen ? 'bg-zen-bg text-zen-text' : 'hover:bg-zen-bg text-zen-muted hover:text-zen-text'}`}>
+            className={`grid h-8 w-8 place-items-center rounded-[10px] transition-colors ${isHistoryOpen ? 'bg-zen-accent/12 text-zen-accent' : 'hover:bg-zen-bg text-zen-muted hover:text-zen-text'}`}>
             <History className="w-4 h-4" />
           </button>
-          <button onClick={() => setIsSettingsOpen(true)} title="Settings" className="p-1.5 rounded-lg hover:bg-zen-bg text-zen-muted hover:text-zen-text transition-colors">
+          <button onClick={() => setIsSettingsOpen(true)} title="Settings" className="grid h-8 w-8 place-items-center rounded-[10px] text-zen-muted transition-colors hover:bg-zen-bg hover:text-zen-text">
             <Settings className="w-4 h-4" />
           </button>
         </div>
@@ -1241,7 +1258,7 @@ export default function SidebarApp() {
 
       {/* ── Page context pill ── */}
       {pageContext && !pageContext.url.startsWith('chrome://') && !pageContext.url.startsWith('chrome-extension://') && (
-        <div className="flex items-center gap-1.5 px-3 py-1.5 bg-zen-bg/60 border-b border-zen-border/50 flex-shrink-0">
+        <div className="mx-2 mt-2 flex flex-shrink-0 items-center gap-1.5 rounded-[12px] border border-zen-border/40 bg-zen-surface/55 px-3 py-1.5">
           <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${pageContext.hasContent ? 'bg-green-400' : 'bg-yellow-400'}`} />
           <span className="text-[10px] text-zen-muted truncate flex-1" title={pageContext.url}>
             {pageContext.title || pageContext.url}
@@ -1254,12 +1271,33 @@ export default function SidebarApp() {
 
       {/* ── History drawer ── */}
       {isHistoryOpen && (
-        <div className="flex-shrink-0 border-b border-zen-border bg-zen-surface/60 max-h-56 overflow-y-auto">
+        <div className="mx-2 mt-2 flex max-h-64 flex-shrink-0 flex-col overflow-hidden rounded-[18px] border border-zen-border/55 bg-zen-surface/78 shadow-deep backdrop-blur-2xl">
+          <div className="border-b border-zen-border/35 p-3">
+            <div className="mb-2 flex items-center justify-between">
+              <div>
+                <div className="text-sm font-semibold text-zen-text">History</div>
+                <div className="app-topbar-label mt-0.5 !text-[8px]">{archivedTabs.length} saved threads</div>
+              </div>
+              <button onClick={handleNewThread} className="grid h-8 w-8 place-items-center rounded-[10px] border border-zen-border/35 text-zen-muted hover:border-zen-accent/40 hover:text-zen-accent" title="New thread">
+                <Plus className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zen-muted/55" />
+              <input
+                value={historySearch}
+                onChange={event => setHistorySearch(event.target.value)}
+                placeholder="Search history"
+                className="w-full rounded-[10px] border border-zen-border/35 bg-zen-bg/55 py-2 pl-8 pr-3 text-xs text-zen-text outline-none placeholder:text-zen-muted/45 focus:border-zen-accent/45"
+              />
+            </div>
+          </div>
+          <div className="custom-scrollbar overflow-y-auto p-2">
           {historyItems.length === 0 ? (
             <div className="px-4 py-5 text-center text-zen-muted text-sm">No past threads</div>
           ) : historyItems.map(tab => (
             <div key={tab.id} onClick={() => handleRestoreThread(tab.id)}
-              className="flex items-center gap-2 px-3 py-2 hover:bg-zen-bg/50 group cursor-pointer">
+              className="group flex cursor-pointer items-center gap-2 rounded-[8px] px-2.5 py-2 transition-colors hover:bg-zen-bg/55">
               <RotateCcw className="w-3 h-3 text-zen-muted flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
               <div className="flex-1 min-w-0">
                 <div className="text-xs text-zen-text truncate">{tab.title}</div>
@@ -1269,11 +1307,12 @@ export default function SidebarApp() {
                 </div>
               </div>
               <button onClick={e => { e.stopPropagation(); setArchivedTabs(prev => prev.filter(t => t.id !== tab.id)); }}
-                className="p-1 rounded opacity-0 group-hover:opacity-100 text-zen-muted hover:text-red-400 transition-all">
+                className="grid h-7 w-7 place-items-center rounded-[8px] text-zen-muted opacity-0 transition-all hover:bg-red-500/10 hover:text-red-400 group-hover:opacity-100">
                 <Trash2 className="w-3 h-3" />
               </button>
             </div>
           ))}
+          </div>
         </div>
       )}
 
@@ -1289,6 +1328,7 @@ export default function SidebarApp() {
                   <ellipse cx="50" cy="50" rx="40" ry="10" fill="none" stroke="currentColor" strokeWidth="4" className="saturn-brand-ring" />
                 </svg>
                 <span className="text-sm text-zen-text">Ask anything</span>
+                <span className="app-topbar-label !text-[8px]">Index / 02</span>
                 <span className="text-xs leading-5 max-w-[240px]">Search, summarize the current page, or keep a focused thread without leaving the panel.</span>
               </div>
             ) : (
@@ -1348,7 +1388,7 @@ export default function SidebarApp() {
       )}
 
       {/* ── Bottom tab bar ── */}
-      <div className="glass-elevated flex-shrink-0 flex items-stretch border-t border-zen-border">
+      <div className="glass-elevated m-2 mt-0 flex flex-shrink-0 items-stretch overflow-hidden rounded-[18px] border border-zen-border/55">
         {appTabs.map(tab => (
           <button key={tab.id} onClick={() => setActiveAppTab(tab.id)}
             className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2 text-[11px] font-medium transition-colors relative ${activeAppTab === tab.id ? 'text-zen-accent bg-zen-bg/50' : 'text-zen-muted hover:text-zen-text hover:bg-zen-bg/30'}`}>

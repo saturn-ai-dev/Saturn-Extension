@@ -396,7 +396,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onDownload, onNa
       <div className={`flex gap-3 sm:gap-4 max-w-[92%] lg:max-w-[84%] w-full ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
 
         <div
-          className={`w-9 h-9 flex items-center justify-center flex-shrink-0 mt-1.5 rounded-2xl ${isUser ? 'bg-zen-surface/80 text-zen-muted border border-zen-border/50 shadow-md' : 'bg-zen-accent/10 text-zen-accent border border-zen-accent/20 shadow-[0_14px_34px_-26px_rgba(var(--accent-color-rgb),0.5)]'}`}
+          className={`w-9 h-9 flex items-center justify-center flex-shrink-0 mt-1.5 rounded-full ${isUser ? 'bg-zen-surface/80 text-zen-muted border border-zen-border/50 shadow-md' : 'bg-zen-accent/10 text-zen-accent border border-zen-accent/20 shadow-[0_14px_34px_-26px_rgba(var(--accent-color-rgb),0.5)]'}`}
         >
           {isUser ? <User className="w-4 h-4" /> : (
              <svg viewBox="0 0 100 100" className="saturn-brand-logo w-4 h-4">
@@ -451,7 +451,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onDownload, onNa
 
           {canRenderOpenUIArtifact ? (
             <div
-              style={{ borderRadius: '32px' }}
+              style={{ borderRadius: '20px' }}
               className="chat-message-card p-5 relative w-full border transition-colors duration-200 select-text cursor-text text-zen-text interactive-card"
             >
               <OpenUIArtifact
@@ -465,7 +465,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onDownload, onNa
             </div>
           ) : shouldRenderStandardBubble ? (
             <div
-              style={{ borderRadius: isUser ? '24px 24px 8px 24px' : '8px 24px 24px 24px' }}
+              style={{ borderRadius: isUser ? '18px 18px 6px 18px' : '6px 18px 18px 18px' }}
               className={`chat-message-card px-5 sm:px-6 py-4 text-[15px] leading-7 relative w-full sm:w-fit border transition-all duration-200 select-text cursor-text hover-lift interactive-card ${isUser ? 'chat-message-card-user text-zen-text bg-zen-surface/50 border-zen-border/30' : 'text-zen-text border-zen-border/20 bg-zen-surface/30 shadow-lg'}`}
             >
               {isUser ? (

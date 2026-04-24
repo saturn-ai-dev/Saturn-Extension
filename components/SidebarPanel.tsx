@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { X, RefreshCw, Save, Trash2, GripVertical, Copy, Download, Clock, Play, Square, ExternalLink, Link2, Music2 } from 'lucide-react';
 import type { AgentRun } from '../types';
+import { ATTACHED_PANEL_LEFT, RAIL_GUTTER } from './SaturnSidebar';
 
 interface SidebarPanelProps {
     isOpen: boolean;
     appId: string | null;
     onClose: () => void;
-    sidebarWidth: number;
     position?: 'left' | 'right';
     agentRun?: AgentRun | null;
     onStartAgent?: (task: string) => void;
@@ -74,10 +74,10 @@ const NotesWidget = () => {
     return (
         <div className="flex flex-col h-full bg-zen-bg p-5">
             <div className="flex-1 relative group">
-                <div className="absolute -inset-0.5 bg-zen-accent/12 rounded-xl blur opacity-50 group-hover:opacity-100 transition-opacity" />
-                <textarea className="relative w-full h-full bg-zen-surface border border-zen-border rounded-xl p-4 text-sm text-zen-text focus:outline-none focus:border-zen-accent focus:ring-1 focus:ring-zen-accent/50 resize-none font-mono leading-relaxed shadow-inner" placeholder="// Scratchpad initialized..." value={note} onChange={(e) => setNote(e.target.value)} />
+                <div className="absolute -inset-0.5 bg-zen-accent/10 rounded-[18px] blur opacity-50 group-hover:opacity-100 transition-opacity" />
+                <textarea className="relative w-full h-full bg-zen-surface border border-zen-border rounded-[18px] p-4 text-sm text-zen-text focus:outline-none focus:border-zen-accent focus:ring-1 focus:ring-zen-accent/50 resize-none font-mono leading-relaxed shadow-inner" placeholder="// Scratchpad initialized..." value={note} onChange={(e) => setNote(e.target.value)} />
             </div>
-            <div className="mt-3 flex justify-between items-center text-[11px] font-medium text-zen-muted bg-zen-surface/50 p-2 rounded-lg border border-zen-border/50">
+            <div className="mt-3 flex justify-between items-center text-[11px] font-medium text-zen-muted bg-zen-surface/50 p-2 rounded-[16px] border border-zen-border/50">
                 <div className="flex gap-2">
                     <button onClick={handleTimestamp} className="hover:text-zen-text transition-colors flex items-center gap-1 p-1 rounded hover:bg-zen-bg"><Clock className="w-3 h-3" /> TS</button>
                     <button onClick={handleCopy} className="hover:text-zen-text transition-colors flex items-center gap-1 p-1 rounded hover:bg-zen-bg"><Copy className="w-3 h-3" /> Copy</button>
@@ -231,7 +231,7 @@ const CalculatorWidget = () => {
 
     return (
         <div className="flex flex-col h-full bg-zen-bg p-6 pb-8">
-            <div className="bg-zen-surface/50 rounded-2xl p-5 mb-6 border border-zen-border shadow-inner relative overflow-hidden flex flex-col justify-end min-h-[140px]">
+            <div className="bg-zen-surface/50 rounded-[20px] p-5 mb-6 border border-zen-border shadow-inner relative overflow-hidden flex flex-col justify-end min-h-[140px]">
                 {history.length > 0 && (
                     <div className="absolute top-4 right-5 text-xs text-zen-muted/50 font-mono flex flex-col items-end gap-1 pointer-events-none select-none">
                         {history.slice(0, 2).map((h, i) => <div key={i}>{h}</div>)}
@@ -305,7 +305,7 @@ const AgentWidget = ({
 
     return (
         <div className="flex flex-col h-full bg-zen-bg p-5 gap-4">
-            <div className="p-4 rounded-2xl bg-zen-surface border border-zen-border/50 shadow-sm">
+            <div className="p-4 rounded-[18px] bg-zen-surface border border-zen-border/50 shadow-sm">
                 <div className="text-xs font-medium text-zen-muted mb-2">Task</div>
                 <textarea
                     className="w-full min-h-[120px] bg-zen-bg border border-zen-border rounded-xl p-3 text-sm text-zen-text focus:outline-none focus:border-zen-accent focus:ring-1 focus:ring-zen-accent/50 resize-none"
@@ -333,7 +333,7 @@ const AgentWidget = ({
                 </div>
             </div>
 
-            <div className="p-4 rounded-2xl bg-zen-surface border border-zen-border/50 shadow-sm flex-1 overflow-hidden">
+            <div className="p-4 rounded-[18px] bg-zen-surface border border-zen-border/50 shadow-sm flex-1 overflow-hidden">
                 <div className="text-xs font-medium text-zen-muted mb-2">Status</div>
                 <div className="text-sm font-semibold text-zen-text mb-2">
                     {run ? run.status.toUpperCase() : 'IDLE'}
@@ -449,7 +449,7 @@ const SpotifyWidget = () => {
     );
 };
 
-const SidebarPanel: React.FC<SidebarPanelProps> = ({ isOpen, appId, onClose, sidebarWidth, position = 'left', agentRun, onStartAgent, onAbortAgent }) => {
+const SidebarPanel: React.FC<SidebarPanelProps> = ({ isOpen, appId, onClose, position = 'left', agentRun, onStartAgent, onAbortAgent }) => {
     const [key, setKey] = useState(0);
     const handleReload = () => setKey(prev => prev + 1);
     if (!appId) return null;
@@ -493,13 +493,13 @@ const SidebarPanel: React.FC<SidebarPanelProps> = ({ isOpen, appId, onClose, sid
     }
 
     const isLeft = appId === 'spotify' ? false : position === 'left';
-    const rightOffset = position === 'right' ? `${sidebarWidth + 14}px` : '14px';
+    const rightOffset = `${RAIL_GUTTER}px`;
 
     return (
         <div 
-            className={`fixed inset-y-0 ${widthClass} bg-zen-surface/95 backdrop-blur-2xl border-zen-border shadow-deep z-40 transform transition-transform duration-500 cubic-bezier(0.16, 1, 0.3, 1) flex flex-col ${isLeft ? 'border-r' : 'border-l'} ${isOpen ? 'translate-x-0' : (isLeft ? '-translate-x-full' : 'translate-x-full')}`}
+            className={`fixed inset-y-0 ${widthClass} bg-zen-surface/95 backdrop-blur-2xl border-zen-border shadow-deep z-40 transform transition-transform duration-500 cubic-bezier(0.16, 1, 0.3, 1) flex flex-col overflow-hidden ${isLeft ? 'border-r' : 'border-l'} ${isOpen ? 'translate-x-0' : (isLeft ? '-translate-x-full' : 'translate-x-full')}`}
             style={{ 
-                left: isLeft ? `${sidebarWidth + 14}px` : 'auto',
+                left: isLeft ? `${ATTACHED_PANEL_LEFT}px` : 'auto',
                 right: isLeft ? 'auto' : rightOffset
             }}
         >

@@ -275,13 +275,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         }
     };
 
-    // Determine appropriate text color for active tabs based on theme
-    const getActiveTextColor = () => {
-        if (theme === 'blackbox' || theme === 'glass' || theme === 'galaxy') {
-            return 'text-zen-bg'; // Dark text for light/bright accents
-        }
-        return 'text-white'; // White text for standard/dark accents
-    };
+    const getActiveTextColor = () => 'text-[#111111]';
 
     const navTabs = [
         { id: 'general',      label: 'General',      icon: <Box className="w-4 h-4" /> },
@@ -291,17 +285,17 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     ];
 
     return (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] flex items-center justify-center p-4 animate-fade-in">
-            <div className="bg-zen-bg w-full max-w-4xl h-[80vh] border border-zen-border shadow-deep overflow-hidden animate-scale-in rounded-3xl flex">
-                <div className="w-64 border-r border-zen-border bg-zen-surface/30 flex flex-col p-4">
-                    <div className="text-2xl font-bold text-zen-text mb-8 px-2 flex items-center gap-2">
+        <div className="fixed inset-0 bg-black/86 backdrop-blur-md z-[100] flex items-center justify-center p-4 animate-fade-in">
+            <div className="bg-zen-bg w-full max-w-4xl h-[80vh] border border-zen-border shadow-deep overflow-hidden animate-scale-in rounded-[28px] flex">
+                <div className="w-64 border-r border-zen-border bg-zen-surface/45 flex flex-col p-4">
+                    <div className="text-2xl font-medium text-zen-text mb-8 px-2 flex items-center gap-2">
                         <Rocket className="w-6 h-6 text-zen-accent" />
                         Saturn
                     </div>
                     <nav className="flex-1 space-y-1">
                         {navTabs.map(tab => (
                             <button key={tab.id} onClick={() => setActiveTab(tab.id as any)}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${activeTab === tab.id ? `bg-zen-accent shadow-lg ${getActiveTextColor()}` : 'text-zen-muted hover:text-zen-text hover:bg-zen-surface'}`}>
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${activeTab === tab.id ? `bg-zen-accent shadow-lg ${getActiveTextColor()}` : 'text-zen-muted hover:text-zen-text hover:bg-zen-surface/70'}`}>
                                 {tab.icon}
                                 {tab.label}
                             </button>
@@ -320,8 +314,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                     </div>
                 </div>
                 <div className="flex-1 flex flex-col min-w-0">
-                    <div className="flex items-center justify-between p-6 border-b border-zen-border">
-                        <h2 className="text-xl font-bold text-zen-text capitalize">{activeTab} Settings</h2>
+                    <div className="flex items-center justify-between p-6 border-b border-zen-border bg-zen-surface/28">
+                        <h2 className="text-xl font-medium text-zen-text capitalize">{activeTab} Settings</h2>
                         <button onClick={onClose} className="p-2 hover:bg-zen-surface rounded-full text-zen-muted hover:text-zen-text transition-colors">
                             <X className="w-5 h-5" />
                         </button>
@@ -524,28 +518,36 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                 <div>
                                     <h3 className="text-sm font-medium text-zen-muted mb-5 pl-1">Visuals</h3>
                                     <div className="p-5 rounded-2xl bg-zen-surface border border-zen-border/50 shadow-sm">
-                                        <div className="flex justify-between items-center mb-4">
-                                            <div className="flex items-center gap-4">
-                                                <div className="p-3 rounded-xl bg-blue-500/10 text-blue-400"><PaintBucket className="w-5 h-5" /></div>
-                                                <div>
-                                                    <div className="text-sm font-bold text-zen-text">Interface Theme</div>
-                                                    <div className="text-xs text-zen-muted">Customize your workspace</div>
-                                                </div>
+                                        <div className="flex items-center gap-4 mb-4">
+                                            <div className="p-3 rounded-xl bg-zen-accent/10 text-zen-accent"><PaintBucket className="w-5 h-5" /></div>
+                                            <div>
+                                                <div className="text-sm font-bold text-zen-text">Standardized Saturn Look</div>
+                                                <div className="text-xs text-zen-muted">The interface now uses one consistent visual system across the main app and side panel, with accent themes that keep the same structure.</div>
                                             </div>
                                         </div>
-                                        <div className="flex gap-3 flex-wrap">
-                                            {[
-                                                { id: 'red', color: 'bg-red-600' }, { id: 'blue', color: 'bg-blue-600' },
-                                                { id: 'charcoal-cosmic', color: 'bg-orange-500' }, { id: 'galaxy', color: 'bg-fuchsia-600' },
-                                                { id: 'blackbox', color: 'bg-black' }, { id: 'glass', color: 'bg-cyan-500' },
-                                                { id: 'light', color: 'bg-gray-100', border: 'border-gray-300' }
-                                            ].map(t => (
-                                                <button
-                                                    key={t.id}
-                                                    onClick={() => setTheme(t.id as Theme)}
-                                                    className={`w-10 h-10 rounded-full border-2 transition-all shadow-lg ${t.color} ${t.border || 'border-transparent'} ${theme === t.id ? 'scale-110 border-white' : 'opacity-60 hover:opacity-100'}`}
-                                                />
-                                            ))}
+                                        <div className="rounded-2xl border border-zen-border/50 bg-zen-bg/50 p-4">
+                                            <div className="app-topbar-label mb-3">Locked Palette</div>
+                                            <div className="flex flex-wrap items-center gap-3">
+                                                {[
+                                                    { id: 'red', color: 'bg-[#d96b43]', label: 'Terracotta' },
+                                                    { id: 'blue', color: 'bg-[#5f8cff]', label: 'Cobalt' },
+                                                    { id: 'glass', color: 'bg-[#57c4be]', label: 'Teal' },
+                                                    { id: 'charcoal-cosmic', color: 'bg-[#ff8c4a]', label: 'Amber' },
+                                                    { id: 'galaxy', color: 'bg-[#d48cff]', label: 'Orchid' },
+                                                    { id: 'blackbox', color: 'bg-[#f1ede5]', label: 'Ivory' },
+                                                    { id: 'incognito', color: 'bg-[#8a7f75]', label: 'Quiet' },
+                                                    { id: 'light', color: 'bg-[#e7dbcb] border border-[#b59f8c]', label: 'Light' }
+                                                ].map(t => (
+                                                    <button
+                                                        key={t.id}
+                                                        onClick={() => setTheme(t.id as Theme)}
+                                                        className={`flex items-center gap-2 rounded-full border px-2.5 py-2 transition-all ${theme === t.id ? 'border-zen-accent bg-zen-surface/85 shadow-md' : 'border-zen-border/40 bg-zen-surface/45 hover:border-zen-border/70'}`}
+                                                    >
+                                                        <span className={`h-5 w-5 rounded-full ${t.color}`} />
+                                                        <span className="text-xs text-zen-text">{t.label}</span>
+                                                    </button>
+                                                ))}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

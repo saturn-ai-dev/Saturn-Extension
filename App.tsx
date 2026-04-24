@@ -1,20 +1,18 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import SaturnSidebar from './components/SaturnSidebar';
-import HistoryDrawer from './components/HistoryDrawer';
+import SaturnSidebar, { CONTENT_INSET } from './components/SaturnSidebar';
 import SidebarPanel from './components/SidebarPanel';
 import MessageBubble from './components/MessageBubble';
 import InputArea from './components/InputArea';
 import SettingsModal from './components/SettingsModal';
 import AmbientPlayer from './components/AmbientPlayer';
-import RocketFuelGauge from './components/RocketFuelGauge';
 import SearchModeSelector from './components/SearchModeSelector';
 import { Tab, Message, Role, SearchMode, Attachment, Theme, Bookmark, DownloadItem, UserProfile, Extension, BrowserState, CustomShortcut, HistoryItem, ThreadGroup, AgentRun, AgentEvent, CustomMode, ModeModelMap } from './types';
 import { createNewTab, streamGeminiResponse, generateImage, generateVideoWithModel, generateChatTitle, decideAgentUsage, decideOpenUIUsage } from './services/geminiService';
 import { composeSaturnOpenUiInstructions } from './services/openuiService';
 import { separateOpenUIContent } from './services/openuiContent';
 import { sendNanobrowserMessage } from './services/nanobrowserService';
-import { X, LayoutGrid, Sparkles, Compass, PencilLine, FileSearch } from 'lucide-react';
+import { X, Sparkles, Compass, PencilLine, FileSearch } from 'lucide-react';
 
 const DEFAULT_USER: UserProfile = {
     id: 'default',
@@ -116,7 +114,6 @@ export default function App({ mode = 'full' }: AppProps) {
     const [isIncognito, setIsIncognito] = useState(false);
     const [customBackdrop, setCustomBackdrop] = useState<string | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
-    const [sidebarWidth, setSidebarWidth] = useState(50);
     // Ref used to gate NANO_AGENT_DONE so only the panel that started the run handles its result
     const agentRunRef = useRef<AgentRun | null>(null);
 
@@ -868,14 +865,10 @@ export default function App({ mode = 'full' }: AppProps) {
     return (
         <div
             className="app-shell flex h-full bg-zen-bg text-zen-text font-sans overflow-hidden transition-colors duration-500 bg-cover bg-center relative"
-            style={
-                customBackdrop ? { backgroundImage: `url(${customBackdrop})` } :
-                    currentTheme === 'galaxy' ? { backgroundImage: `url(${GALAXY_IMG})` } :
-                        {}
-            }
+            style={customBackdrop ? { backgroundImage: `url(${customBackdrop})` } : {}}
         >
             {!customBackdrop && starField}
-            {(customBackdrop || currentTheme === 'galaxy') && <div className="absolute inset-0 bg-black/30 backdrop-blur-[1px] pointer-events-none z-0" />}
+            {customBackdrop && <div className="absolute inset-0 bg-black/45 backdrop-blur-[2px] pointer-events-none z-0" />}
 
             <SaturnSidebar
                 onNewTab={handleNewTab}
@@ -886,18 +879,7 @@ export default function App({ mode = 'full' }: AppProps) {
                 onOpenApp={handleOpenApp}
                 enabledApps={currentUser.enabledSidebarApps || []}
                 customShortcuts={currentUser.customShortcuts || []}
-                width={sidebarWidth}
-                onWidthChange={setSidebarWidth}
-                position={currentUser.sidebarPosition || 'left'}
-                autoHide={currentUser.sidebarAutoHide || false}
-                showStatus={currentUser.sidebarShowStatus !== false}
-                glassIntensity={currentUser.sidebarGlassIntensity || 70}
                 userName={currentUser.name || 'Saturn User'}
-            />
-
-            <HistoryDrawer
-                isOpen={isSidebarOpen}
-                onClose={() => setIsSidebarOpen(false)}
                 pastConversations={archivedTabs}
                 onRestoreTab={handleRestoreTab}
                 groups={groups}
@@ -910,15 +892,12 @@ export default function App({ mode = 'full' }: AppProps) {
                 onMoveTabToGroup={(tabId, groupId) => setArchivedTabs(prev => prev.map(t => t.id === tabId ? { ...t, groupId } : t))}
                 onDeleteArchivedTab={handleDeleteArchivedTab}
                 onRenameArchivedTab={handleRenameArchivedTab}
-                sidebarWidth={sidebarWidth}
-                position={currentUser.sidebarPosition || 'left'}
             />
 
             <SidebarPanel
                 isOpen={!!activeSidebarApp}
                 appId={activeSidebarApp}
                 onClose={() => setActiveSidebarApp(null)}
-                sidebarWidth={sidebarWidth}
                 position={currentUser.sidebarPosition || 'left'}
                 agentRun={agentRun}
                 onStartAgent={handleStartAgent}
@@ -928,10 +907,8 @@ export default function App({ mode = 'full' }: AppProps) {
             <div
                 className={`flex-1 flex flex-col min-w-0 z-10 relative h-full transition-all duration-500`}
                 style={{
-                    paddingLeft: (currentUser.sidebarPosition === 'right' || currentUser.sidebarPosition === 'top' || currentUser.sidebarPosition === 'bottom') ? '24px' : `${sidebarWidth + 24}px`,
-                    paddingRight: currentUser.sidebarPosition === 'right' ? `${sidebarWidth + 24}px` : '24px',
-                    paddingTop: currentUser.sidebarPosition === 'top' ? '74px' : undefined,
-                    paddingBottom: currentUser.sidebarPosition === 'bottom' ? '74px' : undefined,
+                    paddingLeft: `${CONTENT_INSET}px`,
+                    paddingRight: '24px',
                 }}
             >
                 <SettingsModal
@@ -978,7 +955,7 @@ export default function App({ mode = 'full' }: AppProps) {
                             <div className="relative w-full h-full animate-scale-in bg-white">
                                 <button
                                     onClick={handleExitIframe}
-                                    className="absolute top-4 right-4 z-50 bg-zen-surface border border-zen-border text-zen-text px-4 py-2 rounded-full shadow-xl hover:bg-zen-bg transition-colors flex items-center gap-2 font-bold text-sm group backdrop-blur-md hover:shadow-glow"
+                                    className="absolute top-4 right-4 z-50 bg-zen-surface border border-zen-border text-zen-text px-4 py-2 rounded-full shadow-xl hover:bg-zen-bg transition-colors flex items-center gap-2 font-semibold text-sm group backdrop-blur-md"
                                 >
                                     <X className="w-4 h-4 group-hover:text-red-500 transition-colors" />
                                     Return to Chat
@@ -993,8 +970,8 @@ export default function App({ mode = 'full' }: AppProps) {
                             </div>
                         ) : (
                             <>
-                                <div className={`absolute top-0 left-0 right-0 z-30 ${isEmptyState ? 'bg-transparent' : 'bg-gradient-to-b from-zen-bg via-zen-bg/72 to-transparent'} pt-5 pb-6 pointer-events-none`}>
-                                    <div className="max-w-[72rem] mx-auto px-5 sm:px-8 flex items-center justify-between gap-3 pointer-events-auto">
+                                <div className={`absolute top-0 left-0 right-0 z-30 ${isEmptyState ? 'bg-transparent' : 'bg-gradient-to-b from-[#111111] via-[#111111]/82 to-transparent'} pt-5 pb-6 pointer-events-none`}>
+                                    <div className="max-w-[78rem] mx-auto px-5 sm:px-8 flex items-center justify-between gap-3 pointer-events-auto">
                                         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                                             <SearchModeSelector
                                                 mode={searchMode}
@@ -1002,54 +979,54 @@ export default function App({ mode = 'full' }: AppProps) {
                                                 customModes={currentUser.customModes || []}
                                                 dropdownPlacement="down"
                                                 menuAlign="left"
-                                                buttonClassName="min-w-[112px] bg-zen-surface/50"
+                                                buttonClassName="min-w-[118px] bg-zen-surface/70"
                                             />
                                             {!isEmptyState && (
-                                                <div className={`hidden sm:flex items-center gap-2 px-3.5 py-2 rounded-full border backdrop-blur-md transition-all ${isComposerDisabled ? 'bg-zen-accent/9 border-zen-accent/30 text-zen-text shadow-[0_18px_34px_-28px_rgba(var(--accent-color-rgb),0.5)]' : 'bg-zen-surface/45 border-zen-border/30 text-zen-text'}`}>
+                                                <div className={`hidden sm:flex items-center gap-2 px-3.5 py-2 rounded-[16px] border backdrop-blur-md transition-all ${isComposerDisabled ? 'bg-zen-accent/9 border-zen-accent/30 text-zen-text shadow-[0_18px_34px_-28px_rgba(var(--accent-color-rgb),0.5)]' : 'bg-zen-surface/65 border-zen-border/40 text-zen-text'}`}>
                                                     <div className={`w-2 h-2 rounded-full ${isComposerDisabled ? 'bg-zen-accent shadow-[0_0_10px_var(--accent-color)] animate-pulse' : 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]'}`} />
-                                                    <span className="text-xs font-semibold">{isComposerDisabled ? 'Responding' : 'Ready'}</span>
+                                                    <span className="app-topbar-label !tracking-[0.14em] !text-[10px]">{isComposerDisabled ? 'Responding' : 'Ready'}</span>
                                                 </div>
                                             )}
-                                            <div className="hidden lg:flex items-center gap-2 px-3 py-2 rounded-full bg-zen-surface/42 border border-zen-border/28 text-zen-muted hover:border-zen-accent/30 hover:text-zen-text transition-colors">
-                                                <RocketFuelGauge />
-                                                <span className="text-xs font-semibold pr-1">Usage</span>
-                                            </div>
                                         </div>
 
-                                        <button
-                                            onClick={handleToggleHistory}
-                                            className="flex items-center gap-2 px-4 py-2.5 bg-zen-surface/48 backdrop-blur-md border border-zen-border/30 rounded-full hover:border-zen-accent/45 hover:bg-zen-surface/68 transition-all text-sm font-semibold text-zen-text hover-lift interactive-btn shrink-0 shadow-[0_20px_35px_-30px_rgba(0,0,0,0.8)]"
-                                        >
-                                            <LayoutGrid className="w-4 h-4" />
-                                            History
-                                        </button>
+                                        <div className="shrink-0 rounded-[16px] border border-zen-border/35 bg-zen-surface/55 px-4 py-2">
+                                            <span className="app-topbar-label !text-[10px]">{activeTab?.title || 'New Thread'}</span>
+                                        </div>
                                     </div>
                                 </div>
 
                                 <div className="chat-scroll absolute inset-0 overflow-y-auto scroll-smooth custom-scrollbar flex flex-col">
-                                    <div className={`max-w-[72rem] mx-auto w-full px-5 sm:px-8 ${isEmptyState ? 'pt-16' : 'pt-24'} flex-1 flex flex-col min-h-full`}>
+                                    <div className={`max-w-[78rem] mx-auto w-full px-5 sm:px-8 ${isEmptyState ? 'pt-16' : 'pt-24'} flex-1 flex flex-col min-h-full`}>
                                         {isEmptyState ? (
-                                            <div className="relative flex-1 flex flex-col items-center justify-center pt-4 pb-24 animate-app-open">
+                                            <div className="relative flex-1 flex flex-col items-center justify-center pt-6 pb-24 animate-app-open">
                                                 <div className="pointer-events-none absolute inset-x-0 top-1/3 flex justify-center">
-                                                    <div className="h-[28rem] w-[28rem] rounded-full bg-[radial-gradient(circle,rgba(var(--accent-color-rgb),0.22)_0%,rgba(var(--accent-color-rgb),0.08)_36%,transparent_74%)] blur-3xl opacity-90" />
+                                                    <div className="h-[34rem] w-[34rem] rounded-full bg-[radial-gradient(circle,rgba(var(--accent-color-rgb),0.18)_0%,rgba(var(--accent-color-rgb),0.05)_42%,transparent_74%)] blur-3xl opacity-90" />
                                                 </div>
                                                 <div className="relative z-10 flex w-full max-w-[62rem] flex-col items-center">
-                                                    <div className="flex items-center gap-3 mb-6">
+                                                    <div className="flex items-center gap-3 mb-4">
                                                         <div className="relative flex items-center justify-center">
-                                                            <div className="absolute inset-0 bg-zen-accent/25 blur-2xl rounded-full" />
+                                                            <div className="absolute inset-0 bg-zen-accent/20 blur-2xl rounded-full" />
                                                             <svg viewBox="0 0 100 100" className="w-10 h-10 text-zen-accent opacity-95 relative z-10 filter drop-shadow-[0_0_14px_rgba(var(--accent-color-rgb),0.55)]">
                                                                 <circle cx="50" cy="50" r="20" fill="currentColor" />
                                                                 <ellipse cx="50" cy="50" rx="40" ry="10" fill="none" stroke="currentColor" strokeWidth="4" transform="rotate(-15 50 50)" />
                                                             </svg>
                                                         </div>
-                                                        <span className="font-fraunces text-[22px] font-semibold text-zen-text/90 tracking-tight">Saturn</span>
+                                                        <div className="flex flex-col items-start">
+                                                            <span className="text-[22px] font-medium text-zen-text/90 tracking-[0]">Saturn</span>
+                                                            <span className="app-topbar-label !text-[9px]">Clean Workspace</span>
+                                                        </div>
                                                     </div>
 
                                                     <div className="max-w-3xl text-center mb-10">
-                                                        <h1 className="font-fraunces text-[clamp(44px,6vw,72px)] font-light leading-[1.02] tracking-[-0.035em] text-zen-text">
+                                                        <div className="app-topbar-label mb-4 flex items-center justify-center gap-4">
+                                                            <i className="block h-px w-8 bg-[rgba(132,118,104,0.4)]" />
+                                                            Index / 01
+                                                            <i className="block h-px w-8 bg-[rgba(132,118,104,0.4)]" />
+                                                        </div>
+                                                        <h1 className="text-[clamp(56px,6rem,92px)] font-light leading-[0.98] tracking-[0] text-zen-text">
                                                             A cleaner home<br/>for <em className="not-italic text-zen-accent font-light">thinking</em>.
                                                         </h1>
-                                                        <p className="mt-5 text-[15px] sm:text-base text-zen-muted/85 leading-relaxed max-w-xl mx-auto">
+                                                        <p className="mt-6 text-[15px] sm:text-base text-zen-muted/85 leading-relaxed max-w-xl mx-auto">
                                                             Search, reason, and build from a single prompt. Start typing, paste a URL, or pick a shortcut.
                                                         </p>
                                                     </div>
@@ -1071,28 +1048,28 @@ export default function App({ mode = 'full' }: AppProps) {
                                                     <div className="w-full max-w-[56rem] mt-6 flex flex-wrap items-center justify-center gap-2.5">
                                                         <button
                                                             onClick={() => applyDraftSuggestion('Research this topic and give me a clean overview with key takeaways.')}
-                                                            className="group flex items-center gap-2 px-4 py-2.5 rounded-full border border-zen-border/35 bg-zen-surface/35 backdrop-blur-md text-sm text-zen-muted hover:text-zen-text hover:border-zen-accent/45 hover:bg-zen-surface/65 transition-all hover-lift"
+                                                            className="group flex items-center gap-2 px-4 py-2.5 rounded-[16px] border border-zen-border/35 bg-zen-surface/55 backdrop-blur-md text-sm text-zen-muted hover:text-zen-text hover:border-zen-accent/45 hover:bg-zen-surface/75 transition-all hover-lift"
                                                         >
                                                             <Compass className="w-[14px] h-[14px] text-zen-accent group-hover:scale-110 transition-transform" />
                                                             <span className="font-medium">Explore a topic</span>
                                                         </button>
                                                         <button
                                                             onClick={() => applyDraftSuggestion('Plan this task step by step and point out the risky parts before starting.')}
-                                                            className="group flex items-center gap-2 px-4 py-2.5 rounded-full border border-zen-border/35 bg-zen-surface/35 backdrop-blur-md text-sm text-zen-muted hover:text-zen-text hover:border-zen-accent/45 hover:bg-zen-surface/65 transition-all hover-lift"
+                                                            className="group flex items-center gap-2 px-4 py-2.5 rounded-[16px] border border-zen-border/35 bg-zen-surface/55 backdrop-blur-md text-sm text-zen-muted hover:text-zen-text hover:border-zen-accent/45 hover:bg-zen-surface/75 transition-all hover-lift"
                                                         >
                                                             <Sparkles className="w-[14px] h-[14px] text-zen-accent group-hover:scale-110 transition-transform" />
                                                             <span className="font-medium">Plan the work</span>
                                                         </button>
                                                         <button
                                                             onClick={() => applyDraftSuggestion('Turn this rough idea into a polished first draft with a strong structure.')}
-                                                            className="group flex items-center gap-2 px-4 py-2.5 rounded-full border border-zen-border/35 bg-zen-surface/35 backdrop-blur-md text-sm text-zen-muted hover:text-zen-text hover:border-zen-accent/45 hover:bg-zen-surface/65 transition-all hover-lift"
+                                                            className="group flex items-center gap-2 px-4 py-2.5 rounded-[16px] border border-zen-border/35 bg-zen-surface/55 backdrop-blur-md text-sm text-zen-muted hover:text-zen-text hover:border-zen-accent/45 hover:bg-zen-surface/75 transition-all hover-lift"
                                                         >
                                                             <PencilLine className="w-[14px] h-[14px] text-zen-accent group-hover:scale-110 transition-transform" />
                                                             <span className="font-medium">Write something</span>
                                                         </button>
                                                         <button
                                                             onClick={() => applyDraftSuggestion('Analyze the current page and summarize the most important details for me.')}
-                                                            className="group flex items-center gap-2 px-4 py-2.5 rounded-full border border-zen-border/35 bg-zen-surface/35 backdrop-blur-md text-sm text-zen-muted hover:text-zen-text hover:border-zen-accent/45 hover:bg-zen-surface/65 transition-all hover-lift"
+                                                            className="group flex items-center gap-2 px-4 py-2.5 rounded-[16px] border border-zen-border/35 bg-zen-surface/55 backdrop-blur-md text-sm text-zen-muted hover:text-zen-text hover:border-zen-accent/45 hover:bg-zen-surface/75 transition-all hover-lift"
                                                         >
                                                             <FileSearch className="w-[14px] h-[14px] text-zen-accent group-hover:scale-110 transition-transform" />
                                                             <span className="font-medium">Inspect a page</span>
@@ -1123,7 +1100,7 @@ export default function App({ mode = 'full' }: AppProps) {
                                 </div>
                                 {!isEmptyState && (
                                     <div className="chat-compose-dock absolute bottom-0 left-0 right-0 pt-4 pb-8 sm:pb-12 z-20 pointer-events-none">
-                                        <div className="pointer-events-auto max-w-[72rem] mx-auto px-5 sm:px-8">
+                                        <div className="pointer-events-auto max-w-[78rem] mx-auto px-5 sm:px-8">
                                             <InputArea
                                                 onSend={(text, attach) => handleSendMessage(text, attach)}
                                                 disabled={isComposerDisabled}

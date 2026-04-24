@@ -76,7 +76,7 @@ const SearchModeSelector: React.FC<SearchModeSelectorProps> = ({
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setShowModeDropdown(prev => !prev)}
-        className={`flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-zen-bg/65 hover:bg-zen-bg text-zen-text border border-zen-border/40 hover:border-zen-border/70 transition-all duration-200 text-sm font-semibold min-w-[112px] justify-between interactive-btn hover-lift shadow-sm ${buttonClassName}`}
+        className={`flex items-center gap-2.5 px-4 py-2.5 rounded-[16px] bg-zen-bg/70 hover:bg-zen-bg text-zen-text border border-zen-border/40 hover:border-zen-border/70 transition-all duration-200 text-sm font-medium min-w-[112px] justify-between interactive-btn hover-lift shadow-sm ${buttonClassName}`}
       >
         <div className="flex items-center gap-2.5 min-w-0">
           {currentMode.icon}
@@ -86,7 +86,7 @@ const SearchModeSelector: React.FC<SearchModeSelectorProps> = ({
       </button>
 
       {showModeDropdown && (
-        <div className={`absolute ${alignmentClassName} ${placementClassName} w-60 glass-elevated rounded-[20px] shadow-xl animate-dropdown-open z-[60] p-2 space-y-1 border border-zen-border/50 ${menuClassName}`}>
+        <div className={`absolute ${alignmentClassName} ${placementClassName} w-60 glass-elevated rounded-[18px] shadow-xl animate-dropdown-open z-[60] p-2 space-y-1 border border-zen-border/50 ${menuClassName}`}>
           {modes.map((m) => {
             const isDisabled = isModeDisabled(m.id);
 
@@ -99,7 +99,7 @@ const SearchModeSelector: React.FC<SearchModeSelectorProps> = ({
                     setShowModeDropdown(false);
                   }
                 }}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-[14px] text-left transition-all duration-200 hover-lift ${isDisabled ? 'opacity-40 cursor-not-allowed' : ''} ${mode === m.id ? 'bg-zen-accent/10 text-zen-text border border-zen-accent/30' : 'text-zen-muted hover:text-zen-text hover:bg-zen-bg/60'}`}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-[14px] text-left transition-all duration-200 hover-lift ${isDisabled ? 'opacity-40 cursor-not-allowed' : ''} ${mode === m.id ? 'bg-zen-accent/10 text-zen-text border border-zen-accent/30' : 'text-zen-muted hover:text-zen-text hover:bg-zen-bg/70'}`}
               >
                 <div className="flex items-center justify-center w-5 h-5 shrink-0">
                   {m.icon}
