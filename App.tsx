@@ -993,7 +993,7 @@ export default function App({ mode = 'full' }: AppProps) {
                             </div>
                         ) : (
                             <>
-                                <div className="absolute top-0 left-0 right-0 z-30 bg-gradient-to-b from-zen-bg via-zen-bg/72 to-transparent pt-5 pb-6 pointer-events-none">
+                                <div className={`absolute top-0 left-0 right-0 z-30 ${isEmptyState ? 'bg-transparent' : 'bg-gradient-to-b from-zen-bg via-zen-bg/72 to-transparent'} pt-5 pb-6 pointer-events-none`}>
                                     <div className="max-w-[72rem] mx-auto px-5 sm:px-8 flex items-center justify-between gap-3 pointer-events-auto">
                                         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                                             <SearchModeSelector
@@ -1004,17 +1004,19 @@ export default function App({ mode = 'full' }: AppProps) {
                                                 menuAlign="left"
                                                 buttonClassName="min-w-[112px] bg-zen-surface/50"
                                             />
-                                            <div className={`hidden sm:flex items-center gap-2 px-3.5 py-2 rounded-full border backdrop-blur-md transition-all ${isComposerDisabled ? 'bg-zen-accent/9 border-zen-accent/30 text-zen-text shadow-[0_18px_34px_-28px_rgba(var(--accent-color-rgb),0.5)]' : 'bg-zen-surface/45 border-zen-border/30 text-zen-text'}`}>
-                                                <div className={`w-2 h-2 rounded-full ${isComposerDisabled ? 'bg-zen-accent shadow-[0_0_10px_var(--accent-color)] animate-pulse' : 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]'}`} />
-                                                <span className="text-xs font-semibold">{isComposerDisabled ? 'Responding' : 'Ready'}</span>
-                                            </div>
+                                            {!isEmptyState && (
+                                                <div className={`hidden sm:flex items-center gap-2 px-3.5 py-2 rounded-full border backdrop-blur-md transition-all ${isComposerDisabled ? 'bg-zen-accent/9 border-zen-accent/30 text-zen-text shadow-[0_18px_34px_-28px_rgba(var(--accent-color-rgb),0.5)]' : 'bg-zen-surface/45 border-zen-border/30 text-zen-text'}`}>
+                                                    <div className={`w-2 h-2 rounded-full ${isComposerDisabled ? 'bg-zen-accent shadow-[0_0_10px_var(--accent-color)] animate-pulse' : 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]'}`} />
+                                                    <span className="text-xs font-semibold">{isComposerDisabled ? 'Responding' : 'Ready'}</span>
+                                                </div>
+                                            )}
                                             <div className="hidden lg:flex items-center gap-2 px-3 py-2 rounded-full bg-zen-surface/42 border border-zen-border/28 text-zen-muted hover:border-zen-accent/30 hover:text-zen-text transition-colors">
                                                 <RocketFuelGauge />
                                                 <span className="text-xs font-semibold pr-1">Usage</span>
                                             </div>
                                         </div>
 
-                                        <button 
+                                        <button
                                             onClick={handleToggleHistory}
                                             className="flex items-center gap-2 px-4 py-2.5 bg-zen-surface/48 backdrop-blur-md border border-zen-border/30 rounded-full hover:border-zen-accent/45 hover:bg-zen-surface/68 transition-all text-sm font-semibold text-zen-text hover-lift interactive-btn shrink-0 shadow-[0_20px_35px_-30px_rgba(0,0,0,0.8)]"
                                         >
@@ -1025,29 +1027,34 @@ export default function App({ mode = 'full' }: AppProps) {
                                 </div>
 
                                 <div className="chat-scroll absolute inset-0 overflow-y-auto scroll-smooth custom-scrollbar flex flex-col">
-                                    <div className="max-w-[72rem] mx-auto w-full px-5 sm:px-8 pt-24 flex-1 flex flex-col min-h-full">
+                                    <div className={`max-w-[72rem] mx-auto w-full px-5 sm:px-8 ${isEmptyState ? 'pt-16' : 'pt-24'} flex-1 flex flex-col min-h-full`}>
                                         {isEmptyState ? (
-                                            <div className="relative flex-1 flex flex-col items-center justify-center pt-8 pb-24 animate-app-open">
-                                                <div className="pointer-events-none absolute inset-x-0 top-[22%] flex justify-center">
-                                                    <div className="h-56 w-56 rounded-full bg-[radial-gradient(circle,rgba(var(--accent-color-rgb),0.18)_0%,rgba(var(--accent-color-rgb),0.08)_32%,transparent_72%)] blur-2xl opacity-95" />
+                                            <div className="relative flex-1 flex flex-col items-center justify-center pt-4 pb-24 animate-app-open">
+                                                <div className="pointer-events-none absolute inset-x-0 top-1/3 flex justify-center">
+                                                    <div className="h-[28rem] w-[28rem] rounded-full bg-[radial-gradient(circle,rgba(var(--accent-color-rgb),0.22)_0%,rgba(var(--accent-color-rgb),0.08)_36%,transparent_74%)] blur-3xl opacity-90" />
                                                 </div>
-                                                <div className="relative z-10 flex w-full max-w-[58rem] flex-col items-center">
-                                                    <div className="mb-8 relative flex items-center justify-center group">
-                                                        <div className="absolute inset-0 bg-zen-accent/18 blur-3xl rounded-full animate-pulse-slow" />
-                                                        <svg viewBox="0 0 100 100" className="w-24 h-24 sm:w-28 sm:h-28 text-zen-accent opacity-95 relative z-10 filter drop-shadow-[0_0_20px_rgba(var(--accent-color-rgb),0.45)]">
-                                                            <circle cx="50" cy="50" r="20" fill="currentColor" />
-                                                            <ellipse cx="50" cy="50" rx="40" ry="10" fill="none" stroke="currentColor" strokeWidth="4" transform="rotate(-15 50 50)" />
-                                                        </svg>
+                                                <div className="relative z-10 flex w-full max-w-[62rem] flex-col items-center">
+                                                    <div className="flex items-center gap-3 mb-6">
+                                                        <div className="relative flex items-center justify-center">
+                                                            <div className="absolute inset-0 bg-zen-accent/25 blur-2xl rounded-full" />
+                                                            <svg viewBox="0 0 100 100" className="w-10 h-10 text-zen-accent opacity-95 relative z-10 filter drop-shadow-[0_0_14px_rgba(var(--accent-color-rgb),0.55)]">
+                                                                <circle cx="50" cy="50" r="20" fill="currentColor" />
+                                                                <ellipse cx="50" cy="50" rx="40" ry="10" fill="none" stroke="currentColor" strokeWidth="4" transform="rotate(-15 50 50)" />
+                                                            </svg>
+                                                        </div>
+                                                        <span className="font-fraunces text-[22px] font-semibold text-zen-text/90 tracking-tight">Saturn</span>
                                                     </div>
 
-                                                    <div className="max-w-3xl text-center">
-                                                        <h1 className="font-fraunces text-5xl sm:text-6xl font-semibold mb-3 text-zen-text tracking-tight text-center">Saturn</h1>
-                                                        <p className="text-base sm:text-lg text-zen-muted/85 leading-relaxed">
-                                                            A cleaner home for search, reasoning, and building. Start with a prompt and keep the rest out of the way.
+                                                    <div className="max-w-3xl text-center mb-10">
+                                                        <h1 className="font-fraunces text-[clamp(44px,6vw,72px)] font-light leading-[1.02] tracking-[-0.035em] text-zen-text">
+                                                            A cleaner home<br/>for <em className="not-italic text-zen-accent font-light">thinking</em>.
+                                                        </h1>
+                                                        <p className="mt-5 text-[15px] sm:text-base text-zen-muted/85 leading-relaxed max-w-xl mx-auto">
+                                                            Search, reason, and build from a single prompt. Start typing, paste a URL, or pick a shortcut.
                                                         </p>
                                                     </div>
 
-                                                    <div className="w-full max-w-[52rem] mt-10">
+                                                    <div className="w-full max-w-[56rem]">
                                                         <InputArea
                                                             onSend={(text, attach) => handleSendMessage(text, attach)}
                                                             disabled={isComposerDisabled}
@@ -1057,41 +1064,38 @@ export default function App({ mode = 'full' }: AppProps) {
                                                             draft={draft}
                                                             customModes={currentUser.customModes || []}
                                                             showModeControls={false}
+                                                            hero
                                                         />
                                                     </div>
 
-                                                    <div className="w-full max-w-[52rem] mt-5 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+                                                    <div className="w-full max-w-[56rem] mt-6 flex flex-wrap items-center justify-center gap-2.5">
                                                         <button
                                                             onClick={() => applyDraftSuggestion('Research this topic and give me a clean overview with key takeaways.')}
-                                                            className="interactive-card rounded-[22px] border border-zen-border/30 bg-zen-surface/34 backdrop-blur-xl px-4 py-4 text-left hover:bg-zen-surface/55"
+                                                            className="group flex items-center gap-2 px-4 py-2.5 rounded-full border border-zen-border/35 bg-zen-surface/35 backdrop-blur-md text-sm text-zen-muted hover:text-zen-text hover:border-zen-accent/45 hover:bg-zen-surface/65 transition-all hover-lift"
                                                         >
-                                                            <Compass className="w-4 h-4 text-zen-accent mb-3" />
-                                                            <div className="text-sm font-semibold text-zen-text">Explore a topic</div>
-                                                            <div className="text-xs text-zen-muted mt-1 leading-relaxed">Start broad and narrow down fast.</div>
+                                                            <Compass className="w-[14px] h-[14px] text-zen-accent group-hover:scale-110 transition-transform" />
+                                                            <span className="font-medium">Explore a topic</span>
                                                         </button>
                                                         <button
                                                             onClick={() => applyDraftSuggestion('Plan this task step by step and point out the risky parts before starting.')}
-                                                            className="interactive-card rounded-[22px] border border-zen-border/30 bg-zen-surface/34 backdrop-blur-xl px-4 py-4 text-left hover:bg-zen-surface/55"
+                                                            className="group flex items-center gap-2 px-4 py-2.5 rounded-full border border-zen-border/35 bg-zen-surface/35 backdrop-blur-md text-sm text-zen-muted hover:text-zen-text hover:border-zen-accent/45 hover:bg-zen-surface/65 transition-all hover-lift"
                                                         >
-                                                            <Sparkles className="w-4 h-4 text-zen-accent mb-3" />
-                                                            <div className="text-sm font-semibold text-zen-text">Plan the work</div>
-                                                            <div className="text-xs text-zen-muted mt-1 leading-relaxed">Get structure before execution.</div>
+                                                            <Sparkles className="w-[14px] h-[14px] text-zen-accent group-hover:scale-110 transition-transform" />
+                                                            <span className="font-medium">Plan the work</span>
                                                         </button>
                                                         <button
                                                             onClick={() => applyDraftSuggestion('Turn this rough idea into a polished first draft with a strong structure.')}
-                                                            className="interactive-card rounded-[22px] border border-zen-border/30 bg-zen-surface/34 backdrop-blur-xl px-4 py-4 text-left hover:bg-zen-surface/55"
+                                                            className="group flex items-center gap-2 px-4 py-2.5 rounded-full border border-zen-border/35 bg-zen-surface/35 backdrop-blur-md text-sm text-zen-muted hover:text-zen-text hover:border-zen-accent/45 hover:bg-zen-surface/65 transition-all hover-lift"
                                                         >
-                                                            <PencilLine className="w-4 h-4 text-zen-accent mb-3" />
-                                                            <div className="text-sm font-semibold text-zen-text">Write something</div>
-                                                            <div className="text-xs text-zen-muted mt-1 leading-relaxed">Draft faster without the noise.</div>
+                                                            <PencilLine className="w-[14px] h-[14px] text-zen-accent group-hover:scale-110 transition-transform" />
+                                                            <span className="font-medium">Write something</span>
                                                         </button>
                                                         <button
                                                             onClick={() => applyDraftSuggestion('Analyze the current page and summarize the most important details for me.')}
-                                                            className="interactive-card rounded-[22px] border border-zen-border/30 bg-zen-surface/34 backdrop-blur-xl px-4 py-4 text-left hover:bg-zen-surface/55"
+                                                            className="group flex items-center gap-2 px-4 py-2.5 rounded-full border border-zen-border/35 bg-zen-surface/35 backdrop-blur-md text-sm text-zen-muted hover:text-zen-text hover:border-zen-accent/45 hover:bg-zen-surface/65 transition-all hover-lift"
                                                         >
-                                                            <FileSearch className="w-4 h-4 text-zen-accent mb-3" />
-                                                            <div className="text-sm font-semibold text-zen-text">Inspect a page</div>
-                                                            <div className="text-xs text-zen-muted mt-1 leading-relaxed">Useful when you want context, quickly.</div>
+                                                            <FileSearch className="w-[14px] h-[14px] text-zen-accent group-hover:scale-110 transition-transform" />
+                                                            <span className="font-medium">Inspect a page</span>
                                                         </button>
                                                     </div>
                                                 </div>

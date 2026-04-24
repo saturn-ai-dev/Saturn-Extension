@@ -14,6 +14,7 @@ interface InputAreaProps {
   draft?: { text: string, timestamp: number };
   customModes?: CustomMode[];
   showModeControls?: boolean;
+  hero?: boolean;
 }
 
 const InputArea: React.FC<InputAreaProps> = ({
@@ -24,7 +25,8 @@ const InputArea: React.FC<InputAreaProps> = ({
   onGetContext,
   draft,
   customModes = [],
-  showModeControls = true
+  showModeControls = true,
+  hero = false
 }) => {
   const [input, setInput] = useState('');
   const [isFocused, setIsFocused] = useState(false);
@@ -183,13 +185,17 @@ const InputArea: React.FC<InputAreaProps> = ({
           onDrop={handleDrop}
           onPaste={handlePaste}
           className={`
-            chat-input-shell relative rounded-[28px] border flex flex-col transition-all duration-300 hover-lift
-            ${isDragging ? 'border-zen-accent/60 border-dashed bg-zen-accent/5' : isFocused ? 'border-zen-accent/40' : 'border-zen-border/40 hover:border-zen-border/70'}
+            chat-input-shell relative ${hero ? 'rounded-[36px]' : 'rounded-[28px]'} border flex flex-col transition-all duration-300 hover-lift
+            ${isDragging ? 'border-zen-accent/60 border-dashed bg-zen-accent/5' : isFocused ? 'border-zen-accent/55' : 'border-zen-border/40 hover:border-zen-border/70'}
           `}
           style={{
             boxShadow: isFocused
-              ? '0 0 0 1px rgba(var(--accent-color-rgb),0.34), 0 0 25px -8px rgba(var(--accent-color-rgb),0.5), 0 20px 45px -30px rgba(0,0,0,0.7)'
-              : '0 14px 32px -26px rgba(0,0,0,0.68), 0 0 0 1px rgba(255,255,255,0.03)'
+              ? hero
+                ? '0 0 0 1px rgba(var(--accent-color-rgb),0.42), 0 0 55px -12px rgba(var(--accent-color-rgb),0.55), 0 38px 80px -40px rgba(0,0,0,0.85)'
+                : '0 0 0 1px rgba(var(--accent-color-rgb),0.34), 0 0 25px -8px rgba(var(--accent-color-rgb),0.5), 0 20px 45px -30px rgba(0,0,0,0.7)'
+              : hero
+                ? '0 28px 70px -36px rgba(0,0,0,0.85), 0 0 0 1px rgba(255,255,255,0.04), inset 0 1px 0 rgba(255,255,255,0.04)'
+                : '0 14px 32px -26px rgba(0,0,0,0.68), 0 0 0 1px rgba(255,255,255,0.03)'
           }}
         >
           {isDragging && (
@@ -218,8 +224,8 @@ const InputArea: React.FC<InputAreaProps> = ({
             </div>
           )}
 
-          <div className="flex items-end p-3 pl-4 pr-3 gap-3">
-            <div className="flex items-center gap-2 pb-3 text-zen-muted">
+          <div className={`flex items-end gap-3 ${hero ? 'p-5 pl-6 pr-5' : 'p-3 pl-4 pr-3'}`}>
+            <div className={`flex items-center gap-2 text-zen-muted ${hero ? 'pb-4' : 'pb-3'}`}>
               <input
                 type="file"
                 ref={fileInputRef}
@@ -230,20 +236,20 @@ const InputArea: React.FC<InputAreaProps> = ({
               />
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="p-2.5 rounded-2xl hover:bg-zen-bg/60 hover:text-zen-text border border-transparent hover:border-zen-border/30 transition-all interactive-btn hover-lift shadow-sm"
+                className={`${hero ? 'p-3' : 'p-2.5'} rounded-2xl hover:bg-zen-bg/60 hover:text-zen-text border border-transparent hover:border-zen-border/30 transition-all interactive-btn hover-lift shadow-sm`}
                 title="Attach File"
                 disabled={mode === 'image' || mode === 'video'}
               >
-                <Paperclip className="w-5 h-5" />
+                <Paperclip className={hero ? 'w-[22px] h-[22px]' : 'w-5 h-5'} />
               </button>
               {onGetContext && (
                 <button
                   onClick={onGetContext}
-                  className="p-2.5 rounded-2xl hover:bg-zen-bg/60 hover:text-zen-text border border-transparent hover:border-zen-border/30 transition-all interactive-btn hover-lift shadow-sm"
+                  className={`${hero ? 'p-3' : 'p-2.5'} rounded-2xl hover:bg-zen-bg/60 hover:text-zen-text border border-transparent hover:border-zen-border/30 transition-all interactive-btn hover-lift shadow-sm`}
                   title="Add Current Page Content"
                   disabled={disabled}
                 >
-                  <FileText className="w-5 h-5" />
+                  <FileText className={hero ? 'w-[22px] h-[22px]' : 'w-5 h-5'} />
                 </button>
               )}
             </div>
@@ -269,8 +275,8 @@ const InputArea: React.FC<InputAreaProps> = ({
                   placeholder={getPlaceholder()}
                   disabled={disabled}
                   rows={1}
-                  className="w-full bg-transparent border-0 focus:ring-0 outline-none focus:outline-none text-zen-text placeholder-zen-muted/60 resize-y py-3 px-2 text-[15px] leading-7 max-h-[400px] min-h-[56px] overflow-y-auto disabled:opacity-50 caret-zen-accent font-normal"
-                  style={{ minHeight: '56px' }}
+                  className={`w-full bg-transparent border-0 focus:ring-0 outline-none focus:outline-none text-zen-text placeholder-zen-muted/55 resize-y overflow-y-auto disabled:opacity-50 caret-zen-accent font-normal ${hero ? 'py-4 px-2 text-[17px] leading-8 max-h-[440px]' : 'py-3 px-2 text-[15px] leading-7 max-h-[400px]'}`}
+                  style={{ minHeight: hero ? '72px' : '56px' }}
                 />
               )}
             </div>
@@ -295,17 +301,17 @@ const InputArea: React.FC<InputAreaProps> = ({
               <button
                 onClick={handleSend}
                 disabled={(!input.trim() && attachments.length === 0) || disabled}
-                className={`p-3.5 rounded-[20px] transition-all duration-300 flex-shrink-0 interactive-btn hover-lift ${(input.trim() || attachments.length > 0) && !disabled ? 'bg-zen-text text-zen-bg hover:bg-zen-accent hover:text-white shadow-[0_18px_40px_-22px_rgba(var(--accent-color-rgb),0.9)]' : 'bg-zen-surface/80 text-zen-muted cursor-not-allowed border border-zen-border/40'}`}
+                className={`${hero ? 'p-4 rounded-[24px]' : 'p-3.5 rounded-[20px]'} transition-all duration-300 flex-shrink-0 interactive-btn hover-lift ${(input.trim() || attachments.length > 0) && !disabled ? 'bg-zen-accent text-white hover:bg-zen-accent/90 shadow-[0_18px_40px_-18px_rgba(var(--accent-color-rgb),1)]' : 'bg-zen-surface/80 text-zen-muted cursor-not-allowed border border-zen-border/40'}`}
               >
                 {disabled ? (
-                  <div className="w-5 h-5 animate-spin">
+                  <div className={hero ? 'w-6 h-6 animate-spin' : 'w-5 h-5 animate-spin'}>
                     <svg viewBox="0 0 100 100" className="w-full h-full">
                       <circle cx="50" cy="50" r="20" fill="currentColor" />
                       <ellipse cx="50" cy="50" rx="40" ry="10" fill="none" stroke="currentColor" strokeWidth="8" transform="rotate(-15 50 50)" />
                     </svg>
                   </div>
                 ) : (
-                  <ArrowUp className="w-5 h-5" />
+                  <ArrowUp className={hero ? 'w-6 h-6' : 'w-5 h-5'} />
                 )}
               </button>
             </div>
