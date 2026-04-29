@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import SaturnSidebar, { CONTENT_INSET } from './components/SaturnSidebar';
+import SaturnSidebar, { COLLAPSED_CONTENT_INSET, CONTENT_INSET } from './components/SaturnSidebar';
 import SidebarPanel from './components/SidebarPanel';
 import MessageBubble from './components/MessageBubble';
 import InputArea from './components/InputArea';
@@ -12,7 +12,7 @@ import { createNewTab, streamGeminiResponse, generateImage, generateVideoWithMod
 import { composeSaturnOpenUiInstructions } from './services/openuiService';
 import { separateOpenUIContent } from './services/openuiContent';
 import { sendNanobrowserMessage } from './services/nanobrowserService';
-import { X, Sparkles, Compass, PencilLine, FileSearch } from 'lucide-react';
+import { Check, X, Sparkles, Search, PencilLine, FileSearch } from 'lucide-react';
 
 const DEFAULT_USER: UserProfile = {
     id: 'default',
@@ -106,6 +106,7 @@ export default function App({ mode = 'full' }: AppProps) {
 
     // Sidebar State
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
     const [activeSidebarApp, setActiveSidebarApp] = useState<string | null>(null);
 
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -306,7 +307,7 @@ export default function App({ mode = 'full' }: AppProps) {
 
     const handleToggleHistory = () => {
         if (activeSidebarApp) setActiveSidebarApp(null);
-        setIsSidebarOpen(!isSidebarOpen);
+        setIsSidebarOpen(false);
     };
 
     const handleOpenApp = (appId: string) => {
@@ -445,7 +446,15 @@ export default function App({ mode = 'full' }: AppProps) {
 
 
     const handleResetLayout = () => {
-        setSidebarWidth(50);
+        const updatedUser = {
+            ...currentUser,
+            sidebarPosition: 'left' as const,
+            sidebarAutoHide: false,
+            sidebarShowStatus: true,
+            sidebarGlassIntensity: 70
+        };
+        setCurrentUser(updatedUser);
+        setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
     };
 
     const handleUpdateSidebarSetting = (key: keyof UserProfile, value: any) => {
@@ -861,6 +870,58 @@ export default function App({ mode = 'full' }: AppProps) {
 
     const isComposerDisabled = activeTab?.messages[activeTab.messages.length - 1]?.isStreaming || false;
     const applyDraftSuggestion = (text: string) => setDraft({ text, timestamp: Date.now() });
+    const [isNameEditorOpen, setIsNameEditorOpen] = useState(false);
+    const [draftName, setDraftName] = useState(currentUser.name || '');
+
+    useEffect(() => {
+        if (!isNameEditorOpen) setDraftName(currentUser.name || '');
+    }, [currentUser.name, isNameEditorOpen]);
+
+    const displayName = useMemo(() => {
+        const name = (currentUser.name || '').trim();
+        if (!name || name.toLowerCase() === 'guest') return 'there';
+        return name.split(/\s+/)[0];
+    }, [currentUser.name]);
+
+    const heroGreeting = useMemo(() => {
+        const hour = new Date().getHours();
+        const timeGreeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+        const phrases = [
+            `${timeGreeting}, ${displayName}.`,
+            `Back at it, ${displayName}.`,
+            `Ready when you are, ${displayName}.`,
+            `What are we building, ${displayName}?`,
+            `Start simple, ${displayName}.`,
+            `Pick up where you left off, ${displayName}.`,
+            `Clear desk, clear mind, ${displayName}.`,
+            `One prompt away, ${displayName}.`,
+            `Let's tighten the signal, ${displayName}.`,
+            `Make something useful, ${displayName}.`,
+            `Focus mode, ${displayName}.`,
+            `The workspace is yours, ${displayName}.`,
+            `Bring the idea, ${displayName}.`,
+            `Next move, ${displayName}?`,
+            `Quiet space, sharp work, ${displayName}.`
+        ];
+        const seed = new Date().getDate() + new Date().getHours() + displayName.length;
+        return phrases[seed % phrases.length];
+    }, [displayName]);
+
+    const quickActions = useMemo(() => [
+        { label: 'Explore', icon: <Search className="h-4 w-4" />, prompt: 'Research this topic and give me a clean overview with key takeaways.' },
+        { label: 'Plan', icon: <Sparkles className="h-4 w-4" />, prompt: 'Plan this task step by step and point out the risky parts before starting.' },
+        { label: 'Write', icon: <PencilLine className="h-4 w-4" />, prompt: 'Turn this rough idea into a polished first draft with a strong structure.' },
+        { label: 'Inspect', icon: <FileSearch className="h-4 w-4" />, prompt: 'Analyze the current page and summarize the most important details for me.' },
+    ], []);
+
+    const saveDisplayName = () => {
+        const name = draftName.trim();
+        if (!name) return;
+        const updatedUser = { ...currentUser, name };
+        setCurrentUser(updatedUser);
+        setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
+        setIsNameEditorOpen(false);
+    };
 
     return (
         <div
@@ -874,12 +935,10 @@ export default function App({ mode = 'full' }: AppProps) {
                 onNewTab={handleNewTab}
                 onOpenSettings={() => setIsSettingsOpen(true)}
                 onToggleHistory={handleToggleHistory}
-                isHistoryOpen={isSidebarOpen}
                 activeApp={activeSidebarApp}
                 onOpenApp={handleOpenApp}
                 enabledApps={currentUser.enabledSidebarApps || []}
                 customShortcuts={currentUser.customShortcuts || []}
-                userName={currentUser.name || 'Saturn User'}
                 pastConversations={archivedTabs}
                 onRestoreTab={handleRestoreTab}
                 groups={groups}
@@ -892,6 +951,8 @@ export default function App({ mode = 'full' }: AppProps) {
                 onMoveTabToGroup={(tabId, groupId) => setArchivedTabs(prev => prev.map(t => t.id === tabId ? { ...t, groupId } : t))}
                 onDeleteArchivedTab={handleDeleteArchivedTab}
                 onRenameArchivedTab={handleRenameArchivedTab}
+                isCollapsed={isSidebarCollapsed}
+                onCollapsedChange={setIsSidebarCollapsed}
             />
 
             <SidebarPanel
@@ -902,12 +963,13 @@ export default function App({ mode = 'full' }: AppProps) {
                 agentRun={agentRun}
                 onStartAgent={handleStartAgent}
                 onAbortAgent={handleAbortAgent}
+                sidebarCollapsed={isSidebarCollapsed}
             />
 
             <div
                 className={`flex-1 flex flex-col min-w-0 z-10 relative h-full transition-all duration-500`}
                 style={{
-                    paddingLeft: `${CONTENT_INSET}px`,
+                    paddingLeft: `${isSidebarCollapsed ? COLLAPSED_CONTENT_INSET : CONTENT_INSET}px`,
                     paddingRight: '24px',
                 }}
             >
@@ -989,8 +1051,26 @@ export default function App({ mode = 'full' }: AppProps) {
                                             )}
                                         </div>
 
-                                        <div className="shrink-0 rounded-[16px] border border-zen-border/35 bg-zen-surface/55 px-4 py-2">
-                                            <span className="app-topbar-label !text-[10px]">{activeTab?.title || 'New Thread'}</span>
+                                        <div className="flex shrink-0 items-center gap-2">
+                                            {isEmptyState && (
+                                                <div className="hidden items-center gap-1 rounded-[18px] border border-zen-border/45 bg-[#080605]/78 p-1.5 shadow-[0_18px_44px_-34px_rgba(0,0,0,0.9)] backdrop-blur-xl md:flex">
+                                                    {quickActions.map((action) => (
+                                                        <button
+                                                            key={action.label}
+                                                            type="button"
+                                                            onClick={() => applyDraftSuggestion(action.prompt)}
+                                                            title={action.label}
+                                                            aria-label={action.label}
+                                                            className="grid h-9 w-9 place-items-center rounded-[12px] text-zen-muted transition-colors hover:bg-zen-surface/90 hover:text-zen-accent"
+                                                        >
+                                                            {action.icon}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
+                                            <div className="rounded-[16px] border border-zen-border/35 bg-zen-surface/55 px-4 py-2">
+                                                <span className="app-topbar-label !text-[10px]">{activeTab?.title || 'New Thread'}</span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -1002,33 +1082,55 @@ export default function App({ mode = 'full' }: AppProps) {
                                                 <div className="pointer-events-none absolute inset-x-0 top-1/3 flex justify-center">
                                                     <div className="h-[34rem] w-[34rem] rounded-full bg-[radial-gradient(circle,rgba(var(--accent-color-rgb),0.18)_0%,rgba(var(--accent-color-rgb),0.05)_42%,transparent_74%)] blur-3xl opacity-90" />
                                                 </div>
-                                                <div className="relative z-10 flex w-full max-w-[62rem] flex-col items-center">
-                                                    <div className="flex items-center gap-3 mb-4">
-                                                        <div className="relative flex items-center justify-center">
-                                                            <div className="absolute inset-0 bg-zen-accent/20 blur-2xl rounded-full" />
-                                                            <svg viewBox="0 0 100 100" className="w-10 h-10 text-zen-accent opacity-95 relative z-10 filter drop-shadow-[0_0_14px_rgba(var(--accent-color-rgb),0.55)]">
-                                                                <circle cx="50" cy="50" r="20" fill="currentColor" />
-                                                                <ellipse cx="50" cy="50" rx="40" ry="10" fill="none" stroke="currentColor" strokeWidth="4" transform="rotate(-15 50 50)" />
-                                                            </svg>
-                                                        </div>
-                                                        <div className="flex flex-col items-start">
-                                                            <span className="text-[22px] font-medium text-zen-text/90 tracking-[0]">Saturn</span>
-                                                            <span className="app-topbar-label !text-[9px]">Clean Workspace</span>
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="max-w-3xl text-center mb-10">
-                                                        <div className="app-topbar-label mb-4 flex items-center justify-center gap-4">
-                                                            <i className="block h-px w-8 bg-[rgba(132,118,104,0.4)]" />
-                                                            Index / 01
-                                                            <i className="block h-px w-8 bg-[rgba(132,118,104,0.4)]" />
-                                                        </div>
-                                                        <h1 className="text-[clamp(56px,6rem,92px)] font-light leading-[0.98] tracking-[0] text-zen-text">
-                                                            A cleaner home<br/>for <em className="not-italic text-zen-accent font-light">thinking</em>.
+                                                <div className="relative z-10 flex w-full max-w-[58rem] flex-col items-center">
+                                                    <div className="mb-8 flex flex-col items-center gap-4 text-center">
+                                                        <svg viewBox="0 0 100 100" className="h-9 w-9 text-zen-accent opacity-95 filter drop-shadow-[0_0_14px_rgba(var(--accent-color-rgb),0.5)]">
+                                                            <circle cx="50" cy="50" r="20" fill="currentColor" />
+                                                            <ellipse cx="50" cy="50" rx="40" ry="10" fill="none" stroke="currentColor" strokeWidth="4" transform="rotate(-15 50 50)" />
+                                                        </svg>
+                                                        <h1 className="max-w-4xl text-[clamp(42px,5rem,76px)] font-light leading-[1.02] tracking-[0] text-zen-text">
+                                                            {heroGreeting}
                                                         </h1>
-                                                        <p className="mt-6 text-[15px] sm:text-base text-zen-muted/85 leading-relaxed max-w-xl mx-auto">
-                                                            Search, reason, and build from a single prompt. Start typing, paste a URL, or pick a shortcut.
-                                                        </p>
+                                                        {isNameEditorOpen ? (
+                                                            <div className="flex items-center gap-2 rounded-[16px] border border-zen-border/35 bg-zen-surface/65 p-1.5">
+                                                                <input
+                                                                    value={draftName}
+                                                                    onChange={(event) => setDraftName(event.target.value)}
+                                                                    onKeyDown={(event) => {
+                                                                        if (event.key === 'Enter') saveDisplayName();
+                                                                        if (event.key === 'Escape') setIsNameEditorOpen(false);
+                                                                    }}
+                                                                    autoFocus
+                                                                    placeholder="Your name"
+                                                                    className="h-8 w-36 rounded-[10px] border border-zen-border/30 bg-zen-bg/70 px-3 text-sm text-zen-text outline-none placeholder:text-zen-muted/50 focus:border-zen-accent/45"
+                                                                />
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={saveDisplayName}
+                                                                    className="grid h-8 w-8 place-items-center rounded-[10px] bg-zen-accent text-white transition-colors hover:bg-zen-accent/90"
+                                                                    title="Save name"
+                                                                >
+                                                                    <Check className="h-3.5 w-3.5" />
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setIsNameEditorOpen(false)}
+                                                                    className="grid h-8 w-8 place-items-center rounded-[10px] text-zen-muted transition-colors hover:bg-zen-bg/80 hover:text-zen-text"
+                                                                    title="Cancel"
+                                                                >
+                                                                    <X className="h-3.5 w-3.5" />
+                                                                </button>
+                                                            </div>
+                                                        ) : (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setIsNameEditorOpen(true)}
+                                                                className="flex items-center gap-2 rounded-[12px] border border-zen-border/30 bg-zen-surface/45 px-3 py-1.5 text-xs font-medium text-zen-muted transition-colors hover:border-zen-accent/40 hover:text-zen-text"
+                                                            >
+                                                                <PencilLine className="h-3.5 w-3.5" />
+                                                                {displayName === 'there' ? 'Add name' : 'Name'}
+                                                            </button>
+                                                        )}
                                                     </div>
 
                                                     <div className="w-full max-w-[56rem]">
@@ -1045,36 +1147,21 @@ export default function App({ mode = 'full' }: AppProps) {
                                                         />
                                                     </div>
 
-                                                    <div className="w-full max-w-[56rem] mt-6 flex flex-wrap items-center justify-center gap-2.5">
-                                                        <button
-                                                            onClick={() => applyDraftSuggestion('Research this topic and give me a clean overview with key takeaways.')}
-                                                            className="group flex items-center gap-2 px-4 py-2.5 rounded-[16px] border border-zen-border/35 bg-zen-surface/55 backdrop-blur-md text-sm text-zen-muted hover:text-zen-text hover:border-zen-accent/45 hover:bg-zen-surface/75 transition-all hover-lift"
-                                                        >
-                                                            <Compass className="w-[14px] h-[14px] text-zen-accent group-hover:scale-110 transition-transform" />
-                                                            <span className="font-medium">Explore a topic</span>
-                                                        </button>
-                                                        <button
-                                                            onClick={() => applyDraftSuggestion('Plan this task step by step and point out the risky parts before starting.')}
-                                                            className="group flex items-center gap-2 px-4 py-2.5 rounded-[16px] border border-zen-border/35 bg-zen-surface/55 backdrop-blur-md text-sm text-zen-muted hover:text-zen-text hover:border-zen-accent/45 hover:bg-zen-surface/75 transition-all hover-lift"
-                                                        >
-                                                            <Sparkles className="w-[14px] h-[14px] text-zen-accent group-hover:scale-110 transition-transform" />
-                                                            <span className="font-medium">Plan the work</span>
-                                                        </button>
-                                                        <button
-                                                            onClick={() => applyDraftSuggestion('Turn this rough idea into a polished first draft with a strong structure.')}
-                                                            className="group flex items-center gap-2 px-4 py-2.5 rounded-[16px] border border-zen-border/35 bg-zen-surface/55 backdrop-blur-md text-sm text-zen-muted hover:text-zen-text hover:border-zen-accent/45 hover:bg-zen-surface/75 transition-all hover-lift"
-                                                        >
-                                                            <PencilLine className="w-[14px] h-[14px] text-zen-accent group-hover:scale-110 transition-transform" />
-                                                            <span className="font-medium">Write something</span>
-                                                        </button>
-                                                        <button
-                                                            onClick={() => applyDraftSuggestion('Analyze the current page and summarize the most important details for me.')}
-                                                            className="group flex items-center gap-2 px-4 py-2.5 rounded-[16px] border border-zen-border/35 bg-zen-surface/55 backdrop-blur-md text-sm text-zen-muted hover:text-zen-text hover:border-zen-accent/45 hover:bg-zen-surface/75 transition-all hover-lift"
-                                                        >
-                                                            <FileSearch className="w-[14px] h-[14px] text-zen-accent group-hover:scale-110 transition-transform" />
-                                                            <span className="font-medium">Inspect a page</span>
-                                                        </button>
+                                                    <div className="mt-3 flex items-center gap-1.5 rounded-[18px] border border-zen-border/35 bg-[#080605]/78 p-1.5 md:hidden">
+                                                        {quickActions.map((action) => (
+                                                            <button
+                                                                key={action.label}
+                                                                type="button"
+                                                                onClick={() => applyDraftSuggestion(action.prompt)}
+                                                                title={action.label}
+                                                                aria-label={action.label}
+                                                                className="grid h-10 w-10 place-items-center rounded-[12px] text-zen-muted transition-colors hover:bg-zen-surface/90 hover:text-zen-accent"
+                                                            >
+                                                                {action.icon}
+                                                            </button>
+                                                        ))}
                                                     </div>
+
                                                 </div>
                                             </div>
                                         ) : (

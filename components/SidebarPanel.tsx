@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X, RefreshCw, Save, Trash2, GripVertical, Copy, Download, Clock, Play, Square, ExternalLink, Link2, Music2 } from 'lucide-react';
+import { X, RefreshCw, Save, Trash2, GripVertical, Copy, Download, Clock, Play, Square, ExternalLink } from 'lucide-react';
 import type { AgentRun } from '../types';
-import { ATTACHED_PANEL_LEFT, RAIL_GUTTER } from './SaturnSidebar';
+import { ATTACHED_PANEL_LEFT, COLLAPSED_PANEL_LEFT, RAIL_GUTTER } from './SaturnSidebar';
 
 interface SidebarPanelProps {
     isOpen: boolean;
@@ -11,43 +11,60 @@ interface SidebarPanelProps {
     agentRun?: AgentRun | null;
     onStartAgent?: (task: string) => void;
     onAbortAgent?: () => void;
+    sidebarCollapsed?: boolean;
 }
 
-const DEFAULT_SPOTIFY_URL = 'https://open.spotify.com/playlist/37i9dQZF1DX4WYpdgoIcn6';
+const DEFAULT_SPOTIFY_URL = 'https://open.spotify.com/';
+const SPOTIFY_LAST_URL_KEY = 'saturn_spotify_sidebar_url';
+const SPOTIFY_DEFAULT_URL_KEY = 'saturn_spotify_default_url';
 
 const parseSpotifyInput = (input: string) => {
     const value = input.trim();
     if (!value) return null;
 
-    const uriMatch = value.match(/^spotify:(playlist|album|track|episode|show):([a-zA-Z0-9]+)$/i);
+    const uriMatch = value.match(/^spotify:(playlist|album|track|episode|show|artist):([a-zA-Z0-9]+)$/i);
     if (uriMatch) {
         const [, type, id] = uriMatch;
         return {
-            type: type.toLowerCase(),
-            id,
             openUrl: `https://open.spotify.com/${type.toLowerCase()}/${id}`,
-            embedUrl: `https://open.spotify.com/embed/${type.toLowerCase()}/${id}?utm_source=generator&theme=0`,
         };
     }
 
     try {
-        const url = new URL(value);
+        const candidate = /^https?:\/\//i.test(value)
+            ? value
+            : /^(open\.)?spotify\.com\//i.test(value)
+                ? `https://${value}`
+                : value.includes('/') || value.startsWith('collection')
+                    ? `https://open.spotify.com/${value.replace(/^\/+/, '')}`
+                    : `https://open.spotify.com/search/${encodeURIComponent(value)}`;
+
+        const url = new URL(candidate);
         if (!url.hostname.includes('spotify.com')) return null;
-        const parts = url.pathname.split('/').filter(Boolean);
-        const entityIndex = parts.findIndex((part) => ['playlist', 'album', 'track', 'episode', 'show'].includes(part));
-        if (entityIndex === -1 || !parts[entityIndex + 1]) return null;
-        const type = parts[entityIndex];
-        const id = parts[entityIndex + 1];
+        const path = url.pathname || '/';
         return {
-            type,
-            id,
-            openUrl: `https://open.spotify.com/${type}/${id}`,
-            embedUrl: `https://open.spotify.com/embed/${type}/${id}?utm_source=generator&theme=0`,
+            openUrl: `https://open.spotify.com${path}${url.search}`,
         };
     } catch {
         return null;
     }
 };
+
+const SpotifyLogo = ({ className = 'h-4 w-4' }: { className?: string }) => (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+        <circle cx="12" cy="12" r="10" fill="currentColor" />
+        <path d="M7.2 9.4c3.2-1 6.4-.7 9.5.9" fill="none" stroke="#07110a" strokeWidth="1.8" strokeLinecap="round" />
+        <path d="M7.8 12.3c2.7-.8 5.2-.5 7.5.7" fill="none" stroke="#07110a" strokeWidth="1.55" strokeLinecap="round" />
+        <path d="M8.5 15c2-.5 3.8-.3 5.6.6" fill="none" stroke="#07110a" strokeWidth="1.35" strokeLinecap="round" />
+    </svg>
+);
+
+const spotifyRoutes = [
+    { label: 'Home', url: 'https://open.spotify.com/' },
+    { label: 'Search', url: 'https://open.spotify.com/search' },
+    { label: 'Library', url: 'https://open.spotify.com/collection' },
+    { label: 'Liked', url: 'https://open.spotify.com/collection/tracks' },
+];
 
 const NotesWidget = () => {
     const [note, setNote] = useState(() => localStorage.getItem('saturn_sidebar_notes') || '');
@@ -368,88 +385,152 @@ const AgentWidget = ({
 };
 
 const SpotifyWidget = () => {
-    const [input, setInput] = useState(() => localStorage.getItem('saturn_spotify_sidebar_url') || DEFAULT_SPOTIFY_URL);
-    const [activeUrl, setActiveUrl] = useState(() => localStorage.getItem('saturn_spotify_sidebar_url') || DEFAULT_SPOTIFY_URL);
+    const getInitialSpotifyUrl = () => localStorage.getItem(SPOTIFY_DEFAULT_URL_KEY) || localStorage.getItem(SPOTIFY_LAST_URL_KEY) || DEFAULT_SPOTIFY_URL;
+    const [defaultUrl, setDefaultUrl] = useState(getInitialSpotifyUrl);
+    const [input, setInput] = useState(getInitialSpotifyUrl);
+    const [activeUrl, setActiveUrl] = useState(getInitialSpotifyUrl);
     const [error, setError] = useState('');
+    const [status, setStatus] = useState('');
 
-    const parsed = parseSpotifyInput(activeUrl);
+    const navigateTo = (url: string, message = '') => {
+        setInput(url);
+        setActiveUrl(url);
+        setError('');
+        setStatus(message);
+        localStorage.setItem(SPOTIFY_LAST_URL_KEY, url);
+    };
 
-    const applyUrl = () => {
-        const next = parseSpotifyInput(input);
+    const applyUrl = (nextInput = input) => {
+        const next = parseSpotifyInput(nextInput);
         if (!next) {
-            setError('Paste a Spotify playlist, album, track, show, or episode link.');
+            setError('Use a Spotify link, URI, route, or search.');
+            setStatus('');
             return;
         }
-        setError('');
-        setActiveUrl(next.openUrl);
-        localStorage.setItem('saturn_spotify_sidebar_url', next.openUrl);
+        navigateTo(next.openUrl);
+    };
+
+    const saveDefault = () => {
+        const next = parseSpotifyInput(input);
+        const nextDefault = next?.openUrl || activeUrl;
+        localStorage.setItem(SPOTIFY_DEFAULT_URL_KEY, nextDefault);
+        setDefaultUrl(nextDefault);
+        navigateTo(nextDefault, 'Default saved');
+    };
+
+    const resetDefault = () => {
+        localStorage.removeItem(SPOTIFY_DEFAULT_URL_KEY);
+        setDefaultUrl(DEFAULT_SPOTIFY_URL);
+        navigateTo(DEFAULT_SPOTIFY_URL, 'Default reset');
     };
 
     return (
-        <div className="flex flex-col h-full bg-zen-bg p-5 gap-4">
-            <div className="p-4 rounded-2xl bg-zen-surface border border-zen-border/50 shadow-sm">
-                <div className="flex items-center gap-2 mb-2">
-                    <div className="w-8 h-8 rounded-xl bg-green-500/15 text-green-400 flex items-center justify-center">
-                        <Music2 className="w-4 h-4" />
+        <div className="flex h-full flex-col bg-[#050303]">
+            <div className="relative overflow-hidden border-b border-zen-border/45 bg-[radial-gradient(circle_at_top_left,rgba(29,185,84,0.16),transparent_34%),linear-gradient(180deg,rgba(20,18,16,0.98),rgba(8,6,5,0.96))] p-4">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                        <div className="grid h-10 w-10 place-items-center rounded-[14px] border border-[#1DB954]/35 bg-black/35 text-[#1DB954] shadow-[0_20px_44px_-28px_rgba(29,185,84,0.9)]">
+                            <SpotifyLogo className="h-5 w-5" />
+                        </div>
+                        <div>
+                            <div className="text-sm font-semibold text-zen-text">Music</div>
+                            <div className="font-mono text-[10px] uppercase tracking-[0.24em] text-zen-muted/55">Spotify web</div>
+                        </div>
                     </div>
-                    <div>
-                        <div className="text-sm font-semibold text-zen-text">Spotify</div>
-                        <div className="text-[11px] text-zen-muted">Preview playlists and open them in the full app.</div>
-                    </div>
-                </div>
-
-                <div className="relative mb-3">
-                    <Link2 className="w-3.5 h-3.5 text-zen-muted/60 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                    <input
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        placeholder="Paste Spotify URL"
-                        className="w-full bg-zen-bg border border-zen-border rounded-xl pl-9 pr-3 py-2.5 text-xs text-zen-text outline-none focus:border-green-400 placeholder:text-zen-muted/50"
-                    />
-                </div>
-
-                <div className="flex gap-2">
-                    <button onClick={applyUrl} className="flex-1 py-2.5 rounded-xl bg-green-500 text-white text-xs font-bold hover:bg-green-400 transition-colors">
-                        Preview
-                    </button>
                     <button
-                        onClick={() => {
-                            const next = parseSpotifyInput(input) || parsed;
-                            if (next) window.open(next.openUrl, '_blank', 'noopener,noreferrer');
-                        }}
-                        className="px-3 py-2.5 rounded-xl bg-zen-bg border border-zen-border text-zen-text text-xs font-bold hover:border-green-400/40 hover:text-green-400 transition-colors inline-flex items-center gap-1.5"
+                        type="button"
+                        onClick={() => window.open(activeUrl, '_blank', 'noopener,noreferrer')}
+                        className="inline-flex h-9 items-center gap-1.5 rounded-[10px] border border-white/10 bg-black/25 px-3 text-[11px] font-semibold text-zen-text transition-colors hover:border-[#1DB954]/45 hover:text-[#1DB954]"
                     >
-                        <ExternalLink className="w-3.5 h-3.5" />
+                        <ExternalLink className="h-3.5 w-3.5" />
                         Open
                     </button>
                 </div>
 
-                {error && <div className="mt-2 text-[11px] text-red-400">{error}</div>}
+                <div className="mb-3 grid grid-cols-4 gap-1.5">
+                    {spotifyRoutes.map((route) => (
+                        <button
+                            key={route.url}
+                            type="button"
+                            onClick={() => navigateTo(route.url)}
+                            className={`rounded-[9px] border px-2 py-2 text-[11px] font-semibold transition-colors ${
+                                activeUrl === route.url
+                                    ? 'border-[#1DB954]/45 bg-[#1DB954]/12 text-[#1DB954]'
+                                    : 'border-white/10 bg-black/20 text-zen-muted hover:border-[#1DB954]/35 hover:text-zen-text'
+                            }`}
+                        >
+                            {route.label}
+                        </button>
+                    ))}
+                </div>
+
+                <div className="relative mb-2">
+                    <input
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        onKeyDown={(event) => {
+                            if (event.key === 'Enter') applyUrl();
+                        }}
+                        placeholder="Search, paste a Spotify URL, or type playlist/..."
+                        className="w-full rounded-[12px] border border-white/10 bg-black/35 px-3 py-2.5 pr-16 text-xs text-zen-text outline-none transition-colors placeholder:text-zen-muted/45 focus:border-[#1DB954]/60"
+                    />
+                    <button
+                        type="button"
+                        onClick={() => applyUrl()}
+                        className="absolute right-1.5 top-1/2 h-7 -translate-y-1/2 rounded-[9px] bg-[#1DB954] px-3 text-[11px] font-bold text-black transition-colors hover:bg-[#35d36e]"
+                    >
+                        Go
+                    </button>
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <button
+                        type="button"
+                        onClick={saveDefault}
+                        className="inline-flex items-center gap-1.5 rounded-[9px] border border-white/10 bg-black/20 px-2.5 py-1.5 text-[11px] font-semibold text-zen-muted transition-colors hover:border-[#1DB954]/35 hover:text-[#1DB954]"
+                    >
+                        <Save className="h-3.5 w-3.5" />
+                        Set default
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => navigateTo(defaultUrl, 'Default opened')}
+                        className="rounded-[9px] border border-white/10 bg-black/20 px-2.5 py-1.5 text-[11px] font-semibold text-zen-muted transition-colors hover:border-white/20 hover:text-zen-text"
+                    >
+                        Default
+                    </button>
+                    <button
+                        type="button"
+                        onClick={resetDefault}
+                        className="rounded-[9px] border border-transparent px-2.5 py-1.5 text-[11px] font-semibold text-zen-muted/70 transition-colors hover:text-zen-text"
+                    >
+                        Reset
+                    </button>
+                    <div className="min-w-0 flex-1 truncate text-right text-[10px] text-zen-muted/55">
+                        {error || status || 'Uses your Spotify web session when the browser allows it.'}
+                    </div>
+                </div>
             </div>
 
-            <div className="flex-1 rounded-2xl overflow-hidden border border-zen-border/50 bg-black shadow-deep">
-                {parsed ? (
+            <div className="relative flex-1 overflow-hidden bg-[radial-gradient(circle_at_bottom_right,rgba(29,185,84,0.12),transparent_38%),#050303] p-3">
+                <div className="h-full overflow-hidden rounded-[18px] border border-white/10 bg-black shadow-[0_28px_80px_-42px_rgba(0,0,0,0.95)]">
                     <iframe
-                        key={parsed.embedUrl}
-                        src={parsed.embedUrl}
-                        title="Spotify Sidebar Player"
+                        key={activeUrl}
+                        src={activeUrl}
+                        title="Spotify Web Player"
                         width="100%"
                         height="100%"
                         allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
                         loading="lazy"
                         className="w-full h-full border-0 bg-black"
                     />
-                ) : (
-                    <div className="h-full flex items-center justify-center px-8 text-center text-sm text-zen-muted leading-6">
-                        Paste a Spotify link to load a playable preview here.
-                    </div>
-                )}
+                </div>
             </div>
         </div>
     );
 };
 
-const SidebarPanel: React.FC<SidebarPanelProps> = ({ isOpen, appId, onClose, position = 'left', agentRun, onStartAgent, onAbortAgent }) => {
+const SidebarPanel: React.FC<SidebarPanelProps> = ({ isOpen, appId, onClose, position = 'left', agentRun, onStartAgent, onAbortAgent, sidebarCollapsed = false }) => {
     const [key, setKey] = useState(0);
     const handleReload = () => setKey(prev => prev + 1);
     if (!appId) return null;
@@ -493,13 +574,13 @@ const SidebarPanel: React.FC<SidebarPanelProps> = ({ isOpen, appId, onClose, pos
     }
 
     const isLeft = appId === 'spotify' ? false : position === 'left';
-    const rightOffset = `${RAIL_GUTTER}px`;
+    const rightOffset = appId === 'spotify' ? '92px' : `${RAIL_GUTTER}px`;
 
     return (
         <div 
             className={`fixed inset-y-0 ${widthClass} bg-zen-surface/95 backdrop-blur-2xl border-zen-border shadow-deep z-40 transform transition-transform duration-500 cubic-bezier(0.16, 1, 0.3, 1) flex flex-col overflow-hidden ${isLeft ? 'border-r' : 'border-l'} ${isOpen ? 'translate-x-0' : (isLeft ? '-translate-x-full' : 'translate-x-full')}`}
             style={{ 
-                left: isLeft ? `${ATTACHED_PANEL_LEFT}px` : 'auto',
+                left: isLeft ? `${sidebarCollapsed ? COLLAPSED_PANEL_LEFT : ATTACHED_PANEL_LEFT}px` : 'auto',
                 right: isLeft ? 'auto' : rightOffset
             }}
         >

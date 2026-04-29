@@ -265,6 +265,29 @@ interface GeneratedFile {
     data: string;
 }
 
+const ThinkingPulse = () => (
+  <div className="saturn-thinking select-none" role="status" aria-live="polite">
+    <div className="saturn-thinking-orb" aria-hidden="true">
+      <span className="saturn-thinking-core" />
+      <span className="saturn-thinking-ring saturn-thinking-ring-a" />
+      <span className="saturn-thinking-ring saturn-thinking-ring-b" />
+      <span className="saturn-thinking-spark saturn-thinking-spark-one" />
+      <span className="saturn-thinking-spark saturn-thinking-spark-two" />
+    </div>
+    <div className="min-w-0 flex-1">
+      <div className="saturn-thinking-label">
+        <span>Thinking</span>
+        <span className="saturn-thinking-dots" aria-hidden="true">
+          <i />
+          <i />
+          <i />
+        </span>
+      </div>
+      <div className="saturn-thinking-line" aria-hidden="true" />
+    </div>
+  </div>
+);
+
 const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onDownload, onNavigate, onEdit, onFollowUp, onPersistContent }) => {
   const isUser = message.role === Role.USER;
   const [isCopied, setIsCopied] = useState(false);
@@ -516,15 +539,10 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onDownload, onNa
                       >
                         {cleanContent}
                       </ReactMarkdown>
-                      {message.isStreaming && <span className="inline-block w-2 h-5 bg-zen-accent ml-1 animate-pulse align-middle rounded-full shadow-[0_0_10px_var(--accent-color)]"></span>}
+                      {message.isStreaming && <span className="saturn-stream-caret" aria-hidden="true"></span>}
                     </>
                   ) : (
-                    <div className="flex items-center gap-2 text-zen-muted py-2 select-none">
-                      <div className="typing-dot"></div>
-                      <div className="typing-dot"></div>
-                      <div className="typing-dot"></div>
-                      <span className="text-xs font-medium tracking-wider ml-1 animate-pulse">THINKING</span>
-                    </div>
+                    <ThinkingPulse />
                   )}
                 </div>
               )}
