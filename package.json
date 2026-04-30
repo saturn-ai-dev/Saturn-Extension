@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "test": "node tests/historyGrouping.test.mjs",
     "build": "vite build",
     "preview": "vite preview",
     "deploy": "npm run build"

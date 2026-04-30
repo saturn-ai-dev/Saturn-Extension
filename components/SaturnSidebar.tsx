@@ -3,15 +3,22 @@ import {
     Bot,
     Calculator,
     Check,
+    ChevronDown,
     ChevronLeft,
+    ChevronRight,
     FileText,
+    Folder,
+    FolderPlus,
     Hash,
     PencilLine,
     Plus,
+    Search,
     Settings,
     Trash2,
+    X,
 } from 'lucide-react';
 import { CustomShortcut, Tab, ThreadGroup } from '../types';
+import { buildHistorySections, createDefaultExpandedGroupIds } from '../services/historyGrouping.js';
 
 export const RAIL_GUTTER = 12;
 export const RAIL_WIDTH = 252;
@@ -289,55 +296,58 @@ const ShortcutDock = ({
     if (externalApps.length === 0 && customShortcuts.length === 0) return null;
 
     return (
-        <div className="fixed right-3 top-1/2 z-50 flex -translate-y-1/2 flex-col items-center gap-2 rounded-[24px] border border-zen-border/45 bg-[#050303]/92 p-2.5 shadow-[0_26px_80px_-46px_rgba(0,0,0,0.95)] backdrop-blur-2xl">
+        <div className="custom-scrollbar fixed right-4 top-1/2 z-40 flex max-h-[calc(100dvh-32px)] -translate-y-1/2 flex-col items-center gap-1.5 overflow-y-auto rounded-[18px] border border-zen-border/45 bg-zen-surface/90 p-1.5 shadow-[0_22px_60px_-42px_rgba(0,0,0,0.9)] backdrop-blur-2xl">
             {externalApps.map((app) => (
                 <button
                     key={app.id}
                     type="button"
                     onClick={() => onOpenApp(app.id)}
                     title={app.label}
-                    className={`group relative grid h-12 w-12 place-items-center rounded-[15px] transition-colors ${
+                    className={`group relative grid h-10 w-10 place-items-center rounded-[12px] transition-colors ${
                         activeApp === app.id
-                            ? 'bg-zen-surface/90'
+                            ? 'bg-zen-bg text-zen-text ring-1 ring-zen-border/55'
                             : 'text-zen-muted hover:bg-zen-surface/70 hover:text-zen-text'
                     }`}
                 >
-                    <span className={`${app.tone} transition-transform duration-200 group-hover:scale-110`}>
+                    <span className={`${app.tone} transition-transform duration-200 group-hover:scale-105`}>
                         {app.icon}
                     </span>
-                    <span className="pointer-events-none absolute right-full mr-3 rounded-[8px] border border-zen-border/35 bg-[#090605]/95 px-2 py-1 text-[11px] font-medium text-zen-text opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
+                    <span className="pointer-events-none absolute right-full mr-2 rounded-[8px] border border-zen-border/35 bg-[#090605]/95 px-2 py-1 text-[11px] font-medium text-zen-text opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
                         {app.label}
                     </span>
                 </button>
             ))}
-            {externalApps.length > 0 && customShortcuts.length > 0 && <div className="my-1 h-px w-8 bg-zen-border/35" />}
-            {customShortcuts.map((shortcut) => (
-                <button
-                    key={shortcut.id}
-                    type="button"
-                    onClick={() => onOpenApp(shortcut.id)}
-                    title={shortcut.label}
-                    className={`grid h-11 w-11 place-items-center rounded-[14px] text-lg transition-colors ${
-                        activeApp === shortcut.id
-                            ? 'bg-zen-accent/12 text-zen-accent'
-                            : 'text-zen-muted hover:bg-zen-surface/70 hover:text-zen-text'
-                    }`}
-                >
-                    {getShortcutFavicon(shortcut.url) && (
-                        <img
-                            src={getShortcutFavicon(shortcut.url)!}
-                            alt=""
-                            className="h-[22px] w-[22px] rounded-[5px]"
-                            onError={(event) => {
-                                event.currentTarget.style.display = 'none';
-                                const fallback = event.currentTarget.nextElementSibling as HTMLElement | null;
-                                if (fallback) fallback.style.display = 'inline';
-                            }}
-                        />
-                    )}
-                    <span style={{ display: getShortcutFavicon(shortcut.url) ? 'none' : 'inline' }}>{shortcut.emoji}</span>
-                </button>
-            ))}
+            {externalApps.length > 0 && customShortcuts.length > 0 && <div className="my-1 h-px w-7 bg-zen-border/35" />}
+            {customShortcuts.map((shortcut) => {
+                const favicon = getShortcutFavicon(shortcut.url);
+                return (
+                    <button
+                        key={shortcut.id}
+                        type="button"
+                        onClick={() => onOpenApp(shortcut.id)}
+                        title={shortcut.label}
+                        className={`grid h-10 w-10 place-items-center rounded-[12px] text-base transition-colors ${
+                            activeApp === shortcut.id
+                                ? 'bg-zen-bg text-zen-accent ring-1 ring-zen-border/55'
+                                : 'text-zen-muted hover:bg-zen-surface/70 hover:text-zen-text'
+                        }`}
+                    >
+                        {favicon && (
+                            <img
+                                src={favicon}
+                                alt=""
+                                className="h-5 w-5 rounded-[5px]"
+                                onError={(event) => {
+                                    event.currentTarget.style.display = 'none';
+                                    const fallback = event.currentTarget.nextElementSibling as HTMLElement | null;
+                                    if (fallback) fallback.style.display = 'inline';
+                                }}
+                            />
+                        )}
+                        <span style={{ display: favicon ? 'none' : 'inline' }}>{shortcut.emoji}</span>
+                    </button>
+                );
+            })}
         </div>
     );
 };
@@ -352,6 +362,9 @@ const SaturnSidebar: React.FC<SaturnSidebarProps> = ({
     customShortcuts,
     pastConversations,
     groups,
+    onCreateGroup,
+    onDeleteGroup,
+    onRenameGroup,
     onRestoreTab,
     onMoveTabToGroup,
     onDeleteArchivedTab,
@@ -359,10 +372,60 @@ const SaturnSidebar: React.FC<SaturnSidebarProps> = ({
     isCollapsed,
     onCollapsedChange,
 }) => {
-    const recent = useMemo(
-        () => [...pastConversations].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)),
-        [pastConversations]
+    const [historySearch, setHistorySearch] = useState('');
+    const [expandedGroupIds, setExpandedGroupIds] = useState<Set<string>>(() => createDefaultExpandedGroupIds(groups));
+    const [isCreatingGroup, setIsCreatingGroup] = useState(false);
+    const [newGroupName, setNewGroupName] = useState('');
+    const [renamingGroupId, setRenamingGroupId] = useState<string | null>(null);
+    const [groupNameDraft, setGroupNameDraft] = useState('');
+
+    const historyView = useMemo(
+        () => buildHistorySections(pastConversations, groups, historySearch),
+        [pastConversations, groups, historySearch]
     );
+
+    useEffect(() => {
+        setExpandedGroupIds((previous) => {
+            const next = new Set(previous);
+            groups.forEach((group) => next.add(group.id));
+            return next;
+        });
+    }, [groups]);
+
+    useEffect(() => {
+        if (historySearch.trim()) {
+            setExpandedGroupIds(createDefaultExpandedGroupIds(groups));
+        }
+    }, [historySearch, groups]);
+
+    const toggleGroup = (groupId: string) => {
+        setExpandedGroupIds((previous) => {
+            const next = new Set(previous);
+            if (next.has(groupId)) next.delete(groupId);
+            else next.add(groupId);
+            return next;
+        });
+    };
+
+    const createGroup = () => {
+        const name = newGroupName.trim();
+        if (!name) return;
+        onCreateGroup(name);
+        setNewGroupName('');
+        setIsCreatingGroup(false);
+    };
+
+    const startRenamingGroup = (group: ThreadGroup) => {
+        setRenamingGroupId(group.id);
+        setGroupNameDraft(group.name);
+    };
+
+    const finishRenamingGroup = () => {
+        const name = groupNameDraft.trim();
+        if (renamingGroupId && name) onRenameGroup(renamingGroupId, name);
+        setRenamingGroupId(null);
+        setGroupNameDraft('');
+    };
 
     const tools = [
         { id: 'index', label: 'Index', icon: <Hash className="h-4 w-4" />, active: !activeApp, onClick: onToggleHistory },
@@ -374,10 +437,10 @@ const SaturnSidebar: React.FC<SaturnSidebarProps> = ({
     ].filter((tool) => tool.enabled !== false);
 
     const externalApps = [
-        { id: 'whatsapp', label: 'WhatsApp', icon: <WhatsAppLogo />, tone: 'text-[#25D366]' },
-        { id: 'reddit', label: 'Reddit', icon: <RedditLogo />, tone: 'text-[#FF4500]' },
-        { id: 'x', label: 'X', icon: <XLogo />, tone: 'text-[#f4efe8]' },
-        { id: 'youtube', label: 'YouTube', icon: <YouTubeLogo />, tone: 'text-[#FF0033]' },
+        { id: 'whatsapp', label: 'WhatsApp', icon: <WhatsAppLogo className="h-5 w-5" />, tone: 'text-[#25D366]' },
+        { id: 'reddit', label: 'Reddit', icon: <RedditLogo className="h-5 w-5" />, tone: 'text-[#FF4500]' },
+        { id: 'x', label: 'X', icon: <XLogo className="h-5 w-5" />, tone: 'text-[#f4efe8]' },
+        { id: 'youtube', label: 'YouTube', icon: <YouTubeLogo className="h-5 w-5" />, tone: 'text-[#FF0033]' },
     ].filter((app) => enabledApps.includes(app.id));
 
     return (
@@ -461,24 +524,179 @@ const SaturnSidebar: React.FC<SaturnSidebarProps> = ({
                 </section>
 
                 {!isCollapsed && (
-                    <section className="min-h-0 flex-1">
-                        <SectionLabel label="Recent" count={recent.length} />
-                        <div className="mb-3 h-px bg-zen-border/25" />
-                        <div className="custom-scrollbar -mx-2 max-h-full space-y-1 overflow-y-auto pr-1">
-                            {recent.length > 0 ? (
-                                recent.map((tab) => (
-                                    <RecentRow
-                                        key={tab.id}
-                                        tab={tab}
-                                        groups={groups}
-                                        onRestoreTab={onRestoreTab}
-                                        onDeleteArchivedTab={onDeleteArchivedTab}
-                                        onRenameArchivedTab={onRenameArchivedTab}
-                                        onMoveTabToGroup={onMoveTabToGroup}
+                    <section className="flex min-h-0 flex-1 flex-col">
+                        <SectionLabel label="History" count={historyView.totalCount} />
+                        <div className="mb-3 space-y-2">
+                            <div className="relative">
+                                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zen-muted/45" />
+                                <input
+                                    value={historySearch}
+                                    onChange={(event) => setHistorySearch(event.target.value)}
+                                    placeholder="Search history"
+                                    className="h-9 w-full rounded-[9px] border border-zen-border/30 bg-zen-bg/55 pl-8 pr-8 text-xs text-zen-text outline-none placeholder:text-zen-muted/40 focus:border-zen-accent/40"
+                                />
+                                {historySearch && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setHistorySearch('')}
+                                        className="absolute right-1.5 top-1/2 grid h-6 w-6 -translate-y-1/2 place-items-center rounded-[7px] text-zen-muted hover:bg-zen-surface hover:text-zen-text"
+                                        title="Clear search"
+                                    >
+                                        <X className="h-3 w-3" />
+                                    </button>
+                                )}
+                            </div>
+
+                            {isCreatingGroup ? (
+                                <div className="flex items-center gap-1.5 rounded-[9px] border border-zen-border/30 bg-zen-bg/55 p-1.5">
+                                    <input
+                                        autoFocus
+                                        value={newGroupName}
+                                        onChange={(event) => setNewGroupName(event.target.value)}
+                                        onKeyDown={(event) => {
+                                            if (event.key === 'Enter') createGroup();
+                                            if (event.key === 'Escape') {
+                                                setIsCreatingGroup(false);
+                                                setNewGroupName('');
+                                            }
+                                        }}
+                                        placeholder="Group name"
+                                        className="min-w-0 flex-1 bg-transparent px-1 text-xs text-zen-text outline-none placeholder:text-zen-muted/40"
                                     />
-                                ))
+                                    <button
+                                        type="button"
+                                        onClick={createGroup}
+                                        className="grid h-6 w-6 place-items-center rounded-[7px] text-zen-accent hover:bg-zen-accent/10"
+                                        title="Create group"
+                                    >
+                                        <Check className="h-3 w-3" />
+                                    </button>
+                                </div>
                             ) : (
-                                <div className="px-2 py-2 text-xs text-zen-muted/45">No recent chats</div>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsCreatingGroup(true)}
+                                    className="flex h-8 w-full items-center justify-center gap-2 rounded-[9px] border border-dashed border-zen-border/35 text-[11px] font-medium text-zen-muted transition-colors hover:border-zen-accent/35 hover:bg-zen-surface/45 hover:text-zen-text"
+                                >
+                                    <FolderPlus className="h-3.5 w-3.5" />
+                                    New group
+                                </button>
+                            )}
+                        </div>
+
+                        <div className="custom-scrollbar -mx-2 min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
+                            {historyView.sections.map((section: { id: string; title: string; group: ThreadGroup; tabs: Tab[] }) => {
+                                const isExpanded = expandedGroupIds.has(section.id) || historyView.hasQuery;
+                                const isRenaming = renamingGroupId === section.id;
+
+                                return (
+                                    <div key={section.id} className="space-y-1.5">
+                                        <div className="group/header flex items-center gap-1 rounded-[8px] px-1.5 py-1 text-zen-muted hover:bg-zen-surface/45">
+                                            <button
+                                                type="button"
+                                                onClick={() => toggleGroup(section.id)}
+                                                className="grid h-6 w-6 shrink-0 place-items-center rounded-[7px] hover:bg-zen-text/8 hover:text-zen-text"
+                                                title={isExpanded ? 'Collapse group' : 'Expand group'}
+                                            >
+                                                {isExpanded ? <ChevronDown className="h-3.5 w-3.5 shrink-0" /> : <ChevronRight className="h-3.5 w-3.5 shrink-0" />}
+                                            </button>
+                                            <Folder className="h-3.5 w-3.5 shrink-0 text-zen-accent/75" />
+                                            {isRenaming ? (
+                                                <input
+                                                    autoFocus
+                                                    value={groupNameDraft}
+                                                    onChange={(event) => setGroupNameDraft(event.target.value)}
+                                                    onBlur={finishRenamingGroup}
+                                                    onKeyDown={(event) => {
+                                                        if (event.key === 'Enter') finishRenamingGroup();
+                                                        if (event.key === 'Escape') {
+                                                            setRenamingGroupId(null);
+                                                            setGroupNameDraft('');
+                                                        }
+                                                    }}
+                                                    className="min-w-0 flex-1 rounded-[6px] border border-zen-accent/35 bg-zen-bg px-2 py-1 text-xs text-zen-text outline-none"
+                                                />
+                                            ) : (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => toggleGroup(section.id)}
+                                                    className="min-w-0 flex-1 truncate text-left text-xs font-semibold text-zen-text"
+                                                    title={section.title}
+                                                >
+                                                    {section.title}
+                                                </button>
+                                            )}
+                                            <span className="font-mono text-[10px] text-zen-muted/45">{section.tabs.length}</span>
+                                            {!isRenaming && (
+                                                <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover/header:opacity-100">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => startRenamingGroup(section.group)}
+                                                        className="grid h-6 w-6 place-items-center rounded-[7px] text-zen-muted hover:bg-zen-text/8 hover:text-zen-text"
+                                                        title="Rename group"
+                                                    >
+                                                        <PencilLine className="h-3 w-3" />
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => onDeleteGroup(section.id)}
+                                                        className="grid h-6 w-6 place-items-center rounded-[7px] text-zen-muted hover:bg-red-500/10 hover:text-red-400"
+                                                        title="Delete group"
+                                                    >
+                                                        <Trash2 className="h-3 w-3" />
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {isExpanded && (
+                                            <div className="space-y-1 border-l border-zen-border/25 pl-2">
+                                                {section.tabs.length > 0 ? (
+                                                    section.tabs.map((tab) => (
+                                                        <RecentRow
+                                                            key={tab.id}
+                                                            tab={tab}
+                                                            groups={groups}
+                                                            onRestoreTab={onRestoreTab}
+                                                            onDeleteArchivedTab={onDeleteArchivedTab}
+                                                            onRenameArchivedTab={onRenameArchivedTab}
+                                                            onMoveTabToGroup={onMoveTabToGroup}
+                                                        />
+                                                    ))
+                                                ) : (
+                                                    <div className="px-2 py-1.5 text-xs text-zen-muted/45">No chats in this group</div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
+
+                            {historyView.ungrouped.length > 0 && (
+                                <div className="space-y-1.5">
+                                    {groups.length > 0 && (
+                                        <div className="px-2 text-[10px] font-medium uppercase tracking-[0.18em] text-zen-muted/45">
+                                            Ungrouped
+                                        </div>
+                                    )}
+                                    {historyView.ungrouped.map((tab: Tab) => (
+                                        <RecentRow
+                                            key={tab.id}
+                                            tab={tab}
+                                            groups={groups}
+                                            onRestoreTab={onRestoreTab}
+                                            onDeleteArchivedTab={onDeleteArchivedTab}
+                                            onRenameArchivedTab={onRenameArchivedTab}
+                                            onMoveTabToGroup={onMoveTabToGroup}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+
+                            {historyView.totalCount === 0 && (
+                                <div className="px-2 py-3 text-xs text-zen-muted/45">
+                                    {historyView.hasQuery ? 'No matching chats' : 'No saved chats'}
+                                </div>
                             )}
                         </div>
                     </section>

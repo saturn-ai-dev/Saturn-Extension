@@ -81,6 +81,7 @@ export default function App({ mode = 'full' }: AppProps) {
             return user;
         } catch { return DEFAULT_USER; }
     });
+    const [loadedUserId, setLoadedUserId] = useState<string | null>(null);
 
     const [customExtensions, setCustomExtensions] = useState<Extension[]>(() => {
         try {
@@ -121,57 +122,12 @@ export default function App({ mode = 'full' }: AppProps) {
     // --- Persistence & User Switching ---
     useEffect(() => {
         const userId = currentUser.id;
+        const userTheme = currentUser.theme;
         const storageKey = `deepsearch_data_${userId}`;
 
-        try {
-            const savedData = localStorage.getItem(storageKey);
-            if (savedData) {
-                const data = JSON.parse(savedData);
+        setLoadedUserId(null);
 
-                // Check if incognito mode was previously enabled
-                const wasIncognito = data.isIncognito || false;
-
-                // If we're in incognito mode, don't load any chat history
-                if (wasIncognito) {
-                    const newTab = getInitialTab();
-                    setTabs([newTab]);
-                    setActiveTabId(newTab.id);
-                    setArchivedTabs([]);
-                    setGlobalHistory([]);
-                    setIsIncognito(true);
-                } else {
-                    // ARCHIVE OLD TABS: Move any previous active tabs to archive
-                    const previousTabs = data.tabs || [];
-                    const previousArchives = data.archivedTabs || [];
-                    // Filter out empty new tabs from archive to avoid clutter
-                    const validPreviousTabs = previousTabs.filter((t: Tab) => t.messages.length > 0);
-
-                    const newTab = getInitialTab();
-                    setTabs([newTab]);
-                    setActiveTabId(newTab.id);
-
-                    setArchivedTabs([...validPreviousTabs, ...previousArchives]);
-                    setGroups(data.groups || []);
-                    setDownloads(data.downloads || []);
-                    setGlobalHistory(data.globalHistory || []);
-                    setCustomBackdrop(data.customBackdrop || null);
-                    setCustomInstructions(data.customInstructions || '');
-                    setIsIncognito(false);
-                }
-            } else {
-                const newTab = getInitialTab();
-                setTabs([newTab]);
-                setActiveTabId(newTab.id);
-                setArchivedTabs([]);
-                setGroups([]);
-                setDownloads([]);
-                setGlobalHistory([]);
-                setCustomBackdrop(null);
-                setCustomInstructions('');
-                setIsIncognito(false);
-            }
-        } catch (e) {
-            console.error("Failed to load user data", e);
+        const loadEmptySession = () => {
             const newTab = getInitialTab();
             setTabs([newTab]);
             setActiveTabId(newTab.id);
@@ -182,13 +138,57 @@ export default function App({ mode = 'full' }: AppProps) {
             setCustomBackdrop(null);
             setCustomInstructions('');
             setIsIncognito(false);
+        };
+
+        try {
+            const savedData = localStorage.getItem(storageKey);
+            if (savedData) {
+                const data = JSON.parse(savedData);
+                const wasIncognito = data.isIncognito || false;
+
+                if (wasIncognito) {
+                    const newTab = getInitialTab();
+                    setTabs([newTab]);
+                    setActiveTabId(newTab.id);
+                    setArchivedTabs([]);
+                    setGroups(data.groups || []);
+                    setDownloads(data.downloads || []);
+                    setGlobalHistory([]);
+                    setCustomBackdrop(data.customBackdrop || null);
+                    setCustomInstructions(data.customInstructions || '');
+                    setIsIncognito(true);
+                } else {
+                    const previousTabs = data.tabs || [];
+                    const previousArchives = data.archivedTabs || [];
+                    const validPreviousTabs = previousTabs.filter((t: Tab) => t.messages.length > 0);
+                    const newTab = getInitialTab();
+
+                    setTabs([newTab]);
+                    setActiveTabId(newTab.id);
+                    setArchivedTabs([...validPreviousTabs, ...previousArchives]);
+                    setGroups(data.groups || []);
+                    setDownloads(data.downloads || []);
+                    setGlobalHistory(data.globalHistory || []);
+                    setCustomBackdrop(data.customBackdrop || null);
+                    setCustomInstructions(data.customInstructions || '');
+                    setIsIncognito(false);
+                }
+            } else {
+                loadEmptySession();
+            }
+        } catch (e) {
+            console.error("Failed to load user data", e);
+            loadEmptySession();
         }
-        setCurrentTheme(currentUser.theme);
+
+        setCurrentTheme(userTheme);
         localStorage.setItem('deepsearch_current_user_id', userId);
-    }, []);
+        setLoadedUserId(userId);
+    }, [currentUser.id]);
 
     useEffect(() => {
         const userId = currentUser.id;
+        if (loadedUserId !== userId) return;
         const storageKey = `deepsearch_data_${userId}`;
 
         // In incognito mode, don't persist conversation history (tabs/archivedTabs/globalHistory)
@@ -197,7 +197,7 @@ export default function App({ mode = 'full' }: AppProps) {
             : { tabs, activeTabId, archivedTabs, downloads, customBackdrop, globalHistory, customInstructions, isIncognito, groups };
 
         localStorage.setItem(storageKey, JSON.stringify(dataToSave));
-    }, [tabs, archivedTabs, activeTabId, downloads, customBackdrop, globalHistory, customInstructions, isIncognito, groups]);
+    }, [loadedUserId, currentUser.id, tabs, archivedTabs, activeTabId, downloads, customBackdrop, globalHistory, customInstructions, isIncognito, groups]);
 
     useEffect(() => {
         localStorage.setItem('deepsearch_users', JSON.stringify(users));
@@ -307,6 +307,7 @@ export default function App({ mode = 'full' }: AppProps) {
 
     const handleToggleHistory = () => {
         if (activeSidebarApp) setActiveSidebarApp(null);
+        setIsSidebarCollapsed(false);
         setIsSidebarOpen(false);
     };
 

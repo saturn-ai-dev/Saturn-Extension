@@ -14,12 +14,14 @@ import { fetchGeminiModels, fetchOpenAIModels, getFallbackModelCatalog, type Mod
 import { sendNanobrowserMessage } from './services/nanobrowserService';
 import { composeSaturnOpenUiInstructions } from './services/openuiService';
 import { separateOpenUIContent } from './services/openuiContent';
+import { buildHistorySections, createDefaultExpandedGroupIds } from './services/historyGrouping.js';
 import {
   Plus, History, Settings, Trash2, RotateCcw, Search,
   ArrowUp, Paperclip, FileText, MessageSquare,
   Bot, StickyNote, Calculator, ChevronDown, Check,
   Zap, Globe, BrainCircuit, Target, Image as ImageIcon, Video,
-  Play, Square, Clock, Copy, Download, X, Key, ExternalLink, User, Box, Rocket
+  Play, Square, Clock, Copy, Download, X, Key, ExternalLink, User, Box, Rocket,
+  ChevronRight, Folder, FolderPlus, PencilLine
 } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -793,6 +795,7 @@ export default function SidebarApp() {
       return user;
     } catch { return DEFAULT_USER; }
   });
+  const [loadedUserId, setLoadedUserId] = useState<string | null>(null);
   const [customExtensions, setCustomExtensions] = useState<Extension[]>(() => { try { const s = localStorage.getItem('deepsearch_custom_extensions'); return s ? JSON.parse(s) : []; } catch { return []; } });
 
   const [tabs, setTabs] = useState<Tab[]>([]);
@@ -810,6 +813,11 @@ export default function SidebarApp() {
   const [isIncognito, setIsIncognito] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [historySearch, setHistorySearch] = useState('');
+  const [expandedHistoryGroups, setExpandedHistoryGroups] = useState<Set<string>>(() => createDefaultExpandedGroupIds(groups));
+  const [isCreatingHistoryGroup, setIsCreatingHistoryGroup] = useState(false);
+  const [newHistoryGroupName, setNewHistoryGroupName] = useState('');
+  const [renamingHistoryGroupId, setRenamingHistoryGroupId] = useState<string | null>(null);
+  const [historyGroupNameDraft, setHistoryGroupNameDraft] = useState('');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [activeAppTab, setActiveAppTab] = useState<AppTab>('chat');
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -826,11 +834,30 @@ export default function SidebarApp() {
   // Load from shared localStorage
   useEffect(() => {
     const userId = currentUser.id;
+    const userTheme = currentUser.theme;
+    setLoadedUserId(null);
+
+    const loadEmptySession = () => {
+      const t = getInitialTab();
+      setTabs([t]);
+      setActiveTabId(t.id);
+      setArchivedTabs([]);
+      setGroups([]);
+      setDownloads([]);
+      setGlobalHistory([]);
+      setCustomInstructions('');
+      setIsIncognito(false);
+    };
+
     try {
       const data = JSON.parse(localStorage.getItem(`deepsearch_data_${userId}`) || 'null');
       if (data) {
         if (data.isIncognito) {
-          const t = getInitialTab(); setTabs([t]); setActiveTabId(t.id); setArchivedTabs([]); setIsIncognito(true);
+          const t = getInitialTab();
+          setTabs([t]); setActiveTabId(t.id); setArchivedTabs([]);
+          setGroups(data.groups || []); setDownloads(data.downloads || []);
+          setGlobalHistory([]); setCustomInstructions(data.customInstructions || '');
+          setIsIncognito(true);
         } else {
           const validPrev = (data.tabs || []).filter((t: Tab) => t.messages.length > 0);
           const t = getInitialTab(); setTabs([t]); setActiveTabId(t.id);
@@ -839,19 +866,21 @@ export default function SidebarApp() {
           setGlobalHistory(data.globalHistory || []); setCustomInstructions(data.customInstructions || '');
         }
       } else {
-        const t = getInitialTab(); setTabs([t]); setActiveTabId(t.id);
+        loadEmptySession();
       }
-    } catch { const t = getInitialTab(); setTabs([t]); setActiveTabId(t.id); }
-    setCurrentTheme(currentUser.theme);
+    } catch { loadEmptySession(); }
+    setCurrentTheme(userTheme);
     localStorage.setItem('deepsearch_current_user_id', userId);
-  }, []);
+    setLoadedUserId(userId);
+  }, [currentUser.id]);
 
   useEffect(() => {
+    if (loadedUserId !== currentUser.id) return;
     const storageKey = `deepsearch_data_${currentUser.id}`;
     const data = isIncognito ? { downloads, customInstructions, isIncognito, groups }
       : { tabs, activeTabId, archivedTabs, downloads, globalHistory, customInstructions, isIncognito, groups };
     localStorage.setItem(storageKey, JSON.stringify(data));
-  }, [tabs, archivedTabs, activeTabId, downloads, globalHistory, customInstructions, isIncognito, groups]);
+  }, [loadedUserId, currentUser.id, tabs, archivedTabs, activeTabId, downloads, globalHistory, customInstructions, isIncognito, groups]);
 
   useEffect(() => { localStorage.setItem('deepsearch_users', JSON.stringify(users)); }, [users]);
   useEffect(() => { localStorage.setItem('deepsearch_custom_extensions', JSON.stringify(customExtensions)); }, [customExtensions]);
@@ -1201,15 +1230,90 @@ export default function SidebarApp() {
 
   const activeTab = tabs.find(t => t.id === activeTabId);
   const isStreaming = activeTab?.messages[activeTab.messages.length - 1]?.isStreaming || false;
-  const historyItems = useMemo(() => {
-    const query = historySearch.trim().toLowerCase();
-    return [...archivedTabs]
-      .filter(tab => {
-        if (!query) return true;
-        return tab.title.toLowerCase().includes(query) || tab.messages.some(msg => msg.text.toLowerCase().includes(query));
-      })
-      .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-  }, [archivedTabs, historySearch]);
+  const historyView = useMemo(() => buildHistorySections(archivedTabs, groups, historySearch), [archivedTabs, groups, historySearch]);
+  const historyItems = useMemo(
+    () => [...historyView.sections.flatMap((section: { tabs: Tab[] }) => section.tabs), ...historyView.ungrouped],
+    [historyView]
+  );
+
+  useEffect(() => {
+    setExpandedHistoryGroups(previous => {
+      const next = new Set(previous);
+      groups.forEach(group => next.add(group.id));
+      return next;
+    });
+  }, [groups]);
+
+  useEffect(() => {
+    if (historySearch.trim()) setExpandedHistoryGroups(createDefaultExpandedGroupIds(groups));
+  }, [historySearch, groups]);
+
+  const toggleHistoryGroup = (groupId: string) => {
+    setExpandedHistoryGroups(previous => {
+      const next = new Set(previous);
+      next.has(groupId) ? next.delete(groupId) : next.add(groupId);
+      return next;
+    });
+  };
+
+  const createHistoryGroup = () => {
+    const name = newHistoryGroupName.trim();
+    if (!name) return;
+    setGroups(prev => [...prev, { id: `group-${Date.now()}`, name, createdAt: Date.now() }]);
+    setNewHistoryGroupName('');
+    setIsCreatingHistoryGroup(false);
+  };
+
+  const startRenamingHistoryGroup = (group: ThreadGroup) => {
+    setRenamingHistoryGroupId(group.id);
+    setHistoryGroupNameDraft(group.name);
+  };
+
+  const finishRenamingHistoryGroup = () => {
+    const name = historyGroupNameDraft.trim();
+    if (renamingHistoryGroupId && name) {
+      setGroups(prev => prev.map(group => group.id === renamingHistoryGroupId ? { ...group, name } : group));
+    }
+    setRenamingHistoryGroupId(null);
+    setHistoryGroupNameDraft('');
+  };
+
+  const deleteHistoryGroup = (groupId: string) => {
+    setGroups(prev => prev.filter(group => group.id !== groupId));
+    setArchivedTabs(prev => prev.map(tab => tab.groupId === groupId ? { ...tab, groupId: undefined } : tab));
+  };
+
+  const renderHistoryThreadRow = (tab: Tab) => (
+    <div key={tab.id} onClick={() => handleRestoreThread(tab.id)}
+      className="group cursor-pointer rounded-[8px] px-2.5 py-2 transition-colors hover:bg-zen-bg/55">
+      <div className="flex items-center gap-2">
+        <RotateCcw className="w-3 h-3 text-zen-muted flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+        <div className="flex-1 min-w-0">
+          <div className="text-xs text-zen-text truncate">{tab.title}</div>
+          <div className="text-[10px] text-zen-muted">
+            {tab.messages.length} msg{tab.messages.length !== 1 ? 's' : ''}
+            {tab.createdAt ? ` - ${new Date(tab.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}` : ''}
+          </div>
+        </div>
+        <button onClick={e => { e.stopPropagation(); setArchivedTabs(prev => prev.filter(t => t.id !== tab.id)); }}
+          className="grid h-7 w-7 place-items-center rounded-[8px] text-zen-muted opacity-0 transition-all hover:bg-red-500/10 hover:text-red-400 group-hover:opacity-100">
+          <Trash2 className="w-3 h-3" />
+        </button>
+      </div>
+      {groups.length > 0 && (
+        <select
+          value={tab.groupId || ''}
+          onClick={event => event.stopPropagation()}
+          onChange={event => setArchivedTabs(prev => prev.map(item => item.id === tab.id ? { ...item, groupId: event.target.value || undefined } : item))}
+          className="mt-1 w-full rounded-[7px] border border-zen-border/25 bg-zen-bg px-2 py-1 text-[10px] text-zen-muted outline-none"
+          aria-label={`Move ${tab.title} to group`}
+        >
+          <option value="">Ungrouped</option>
+          {groups.map(group => <option key={group.id} value={group.id}>{group.name}</option>)}
+        </select>
+      )}
+    </div>
+  );
 
   const updateUser = (patch: Partial<UserProfile>) => {
     const u = { ...currentUser, ...patch };
@@ -1271,16 +1375,21 @@ export default function SidebarApp() {
 
       {/* ── History drawer ── */}
       {isHistoryOpen && (
-        <div className="mx-2 mt-2 flex max-h-64 flex-shrink-0 flex-col overflow-hidden rounded-[18px] border border-zen-border/55 bg-zen-surface/78 shadow-deep backdrop-blur-2xl">
+        <div className="mx-2 mt-2 flex max-h-[calc(100dvh-9rem)] min-h-0 flex-shrink-0 flex-col overflow-hidden rounded-[18px] border border-zen-border/55 bg-zen-surface/78 shadow-deep backdrop-blur-2xl">
           <div className="border-b border-zen-border/35 p-3">
             <div className="mb-2 flex items-center justify-between">
               <div>
                 <div className="text-sm font-semibold text-zen-text">History</div>
                 <div className="app-topbar-label mt-0.5 !text-[8px]">{archivedTabs.length} saved threads</div>
               </div>
-              <button onClick={handleNewThread} className="grid h-8 w-8 place-items-center rounded-[10px] border border-zen-border/35 text-zen-muted hover:border-zen-accent/40 hover:text-zen-accent" title="New thread">
-                <Plus className="h-4 w-4" />
-              </button>
+              <div className="flex items-center gap-1">
+                <button onClick={() => setIsCreatingHistoryGroup(v => !v)} className="grid h-8 w-8 place-items-center rounded-[10px] border border-zen-border/35 text-zen-muted hover:border-zen-accent/40 hover:text-zen-accent" title="New group">
+                  <FolderPlus className="h-4 w-4" />
+                </button>
+                <button onClick={handleNewThread} className="grid h-8 w-8 place-items-center rounded-[10px] border border-zen-border/35 text-zen-muted hover:border-zen-accent/40 hover:text-zen-accent" title="New thread">
+                  <Plus className="h-4 w-4" />
+                </button>
+              </div>
             </div>
             <div className="relative">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zen-muted/55" />
@@ -1291,8 +1400,94 @@ export default function SidebarApp() {
                 className="w-full rounded-[10px] border border-zen-border/35 bg-zen-bg/55 py-2 pl-8 pr-3 text-xs text-zen-text outline-none placeholder:text-zen-muted/45 focus:border-zen-accent/45"
               />
             </div>
+            {isCreatingHistoryGroup && (
+              <div className="mt-2 flex items-center gap-1.5 rounded-[10px] border border-zen-border/35 bg-zen-bg/55 p-1.5">
+                <Folder className="h-3.5 w-3.5 shrink-0 text-zen-accent" />
+                <input
+                  autoFocus
+                  value={newHistoryGroupName}
+                  onChange={event => setNewHistoryGroupName(event.target.value)}
+                  onKeyDown={event => {
+                    if (event.key === 'Enter') createHistoryGroup();
+                    if (event.key === 'Escape') { setIsCreatingHistoryGroup(false); setNewHistoryGroupName(''); }
+                  }}
+                  placeholder="Group name"
+                  className="min-w-0 flex-1 bg-transparent text-xs text-zen-text outline-none placeholder:text-zen-muted/45"
+                />
+                <button onClick={createHistoryGroup} className="grid h-6 w-6 place-items-center rounded-[7px] text-zen-accent hover:bg-zen-accent/10" title="Create group">
+                  <Check className="h-3 w-3" />
+                </button>
+              </div>
+            )}
           </div>
-          <div className="custom-scrollbar overflow-y-auto p-2">
+          <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto p-2">
+            {historyView.totalCount === 0 ? (
+              <div className="px-4 py-5 text-center text-zen-muted text-sm">
+                {historyView.hasQuery ? 'No matching threads' : 'No past threads'}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {historyView.sections.map((section: { id: string; title: string; group: ThreadGroup; tabs: Tab[] }) => {
+                  const isExpanded = expandedHistoryGroups.has(section.id) || historyView.hasQuery;
+                  const isRenaming = renamingHistoryGroupId === section.id;
+
+                  return (
+                    <div key={section.id} className="space-y-1.5">
+                      <div className="group/header flex items-center gap-1 rounded-[9px] px-1.5 py-1 text-zen-muted hover:bg-zen-bg/50">
+                        <button onClick={() => toggleHistoryGroup(section.id)} className="grid h-7 w-7 shrink-0 place-items-center rounded-[8px] hover:bg-zen-surface hover:text-zen-text" title={isExpanded ? 'Collapse group' : 'Expand group'}>
+                          {isExpanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+                        </button>
+                        <Folder className="h-3.5 w-3.5 shrink-0 text-zen-accent/75" />
+                        {isRenaming ? (
+                          <input
+                            autoFocus
+                            value={historyGroupNameDraft}
+                            onChange={event => setHistoryGroupNameDraft(event.target.value)}
+                            onBlur={finishRenamingHistoryGroup}
+                            onKeyDown={event => {
+                              if (event.key === 'Enter') finishRenamingHistoryGroup();
+                              if (event.key === 'Escape') { setRenamingHistoryGroupId(null); setHistoryGroupNameDraft(''); }
+                            }}
+                            className="min-w-0 flex-1 rounded-[7px] border border-zen-accent/35 bg-zen-bg px-2 py-1 text-xs text-zen-text outline-none"
+                          />
+                        ) : (
+                          <button onClick={() => toggleHistoryGroup(section.id)} className="min-w-0 flex-1 truncate text-left text-xs font-semibold text-zen-text" title={section.title}>
+                            {section.title}
+                          </button>
+                        )}
+                        <span className="font-mono text-[10px] text-zen-muted/50">{section.tabs.length}</span>
+                        {!isRenaming && (
+                          <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover/header:opacity-100">
+                            <button onClick={() => startRenamingHistoryGroup(section.group)} className="grid h-7 w-7 place-items-center rounded-[8px] text-zen-muted hover:bg-zen-surface hover:text-zen-text" title="Rename group">
+                              <PencilLine className="h-3 w-3" />
+                            </button>
+                            <button onClick={() => deleteHistoryGroup(section.id)} className="grid h-7 w-7 place-items-center rounded-[8px] text-zen-muted hover:bg-red-500/10 hover:text-red-400" title="Delete group">
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      {isExpanded && (
+                        <div className="space-y-1 border-l border-zen-border/25 pl-2">
+                          {section.tabs.length > 0 ? section.tabs.map((tab: Tab) => renderHistoryThreadRow(tab)) : (
+                            <div className="px-2 py-1.5 text-xs text-zen-muted/45">No chats in this group</div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {historyView.ungrouped.length > 0 && (
+                  <div className="space-y-1.5">
+                    {groups.length > 0 && <div className="px-2 text-[10px] font-medium uppercase tracking-[0.18em] text-zen-muted/45">Ungrouped</div>}
+                    {historyView.ungrouped.map((tab: Tab) => renderHistoryThreadRow(tab))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+          <div className="hidden">
           {historyItems.length === 0 ? (
             <div className="px-4 py-5 text-center text-zen-muted text-sm">No past threads</div>
           ) : historyItems.map(tab => (
